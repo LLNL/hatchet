@@ -13,12 +13,33 @@ from extrap.fileio import io_helper
 from extrap.modelers.model_generator import ModelGenerator
 
 
-# class StubModel:
-#     def __init__(self, l):
-#         self._vals = l
-    
-#     def __str__(self):
-#         return str(self._vals)
+class ModelWrapper:
+    def __init__(self, mdl, param_name):
+        self.mdl = mdl
+        self.param_name = param_name
+
+    def __str__(self):
+        return str(self.mdl.hypothesis.function)
+
+    def eval(self, val):
+        return self.mdl.hypothesis.function.evaluate(val)
+
+    def display(self):
+        vals = [ms.value(True) for ms in self.mdl.measurements]
+        params = [ms.coordinate[0] for ms in self.mdl.measurements]
+        x_vals = np.arange(params[0], 1.5*params[-1], (params[-1] - params[0]) / 100.0)
+        y_vals = [self.mdl.hypothesis.function.evaluate(x) for x in x_vals]
+
+        fig = plt.figure()
+        plt.plot(x_vals, y_vals, label=self.mdl.hypothesis.function)
+        plt.plot(params, vals, 'ro', label=self.mdl.callpath)
+        plt.xlabel(self.param_name)
+        plt.ylabel(self.mdl.metric)
+        plt.text(x_vals[0], max(y_vals + vals), 'AR2 = {0}'.format(self.mdl.hypothesis.AR2))
+        plt.legend()
+
+        plt.show()
+
 
 class Modeling:
     """Produce models for all the metrics across the given graph frames.
@@ -44,44 +65,33 @@ class Modeling:
         self.params = params
         self.param_name = param_name
         self.all_met = all_met
+        self.models_df = None
 
     def model_all(self):
-        for gf in self.gfs:
-            for m in self.all_met:
-                gf.dataframe[m + '_model'] = [object] * len(gf.dataframe.index)
-
+        self.models_df = pd.DataFrame(index=pd.Index([], name='node'))
         self._traverse_sync([gf.graph for gf in self.gfs], roots = True)
 
-    def evaluate_value(self, model, val):
-        return model.hypothesis.function.evaluate(val)
-
-    def display_model(self, model):
-        vals = [ms.value(True) for ms in model.measurements]
-        x_vals = np.arange(self.params[0], 1.5*self.params[-1], (self.params[-1] - self.params[0]) / 100.0)
-        y_vals = [model.hypothesis.function.evaluate(x) for x in x_vals]
-
-        fig = plt.figure()
-        plt.plot(x_vals, y_vals, label=model.hypothesis.function)
-        plt.plot(self.params, vals, 'ro', label=model.callpath)
-        plt.xlabel(self.param_name)
-        plt.ylabel(model.metric)
-        plt.text(x_vals[0], max(y_vals + vals), 'AR2 = {0}'.format(model.hypothesis.AR2))
-        plt.legend()
-
-        plt.show()
-
-    # def _produce_models(self, nodes):
-    #     for m in self.all_met:
-    #         vals = [self.gfs[i].dataframe.loc[n, m] for i, n in enumerate(nodes)]
-    #         for i, n in enumerate(nodes):
-    #             self.gfs[i].dataframe.at[n, m + '_model'] = StubModel(vals)
-
     def _produce_extrap_models(self, nodes):
+        # Prepare for adding new row to the models df
+        curr_ind = list(self.models_df.index)
+        curr_ind.append(nodes[0])
+        self.models_df = self.models_df.reindex(curr_ind, fill_value=object())
+
         ex = xte.experiment.Experiment()
         ex.add_parameter(xte.parameter.Parameter(self.param_name))
-        ex.coordinates.extend([xte.coordinate.Coordinate(float(p)) for p in self.params])
+        # If we're modeling MPI functions timing over increasing core count, then
+        # we need to skip serial code (core count equals 1)
+        skip_idx = -1
+
+        for i, p in enumerate(self.params):
+            if self.param_name == 'cores' and p == 1:
+                skip_idx = i
+                continue
+            ex.coordinates.append(xte.coordinate.Coordinate(float(p)))
+
+        # ex.coordinates.extend([xte.coordinate.Coordinate(float(p)) for p in self.params])
         for m in self.all_met:
-            vals = [self.gfs[i].dataframe.loc[n, m] for i, n in enumerate(nodes)]
+            vals = [self.gfs[i].dataframe.loc[n, m] for i, n in enumerate(nodes) if i != skip_idx]
             xm = xte.metric.Metric(m)
             ex.add_metric(xte.metric.Metric(m))
             cpath = xte.callpath.Callpath(nodes[0].frame.attrs['name'])
@@ -95,8 +105,8 @@ class Modeling:
             model_gen.model_all()
             mkey = (cpath, xm)
             # func_arr = []
-            for i, n in enumerate(nodes):
-                self.gfs[i].dataframe.at[n, m + '_model'] = model_gen.models[mkey] #.hypothesis.function
+            self.models_df.at[nodes[0], m + '_model'] = \
+                ModelWrapper(model_gen.models[mkey], self.param_name)
 
     def _traverse_sync(self, nodes, roots = False, visited_l = None):
         if not visited_l:
@@ -108,17 +118,14 @@ class Modeling:
         for i, n in enumerate(nodes):
             if not roots:
                 visited_l[i].add(n._hatchet_nid)
-            dc = {}
             arr = []
             if roots:
                 arr = n.roots
             else:
                 arr = n.children
-            for child in arr:
-                dc[child.frame] = child
+            dc = {child.frame: child for child in arr}
             cdicts.append(dc)
-        
-        arr = []
+
         if roots:
             arr = nodes[0].roots
         else:
@@ -126,16 +133,13 @@ class Modeling:
         for child in arr:
             child_nodes = []
             child_nodes.append(child)
-            for i in range(1, len(cdicts)):
-                if child.frame in cdicts[i]:
-                    child_nodes.append(cdicts[i][child.frame])
-                else:
-                    break
-            if len(child_nodes) == len(nodes):
-                if any([child in vs for child, vs in zip(child_nodes, visited_l)]):
-                    continue
-                # recursive call
-                # self._produce_models(child_nodes)
-                self._produce_extrap_models(child_nodes)
-                self._traverse_sync(child_nodes, False, visited_l)
+            for j in range(1, len(cdicts)):
+                if child.frame in cdicts[j]:
+                    child_nodes.append(cdicts[j][child.frame])
 
+            if any([child in vs for child, vs in zip(child_nodes, visited_l)]):
+                continue
+
+            # recursive call
+            self._produce_extrap_models(child_nodes)
+            self._traverse_sync(child_nodes, False, visited_l)
