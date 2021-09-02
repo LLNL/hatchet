@@ -2,3 +2,5 @@
 # Hatchet Project Developers. See the top-level LICENSE file for details.
 #
 # SPDX-License-Identifier: MIT
+
+from .unify_ensemble import unify_ensemble
