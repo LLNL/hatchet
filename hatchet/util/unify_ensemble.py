@@ -22,5 +22,9 @@ def unify_ensemble(gf_list):
         else:
             curr_df["dataset"] = "gframe_{}".format(i)
         unify_df = pd.concat([curr_df, unify_df], sort=True)
+    index_names = list(unify_df.index.names)
+    unify_df.reset_index(inplace=True)
+    index_names.append("dataset")
+    unify_df.set_index(index_names, inplace=True)
     unify_gf = GraphFrame(graph=gf_list[0].graph, dataframe=unify_df)
     return unify_gf
