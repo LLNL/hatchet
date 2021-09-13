@@ -13,6 +13,7 @@ from hatchet.external.console import ConsoleRenderer
 def test_graphframe(hatchet_cycle_pstats):
     gf = GraphFrame.from_cprofile(str(hatchet_cycle_pstats))
 
+    assert gf.dataset == str(hatchet_cycle_pstats)
     assert len(gf.dataframe.groupby("file")) == 4
     assert len(gf.dataframe.groupby("name")) == 9
 

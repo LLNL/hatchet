@@ -23,10 +23,13 @@ def test_graphframe(timemory_json_data):
     """Sanity test a GraphFrame object with known data."""
     from timemory.component import WallClock
 
+    print(type(timemory_json_data))
+
     wc_s = WallClock.id()  # string identifier
     wc_v = WallClock.index()  # enumeration id
     gf = GraphFrame.from_timemory(timemory_json_data, [wc_s])
 
+    assert gf.dataset == timemory_json_data
     assert len(gf.dataframe) == timemory.size([wc_v])[wc_v]
 
     for col in gf.dataframe.columns:

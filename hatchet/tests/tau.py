@@ -13,6 +13,8 @@ def test_graphframe(tau_profile_dir):
     """Sanity test a GraphFrame object with known data."""
     gf = GraphFrame.from_tau(str(tau_profile_dir))
 
+    assert gf.dataset == str(tau_profile_dir)
+
     for col in gf.dataframe.columns:
         if col in ("time (inc)", "time"):
             assert gf.dataframe[col].dtype == np.float64

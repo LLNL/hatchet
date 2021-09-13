@@ -40,6 +40,8 @@ def test_graphframe(hatchet_pyinstrument_json):
     # create a graphframe using from_pyinstrument
     gf = GraphFrame.from_pyinstrument(str(hatchet_pyinstrument_json))
 
+    assert gf.dataset == str(hatchet_pyinstrument_json)
+
     graph_dict = []
     # read directly from the input file to compare it with the graphframe.
     with open(str(hatchet_pyinstrument_json)) as pyinstrument_json:

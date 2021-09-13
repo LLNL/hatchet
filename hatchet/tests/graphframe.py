@@ -19,6 +19,7 @@ from hatchet.graphframe import InvalidFilter, EmptyFilter
 from hatchet.frame import Frame
 from hatchet.graph import Graph
 from hatchet.node import Node
+from hatchet.util.unify_ensemble import unify_ensemble
 from hatchet.external.console import ConsoleRenderer
 
 
@@ -1176,3 +1177,27 @@ def test_hdf_load_store(mock_graph_literal):
 
     if os.path.exists("test_gframe.hdf"):
         os.remove("test_gframe.hdf")
+
+
+def test_unify_ensemble(lulesh_caliper_json):
+    profiles = []
+    real_dset_names = []
+    num_nodes_per_gf = {}
+    for i in range(10):
+        gf = GraphFrame.from_caliper_json(str(lulesh_caliper_json))
+        dset_name = "dset{}".format(i)
+        num_nodes_per_gf[dset_name] = len(gf.dataframe.groupby("name"))
+        gf.dataset = dset_name
+        profiles.append(gf)
+        real_dset_names.append(dset_name)
+    unified_gf = unify_ensemble(profiles)
+    for gf in profiles:
+        assert unified_gf.graph == gf.graph
+    assert "dataset" in unified_gf.dataframe.index.names
+    unique_dset_names = list(unified_gf.dataframe.index.unique(level="dataset"))
+    assert list(sorted(unique_dset_names)) == list(sorted(real_dset_names))
+    for dset in unique_dset_names:
+        dframe_for_dset = unified_gf.dataframe[
+            unified_gf.dataframe.index.get_level_values("dataset") == dset
+        ]
+        assert len(dframe_for_dset.groupby("name")) == num_nodes_per_gf[dset]
