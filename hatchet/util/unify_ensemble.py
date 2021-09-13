@@ -1,4 +1,4 @@
-from ..graphframe import GraphFrame
+from hatchet import GraphFrame
 
 from itertools import groupby
 import pandas as pd
