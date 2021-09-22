@@ -3,6 +3,7 @@
 #
 # SPDX-License-Identifier: MIT
 
+from numpy.lib.function_base import append
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
@@ -57,15 +58,23 @@ class Modeling:
         all_met: all the metrics
     """
 
-    def __init__(self, gfs, params, param_name, all_met):
+    def __init__(self, gfs, params, param_name, all_met, min_vals=5):
         # Assume params are sorted
         assert(len(gfs) == len(params))
 
-        self.gfs = gfs
+        self.gfs = [gf.copy() for gf in gfs]
         self.params = params
         self.param_name = param_name
         self.all_met = all_met
+        self.min_vals = min_vals
         self.models_df = None
+
+        # Unify all graphs
+        for i in range(1, len(self.gfs)):
+            self.gfs[0].unify(self.gfs[i])
+    
+        for i in range(1, len(self.gfs)):
+            self.gfs[i].unify(self.gfs[0])
 
     def model_all(self):
         self.models_df = pd.DataFrame(index=pd.Index([], name='node'))
@@ -75,7 +84,8 @@ class Modeling:
         # Prepare for adding new row to the models df
         curr_ind = list(self.models_df.index)
         curr_ind.append(nodes[0])
-        self.models_df = self.models_df.reindex(curr_ind, fill_value=object())
+        # self.models_df = self.models_df.reindex(curr_ind, fill_value=object())
+        self.models_df = self.models_df.reindex(curr_ind, fill_value=None)
 
         ex = xte.experiment.Experiment()
         ex.add_parameter(xte.parameter.Parameter(self.param_name))
@@ -91,7 +101,16 @@ class Modeling:
 
         # ex.coordinates.extend([xte.coordinate.Coordinate(float(p)) for p in self.params])
         for m in self.all_met:
-            vals = [self.gfs[i].dataframe.loc[n, m] for i, n in enumerate(nodes) if i != skip_idx]
+            vals = []
+            for i, n in enumerate(nodes):
+                if i == skip_idx:
+                    continue
+                v = self.gfs[i].dataframe.loc[n, m]
+                if not np.isnan(v):
+                    vals.append(v)
+            if len(vals) < self.min_vals:
+                continue
+            # vals = [self.gfs[i].dataframe.loc[n, m] for i, n in enumerate(nodes) if i != skip_idx]
             xm = xte.metric.Metric(m)
             ex.add_metric(xte.metric.Metric(m))
             cpath = xte.callpath.Callpath(nodes[0].frame.attrs['name'])
