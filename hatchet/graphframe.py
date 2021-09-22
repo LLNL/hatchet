@@ -683,9 +683,12 @@ class GraphFrame:
         if not self.exc_metrics:
             return
 
-        new_inc_metrics = ["%s (inc)" % s for s in self.exc_metrics]
-        self.inc_metrics = list(set(self.inc_metrics + new_inc_metrics))
+        # TODO When Python 2.7 support is dropped, change this line to the more idiomatic:
+        # old_inc_metrics = self.inc_metrics.copy()
+        old_inc_metrics = list(self.inc_metrics)
+        self.inc_metrics = ["%s (inc)" % s for s in self.exc_metrics]
         self.subgraph_sum(self.exc_metrics, self.inc_metrics)
+        self.inc_metrics = list(set(self.inc_metrics + old_inc_metrics))
 
     def show_metric_columns(self):
         """Returns a list of dataframe column labels."""
