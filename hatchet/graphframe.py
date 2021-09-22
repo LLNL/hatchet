@@ -684,7 +684,7 @@ class GraphFrame:
             return
 
         new_inc_metrics = ["%s (inc)" % s for s in self.exc_metrics]
-        self.inc_metrics.extend(new_inc_metrics)
+        self.inc_metrics = list(set(self.inc_metrics + new_inc_metrics))
         self.subgraph_sum(self.exc_metrics, self.inc_metrics)
 
     def show_metric_columns(self):
