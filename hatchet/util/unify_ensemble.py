@@ -16,7 +16,11 @@ def unify_ensemble(gf_list):
     if not all_equal([gf.graph for gf in gf_list]):
         raise ValueError('"unify_ensemble" requires all graphs to be equal')
     unify_df = pd.DataFrame()
+    inc_metrics = []
+    exc_metrics = []
     for i, gf in enumerate(gf_list):
+        inc_metrics.extend(gf.inc_metrics)
+        exc_metrics.extend(gf.exc_metrics)
         curr_df = gf.dataframe.copy()
         if gf.dataset is not None:
             curr_df["dataset"] = gf.dataset
@@ -30,5 +34,12 @@ def unify_ensemble(gf_list):
     unify_df.sort_values(by="hatchet_nid", inplace=True)
     unify_df.drop("hatchet_nid", axis=1)
     unify_df.set_index(index_names, inplace=True)
-    unify_gf = GraphFrame(graph=gf_list[0].graph, dataframe=unify_df)
+    inc_metrics = list(set(inc_metrics))
+    exc_metrics = list(set(exc_metrics))
+    unify_gf = GraphFrame(
+        graph=gf_list[0].graph,
+        dataframe=unify_df,
+        inc_metrics=inc_metrics,
+        exc_metrics=exc_metrics,
+    )
     return unify_gf
