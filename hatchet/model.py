@@ -58,16 +58,17 @@ class Modeling:
         all_met: all the metrics
     """
 
-    def __init__(self, gfs, params, param_name, all_met, min_vals=5):
+    def __init__(self, gfs, params, param_name, all_met=None, depth=10000):
         # Assume params are sorted
         assert(len(gfs) == len(params))
 
         self.gfs = [gf.copy() for gf in gfs]
         self.params = params
         self.param_name = param_name
-        self.all_met = all_met
-        self.min_vals = min_vals
+        if not all_met:
+            self.all_met = self.gfs[0].exc_metrics + self.gfs[0].inc_metrics
         self.models_df = None
+        self.max_depth = depth
 
         # Unify all graphs
         for i in range(1, len(self.gfs)):
@@ -99,7 +100,6 @@ class Modeling:
                 continue
             ex.coordinates.append(xte.coordinate.Coordinate(float(p)))
 
-        # ex.coordinates.extend([xte.coordinate.Coordinate(float(p)) for p in self.params])
         for m in self.all_met:
             vals = []
             for i, n in enumerate(nodes):
@@ -108,12 +108,15 @@ class Modeling:
                 v = self.gfs[i].dataframe.loc[n, m]
                 if not np.isnan(v):
                     vals.append(v)
-            if len(vals) < self.min_vals:
+            if len(vals) < len(ex.coordinates):
+                if nodes[0] in self.models_df.index:
+                    self.models_df = self.models_df.drop(nodes[0])
                 continue
-            # vals = [self.gfs[i].dataframe.loc[n, m] for i, n in enumerate(nodes) if i != skip_idx]
             xm = xte.metric.Metric(m)
             ex.add_metric(xte.metric.Metric(m))
-            cpath = xte.callpath.Callpath(nodes[0].frame.attrs['name'])
+            # Assume name column is called 'name':
+            node_name = self.gfs[0].dataframe.loc[nodes[0], 'name']
+            cpath = xte.callpath.Callpath(node_name)
             ex.add_callpath(cpath)
             ex.call_tree = io_helper.create_call_tree(ex.callpaths)
             for coord, v in zip(ex.coordinates, vals):
@@ -123,7 +126,6 @@ class Modeling:
             model_gen = ModelGenerator(ex)
             model_gen.model_all()
             mkey = (cpath, xm)
-            # func_arr = []
             self.models_df.at[nodes[0], m + '_model'] = \
                 ModelWrapper(model_gen.models[mkey], self.param_name)
 
@@ -150,6 +152,8 @@ class Modeling:
         else:
             arr = nodes[0].children
         for child in arr:
+            if child._depth >= self.max_depth:
+                break
             child_nodes = []
             child_nodes.append(child)
             for j in range(1, len(cdicts)):
