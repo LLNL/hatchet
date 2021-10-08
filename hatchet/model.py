@@ -31,15 +31,16 @@ class ModelWrapper:
         x_vals = np.arange(params[0], 1.5*params[-1], (params[-1] - params[0]) / 100.0)
         y_vals = [self.mdl.hypothesis.function.evaluate(x) for x in x_vals]
 
-        fig = plt.figure()
-        plt.plot(x_vals, y_vals, label=self.mdl.hypothesis.function)
-        plt.plot(params, vals, 'ro', label=self.mdl.callpath)
-        plt.xlabel(self.param_name)
-        plt.ylabel(self.mdl.metric)
-        plt.text(x_vals[0], max(y_vals + vals), 'AR2 = {0}'.format(self.mdl.hypothesis.AR2))
-        plt.legend()
+        fig, ax = plt.subplots()
+        ax.plot(x_vals, y_vals, label=self.mdl.hypothesis.function)
+        ax.plot(params, vals, 'ro', label=self.mdl.callpath)
+        ax.set_xlabel(self.param_name)
+        ax.set_ylabel(self.mdl.metric)
+        ax.text(x_vals[0], max(y_vals + vals), 'AR2 = {0}'.format(self.mdl.hypothesis.AR2))
+        ax.legend()
 
-        plt.show()
+        # plt.show()
+        return ax
 
 
 class Modeling:
