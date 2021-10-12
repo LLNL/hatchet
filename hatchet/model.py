@@ -7,11 +7,14 @@ from numpy.lib.function_base import append
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+import uuid
 
 import extrap.entities as xte
 import extrap.entities.experiment
 from extrap.fileio import io_helper
 from extrap.modelers.model_generator import ModelGenerator
+from io import BytesIO
+import base64
 
 
 class ModelWrapper:
@@ -31,6 +34,7 @@ class ModelWrapper:
         x_vals = np.arange(params[0], 1.5*params[-1], (params[-1] - params[0]) / 100.0)
         y_vals = [self.mdl.hypothesis.function.evaluate(x) for x in x_vals]
 
+        plt.ioff()
         fig, ax = plt.subplots()
         ax.plot(x_vals, y_vals, label=self.mdl.hypothesis.function)
         ax.plot(params, vals, 'ro', label=self.mdl.callpath)
@@ -39,8 +43,7 @@ class ModelWrapper:
         ax.text(x_vals[0], max(y_vals + vals), 'AR2 = {0}'.format(self.mdl.hypothesis.AR2))
         ax.legend()
 
-        # plt.show()
-        return ax
+        return fig, ax
 
 
 class Modeling:
@@ -81,6 +84,40 @@ class Modeling:
     def model_all(self):
         self.models_df = pd.DataFrame(index=pd.Index([], name='node'))
         self._traverse_sync([gf.graph for gf in self.gfs], roots = True)
+
+#    def visual_df(self):
+#        vis_df = self.models_df.copy()
+#        for i in vis_df.index:
+#            for m in self.all_met:
+#                model_obj = vis_df.at[i, m + '_model']
+#                fig, ax = model_obj.display()
+#                figname = '/tmp/{0}.png'.format(str(uuid.uuid4())) 
+#                fig.savefig(figname)
+#                plt.close(fig)
+#                vis_df.at[i, m + '_model'] = figname
+#
+#        return vis_df
+#
+#    def to_html(self, vdf):
+#        def path_to_img_html(path):
+#            return '<img src="{0}" alt="{0}" >'.format(path)
+#
+#        frm_dict = {m + '_model': path_to_img_html for m in self.all_met}
+#        return vdf.to_html(escape=False, formatters=frm_dict)
+
+    def to_html(self):
+        def model_to_img_html(model_obj):
+            fig, ax = model_obj.display()
+            figfile = BytesIO()
+            fig.savefig(figfile, format='png')
+            figfile.seek(0)
+            figdata_png = base64.b64encode(figfile.getvalue()).decode()
+            imgstr = '<img src="data:image/png;base64,{}" />'.format(figdata_png)
+            plt.close(fig)
+            return imgstr
+
+        frm_dict = {m + '_model': model_to_img_html for m in self.all_met}
+        return self.models_df.to_html(escape=False, formatters=frm_dict)
 
     def _produce_extrap_models(self, nodes):
         # Prepare for adding new row to the models df
