@@ -695,6 +695,32 @@ class GraphFrame:
                     function(self.dataframe.loc[(subgraph_nodes), columns])
                 )
 
+    def generate_exclusive_columns(self):
+        # TODO Change how exclusive-inclusive pairs are determined when inc_metrics and exc_metrics are changed
+        generation_pairs = []
+        for inc in self.inc_metrics:
+            if not pd.api.types.is_numeric_dtype(self.dataframe[inc]):
+                continue
+            # Assume that metrics ending in "(inc)" are generated
+            if inc.endswith("(inc)"):
+                possible_exc = inc[:-len("(inc)")].strip()
+                if possible_exc not in self.exc_metrics:
+                    generation_pairs.append((possible_exc, inc))
+            else:
+                generation_pairs.append((inc + " (exc)", inc))
+        for exc, inc in generation_pairs:
+            if isinstance(self.dataframe.index, pd.MultiIndex):
+                # See subtree_sum for indexing help
+                pass
+            else:
+                new_data = {n: -1 for n in self.dataframe.index.values}
+                for node in self.graph.traverse():
+                    inc_sum = 0
+                    for child in node.children:
+                        inc_sum += self.dataframe[child, inc]
+                    new_data[node] = self.dataframe[node, inc] - inc_sum
+                self.dataframe[exc] = pd.Series(data=new_data)
+
     def update_inclusive_columns(self):
         """Update inclusive columns (typically after operations that rewire the
         graph.
