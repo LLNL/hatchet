@@ -728,6 +728,7 @@ class GraphFrame:
                         inc_sum += self.dataframe[child, inc]
                     new_data[node] = self.dataframe[node, inc] - inc_sum
                 self.dataframe[exc] = pd.Series(data=new_data)
+        self.exc_metrics.extend([metric_tuple[0] for metric_tuple in generation_pairs])
 
     def update_inclusive_columns(self):
         """Update inclusive columns (typically after operations that rewire the
