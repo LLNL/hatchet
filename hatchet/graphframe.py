@@ -717,16 +717,16 @@ class GraphFrame:
                         full_idx = (node, *non_node_idx)
                         inc_sum = 0
                         for child in node.children:
-                            inc_sum += self.dataframe[(child, *non_node_idx), inc]
-                        new_data[full_idx] = self.dataframe[full_idx, inc] - inc_sum
+                            inc_sum += self.dataframe.loc[(child, *non_node_idx), inc]
+                        new_data[full_idx] = self.dataframe.loc[full_idx, inc] - inc_sum
                 self.dataframe[exc] = pd.Series(data=new_data)
             else:
                 new_data = {n: -1 for n in self.dataframe.index.values}
                 for node in self.graph.traverse():
                     inc_sum = 0
                     for child in node.children:
-                        inc_sum += self.dataframe[child, inc]
-                    new_data[node] = self.dataframe[node, inc] - inc_sum
+                        inc_sum += self.dataframe.loc[child, inc]
+                    new_data[node] = self.dataframe.loc[node, inc] - inc_sum
                 self.dataframe[exc] = pd.Series(data=new_data)
         self.exc_metrics.extend([metric_tuple[0] for metric_tuple in generation_pairs])
 
