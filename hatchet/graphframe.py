@@ -710,8 +710,16 @@ class GraphFrame:
                 generation_pairs.append((inc + " (exc)", inc))
         for exc, inc in generation_pairs:
             if isinstance(self.dataframe.index, pd.MultiIndex):
-                # See subtree_sum for indexing help
-                pass
+                new_data = {}
+                for node in self.graph.traverse():
+                    for non_node_idx in self.dataframe.loc[(node)].index.unique():
+                        assert isinstance(non_node_idx, tuple) or isinstance(non_node_idx, list), "MultiIndex iteration is not producing the expected type"
+                        full_idx = (node, *non_node_idx)
+                        inc_sum = 0
+                        for child in node.children:
+                            inc_sum += self.dataframe[(child, *non_node_idx), inc]
+                        new_data[full_idx] = self.dataframe[full_idx, inc] - inc_sum
+                self.dataframe[exc] = pd.Series(data=new_data)
             else:
                 new_data = {n: -1 for n in self.dataframe.index.values}
                 for node in self.graph.traverse():
