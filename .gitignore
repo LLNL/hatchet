@@ -7,3 +7,6 @@ build
 docs/_build
 hatchet/cython_modules/libs/graphframe_modules.*.so
 hatchet/cython_modules/libs/reader_modules.*.so
+hatchet/vis/*node_modules*
+hatchet/vis/static/*_bundle*
+*package-lock.json
