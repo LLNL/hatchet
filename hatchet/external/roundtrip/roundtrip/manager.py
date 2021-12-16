@@ -422,17 +422,17 @@ class Bridge:
             self.active_html = new_HTML
             self.display.update(new_HTML)
 
-        # if self.scripts is not None:
-        #     js_exe = ""
-        #     for script in self.scripts:
-        #         js_exe += script
+        if self.scripts is not None:
+            js_exe = ""
+            for script in self.scripts:
+                js_exe += script
 
-        #     if not self.istest:
-        #         display(Javascript(js_exe))
-        #     else:
-        #         new_Javascript = Javascript(js_exe)
-        #         self.active_scripts.append(new_Javascript)
-        #         display(new_Javascript)
+            if not self.istest:
+                display(Javascript(js_exe))
+            else:
+                new_Javascript = Javascript(js_exe)
+                self.active_scripts.append(new_Javascript)
+                display(new_Javascript)
 
     def add_javascript(self, code):
         if not self.istest:
