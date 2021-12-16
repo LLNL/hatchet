@@ -482,6 +482,9 @@ class Bridge:
             data = py_to_js_converter(data)
             self.converter = py_to_js_converter
 
+        # Patch: Ensure all ' and " are escaped
+        data = data.replace('"', '\\"').replace("'", "\\'")
+
         conv_spec = None
 
         if js_to_py_converter is not None:
