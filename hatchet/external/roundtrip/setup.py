@@ -1,4 +1,3 @@
-
 from setuptools import setup
 from codecs import open
 from os import path
@@ -26,12 +25,7 @@ setup(
     author_email="cscullyallison@email.arizona.edu",
     license="MIT",
     keywords="",
-    packages=[
-        "roundtrip"
-    ],
-    install_requires=[
-        "numpy",
-        "pandas",
-    ],
+    packages=["roundtrip"],
+    install_requires=["numpy", "pandas", "beautifulsoup4", "ipython", "pathlib"],
     include_package_data=True,
 )

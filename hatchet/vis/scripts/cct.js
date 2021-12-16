@@ -2,8 +2,7 @@
 //d3.v4
 import * as d3 from 'd3v4';
 
-
-const RT = window.Roundtrip;
+var RT = window.Roundtrip;
 
 (function (element) {
     const globals = Object.freeze({
@@ -28,7 +27,7 @@ const RT = window.Roundtrip;
         treeHeight: 300
     });
 
-    var jsNodeSelected = "['*']";
+    RT['jsNodeSelected'] = JSON.stringify(["*"]);
 
     var makeColorManager = function(model){
         
@@ -101,9 +100,11 @@ const RT = window.Roundtrip;
 
                 if (treeIndex == -1) { //unified color legend
                     metricRange = _forestMinMax[curMetric].max - _forestMinMax[curMetric].min;
-                    colorScaleDomain = [0, 0.1, 0.3, 0.5, 0.7, 0.9, 1].map(function (x) {
-                        return x * metricRange + _forestMinMax[curMetric].min;
-                    });
+                    colorScaleDomain = [0, 0.1, 0.3, 0.5, 0.7, 0.9, 1].map(
+                        function (x) {
+                            return x * metricRange + _forestMinMax[curMetric].min;
+                        }
+                    );
                 } 
                 else{
                     metricRange = _modelForestStats[treeIndex][curMetric].max - _modelForestStats[treeIndex][curMetric].min;
@@ -377,18 +378,18 @@ const RT = window.Roundtrip;
 
             //do some evaluation for other subtrees
             // we could generate python code that does this
-            var queryStr = "['<no query generated>']";
+            var queryStr = ['<no query generated>'];
             if ((nodeList.length > 1) && (selectionIsAChain)) {
                 // This query is for chains
-                queryStr = "[{'name': '" + leftMostNode.data.frame.name + "'}, '*', {'name': '" + rightMostNode.data.frame.name + "'}]";
+                queryStr = [{name: leftMostNode.data.frame.name }, '*', {name: rightMostNode.data.frame.name }];
             }
             else if (nodeList.length > 1) {
                 // This query is for subtrees
-                queryStr = "[{'name': '" + leftMostNode.data.frame.name + "'}, '*', {'depth': '<= " + rightMostNode.depth + "' }]";
+                queryStr = [{name: leftMostNode.data.frame.name }, '*', {depth: '<=' + rightMostNode.depth}];
             }
             else {
                 //Single node query
-                queryStr = "[{'name': '" + leftMostNode.data.frame.name + "'}]";
+                queryStr = [{name: leftMostNode.data.frame.name}];
             }
 
             return queryStr;
@@ -486,9 +487,9 @@ const RT = window.Roundtrip;
                 this.updateTooltip(nodes);
 
                 if(nodes.length > 0){
-                    jsNodeSelected = _printQuery(nodes);
+                    RT['jsNodeSelected'] = JSON.stringify(_printQuery(nodes));
                 } else {
-                    jsNodeSelected = "['*']";
+                    RT['jsNodeSelected'] = JSON.stringify(["*"]);
                 }
                 
                 _observers.notify();
@@ -550,7 +551,7 @@ const RT = window.Roundtrip;
                 if(selection){
                     //calculate brushed points
                     for(var i = 0; i < _data["numberOfTrees"]; i++){
-                        nodes = _data['trees'][i].descendants();
+                        let nodes = _data['trees'][i].descendants();
                         nodes.forEach(function(d){
                             if(selection[0][0] <= d.yMainG && selection[1][0] >= d.yMainG 
                                 && selection[0][1] <= d.xMainG && selection[1][1] >= d.xMainG){

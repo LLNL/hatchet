@@ -311,7 +311,6 @@ var RT_Handler = {
         return Reflect.set(obj[prop], "data", value);
     },
     get(obj, prop, reciever){
-        // console.log("Get: ",...arguments);
         let ret = obj[prop].data
         return ret;  
     }
