@@ -211,9 +211,6 @@ class RoundTrip:
                 output_html += self._file_formatter(file)
 
         bdg = Bridge(output_html, scripts, self.shell, self.istest)
-
-        # bdg.add_javascript("cells = Jupyter.notebook.get_cell_elements();")
-
         self.bridges[bdg.id] = bdg
         self.last_id = bdg.id
 

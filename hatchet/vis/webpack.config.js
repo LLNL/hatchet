@@ -28,11 +28,10 @@ module.exports = {
         path: path.resolve(__dirname, 'static')
     },
     optimization: {
-        minimize: false
+        minimize: true
     },
     plugins:[
         new HtmlWebpackPlugin({
-            template: path.resolve(__dirname, 'templates/cct.html'),
             chunks: ['cct'],
             filename: 'cct_bundle.html'
         })

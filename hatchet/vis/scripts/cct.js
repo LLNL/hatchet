@@ -1,7 +1,6 @@
 
 //d3.v4
 import * as d3 from 'd3v4';
-
 var RT = window.Roundtrip;
 
 (function (element) {
@@ -121,17 +120,18 @@ var RT = window.Roundtrip;
                  * 
                  * @param {Int} treeIndex - The index of the current tree's legend being set
                  */
-            
+                let colorSchemeUsed = null;
+
                 //hacky need to fix later
                 if (model.data["legends"][_state["legend"]].includes("Unified")) {
                     treeIndex = -1;
                 }
 
                 if (treeIndex == -1) { //unified color legend
-                    var colorSchemeUsed = this.setColors(treeIndex);
+                    colorSchemeUsed = this.setColors(treeIndex);
 
                 } else {
-                    var colorSchemeUsed = this.setColors(treeIndex);
+                    colorSchemeUsed = this.setColors(treeIndex);
                 }
                 return colorSchemeUsed;
             },
