@@ -360,7 +360,7 @@ class GraphFrame:
 
         self.dataframe = agg_df
 
-    def filter(self, filter_obj, squash=True, num_procs=mp.cpu_count()):
+    def filter(self, filter_obj, squash=True, num_procs=mp.cpu_count(), rec_limit=1000):
         """Filter the dataframe using a user-supplied function.
 
         Note: Operates in parallel on user-supplied lambda functions.
@@ -368,7 +368,11 @@ class GraphFrame:
         Arguments:
             filter_obj (callable, list, or QueryMatcher): the filter to apply to the GraphFrame.
             squash (boolean, optional): if True, automatically call squash for the user.
+            rec_limit: set Python recursion limit, increase if running into
+                recursion depth errors) (default: 1000).
         """
+        sys.setrecursionlimit(rec_limit)
+
         dataframe_copy = self.dataframe.copy()
 
         index_names = self.dataframe.index.names
