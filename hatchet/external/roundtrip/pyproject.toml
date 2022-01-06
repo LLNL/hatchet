@@ -1,0 +1,28 @@
+[tool.poetry]
+name = "roundtrip"
+version = "0.2"
+description = "A Python library for the loading of JS visualizations into Jupyter notebooks."
+authors = [
+    "Connor Scully-Allison <cscullyallison@email.arizona.edu",
+    "Kate Isaacs <kisaacs@cs.arizona.edu>"
+]
+license = "MIT"
+
+[tool.black]
+line-length = 88
+target-version = ['py27', 'py35', 'py36', 'py37', 'py38']
+include = '\.pyi?$'
+exclude = '''
+/(
+    \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | _build
+  | buck-out
+  | build
+  | dist
+)/
+'''

@@ -1,0 +1,5 @@
+numpy
+pandas
+beautifulsoup4
+ipython
+pathlib
