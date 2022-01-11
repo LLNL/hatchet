@@ -1,6 +1,7 @@
 import { d3, globals } from "./cct_globals";
 import makeColorManager from "./cct_color_manager";
 import View from "../utils/view";
+import { selection } from "d3v4";
 
 class ChartView extends View{
 
@@ -141,6 +142,7 @@ class ChartView extends View{
          * @param {Array} nodes - An array of all nodes in a tree
          * @param {Number} treeIndex - An integer of the current tree index
          */
+        console.log("called");
         nodes.forEach(
             (d) => {
                     d.x0 = this._getLocalNodeX(d.x, treeIndex);
@@ -350,13 +352,16 @@ class ChartView extends View{
             var treeGroup = chart.selectAll('.chart');
 
             if(this.model.state.resetView == true){
+                /**
+                 * BUG - D3 TRANSFORM EVENET DOES NOT UPDATE
+                 */
                 treeGroup.attr("transform", "");
 
                 this.nodes[treeIndex].forEach(
                     (d) =>  {
-                            // Store the overall position based on group
-                            d.xMainG = d.x0 + this.chartOffset;
-                            d.yMainG = d.y0 + this._margin.left;
+                        // Store the overall position based on group
+                        d.xMainG = d.x0 + this.chartOffset;
+                        d.yMainG = d.y0 + this._margin.left;
                     }
                 );
 
@@ -556,7 +561,15 @@ class ChartView extends View{
             var dNodeUpdate = dNodeEnter.merge(dummyNodes);
             var linkUpdate = linkEnter.merge(link);
             var aggNodeUpdate = aggNodeEnter.merge(aggBars);
-    
+            
+
+            /**
+             * 
+             * 
+             * NOTE TO CONNOR: THIS IS NOT WORKING. FIND OUT WHY!?
+             * 
+             * 
+             */
             // Chart updates
             chart
                 .transition()

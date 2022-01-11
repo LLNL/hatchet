@@ -1,107 +1,167 @@
 import { makeSignaller, RT, d3, globals} from "./cct_globals";
 import { hierarchy as d3v7_hierarchy } from 'd3-hierarchy';
 
-var createModel = function() {
-    var _observers = makeSignaller();
 
-    //initialize default data and state
-    var _data = {
-                    "trees":[],
-                    "legends": ["Unified", "Indiv."],
-                    "colors": ["Default", "Inverted"],
-                    "forestData": null,
-                    "rootNodeNames": ["Show all trees"],
-                    "numberOfTrees": 0,
-                    "metricColumns": [],
-                    "attributeColumns": [],
-                    "forestMinMax": [],
-                    "aggregateMinMax": {},
-                    "forestMetrics": [],
-                    "metricLists":[],
-                    "currentStrictness": 1.5,
-                    "treeSizes": [],
-                    "hierarchy": [],
-                    "immutableHierarchy": [],
-                    "maxHeight": 0
-                };
+class Model{
+    constructor(){
+        this._observers = makeSignaller();
 
-    var _state = {
-                    "selectedNodes":[], 
-                    "collapsedNodes":[],
-                    "primaryMetric": null,
-                    "secondaryMetric": null,
-                    "lastClicked": null,
-                    "legend": 0,
-                    "colorScheme": 0,
-                    "brushOn": -1,
-                    "hierarchyUpdated": true,
-                    "cachedThreshold": 0,
-                    "outlierThreshold": 0,
-                    "pruneEnabled": false
-                };
+        //initialize default data and state
+        this.data = {
+                        "trees":[],
+                        "legends": ["Unified", "Indiv."],
+                        "colors": ["Default", "Inverted"],
+                        "forestData": null,
+                        "rootNodeNames": ["Show all trees"],
+                        "numberOfTrees": 0,
+                        "metricColumns": [],
+                        "attributeColumns": [],
+                        "forestMinMax": [],
+                        "aggregateMinMax": {},
+                        "forestMetrics": [],
+                        "metricLists":[],
+                        "currentStrictness": 1.5,
+                        "treeSizes": [],
+                        "hierarchy": [],
+                        "immutableHierarchy": [],
+                        "maxHeight": 0
+                    };
 
-    //setup model
-    let cleanTree = RT["hatchet_tree_def"];
-    let _forestData = JSON.parse(cleanTree);
-    _data.numberOfTrees = _forestData.length;
-    _data.metricColumns = d3.keys(_forestData[0].metrics);
-    _data["attributeColumns"] = d3.keys(_forestData[0].attributes);
-    
-    for(var metric = 0; metric < _data.metricColumns.length; metric++){
-        let metricName = _data.metricColumns[metric];
-        //remove private metric
-        if(_data.metricColumns[metric][0] == '_'){
-            _data.metricColumns.splice(metric, 1);
+
+                    
+
+        this.state = {
+                        "selectedNodes":[], 
+                        "collapsedNodes":[],
+                        "primaryMetric": null,
+                        "secondaryMetric": null,
+                        "lastClicked": null,
+                        "legend": 0,
+                        "colorScheme": 0,
+                        "brushOn": -1,
+                        "hierarchyUpdated": true,
+                        "cachedThreshold": 0,
+                        "outlierThreshold": 0,
+                        "pruneEnabled": false
+                    };
+
+        //setup model
+        let cleanTree = RT["hatchet_tree_def"];
+        let _forestData = JSON.parse(cleanTree);
+        this.data.numberOfTrees = _forestData.length;
+        this.data.metricColumns = d3.keys(_forestData[0].metrics);
+        this.data["attributeColumns"] = d3.keys(_forestData[0].attributes);
+        
+        for(var metric = 0; metric < this.data.metricColumns.length; metric++){
+            let metricName = this.data.metricColumns[metric];
+            //remove private metric
+            if(this.data.metricColumns[metric][0] == '_'){
+                this.data.metricColumns.splice(metric, 1);
+            }
+            else{
+                //setup aggregrate min max for metric
+                this.data.aggregateMinMax[metricName] = {min: Number.MAX_VALUE, max: Number.MIN_VALUE};
+            }
         }
-        else{
-            //setup aggregrate min max for metric
-            _data.aggregateMinMax[metricName] = {min: Number.MAX_VALUE, max: Number.MIN_VALUE};
+
+        // pick the first metric listed to color the nodes
+        this.state.primaryMetric = this.data.metricColumns[0];
+        this.state.secondaryMetric = this.data.metricColumns[1];
+        this.state.activeTree = "Show all trees";
+        this.state.treeXOffsets = [];
+        
+        let offset = 0;
+        for (let treeIndex = 0; treeIndex < _forestData.length; treeIndex++) {
+            let hierarchy = d3v7_hierarchy(_forestData[treeIndex], d => d.children);
+            hierarchy.size = hierarchy.descendants().length;
+
+            //add a surrogate id if _hatchet_nid is not present
+            if(!Object.keys(hierarchy.descendants()[0].data.metrics).includes("_hatchet_nid")){
+                hierarchy.descendants().forEach(function(d, i){
+                    d.data.metrics.id = offset+i;
+                })
+                offset += hierarchy.size;
+            }
+
+            this.data.immutableHierarchy.push(hierarchy);
+            this.data.hierarchy.push(hierarchy);
+
+            if (this.data.immutableHierarchy[treeIndex].height > this.data.maxHeight){
+                this.data.maxHeight = this.data.immutableHierarchy[treeIndex].height;
+            }
         }
+
+        //sort in descending order
+        this.data.immutableHierarchy.sort((a,b) => b.size - a.size);
+        this.data.hierarchy.sort((a,b) => b.size - a.size);
+
+        this.state.lastClicked = this.data.hierarchy[0];
+
+        this._setupModel(_forestData);
     }
 
-    // pick the first metric listed to color the nodes
-    _state.primaryMetric = _data.metricColumns[0];
-    _state.secondaryMetric = _data.metricColumns[1];
-    _state.activeTree = "Show all trees";
-    _state.treeXOffsets = [];
-    
-    let offset = 0;
-    for (let treeIndex = 0; treeIndex < _forestData.length; treeIndex++) {
-        let hierarchy = d3v7_hierarchy(_forestData[treeIndex], d => d.children);
-        hierarchy.size = hierarchy.descendants().length;
 
-        //add a surrogate id if _hatchet_nid is not present
-        if(!Object.keys(hierarchy.descendants()[0].data.metrics).includes("_hatchet_nid")){
-            hierarchy.descendants().forEach(function(d, i){
-                d.data.metrics.id = offset+i;
-            })
-            offset += hierarchy.size;
+    _setupModel(_forestData){
+        //-------------------------------------------
+        // Model Setup Processing
+        //-------------------------------------------
+
+        //get the max and min metrics across the forest
+        // and for each individual tree
+        var _forestMetrics = [];
+        var _forestMinMax = {}; 
+
+        for (var index = 0; index < this.data.numberOfTrees; index++) {
+            var thisTree = _forestData[index];
+            let mc = this.data.metricColumns;
+
+            // Get tree names for the display select options
+            this.data["rootNodeNames"].push(thisTree.frame.name);
+
+            var thisTreeMetrics = {};
+
+            for (var j = 0; j < mc.length; j++) {
+                thisTreeMetrics[mc[j]] = {};
+                thisTreeMetrics[mc[j]]["min"] = Number.MAX_VALUE;
+                thisTreeMetrics[mc[j]]["max"] = Number.MIN_SAFE_INTEGER;
+
+                //only one run time
+                if(index == 0){
+                    _forestMinMax[mc[j]] = {};
+                    _forestMinMax[mc[j]]["min"] = Number.MAX_VALUE;
+                    _forestMinMax[mc[j]]["max"] = Number.MIN_SAFE_INTEGER;
+                }
+            }
+
+            this.data['hierarchy'][index].each(function (d) {
+                for (var i = 0; i < mc.length; i++) {
+                    var tempMetric = mc[i];
+                    thisTreeMetrics[tempMetric].max = Math.max(thisTreeMetrics[tempMetric].max, d.data.metrics[tempMetric]);
+                    thisTreeMetrics[tempMetric].min = Math.min(thisTreeMetrics[tempMetric].min, d.data.metrics[tempMetric]);
+                    _forestMinMax[tempMetric].max = Math.max(_forestMinMax[tempMetric].max, d.data.metrics[tempMetric]);
+                    _forestMinMax[tempMetric].min = Math.min(_forestMinMax[tempMetric].min, d.data.metrics[tempMetric]);
+                }
+            });
+
+            _forestMetrics.push(thisTreeMetrics);
         }
+        this.data.forestMetrics = _forestMetrics;
 
-        _data.immutableHierarchy.push(hierarchy);
-        _data.hierarchy.push(hierarchy);
-
-        if (_data.immutableHierarchy[treeIndex].height > _data.maxHeight){
-            _data.maxHeight = _data.immutableHierarchy[treeIndex].height;
-        }
+        // Global min/max are the last entry of forestMetrics;
+        this.data.forestMinMax = _forestMinMax;
+        this.data.forestMetrics.push(_forestMinMax);
     }
-
-    //sort in descending order
-    _data.immutableHierarchy.sort((a,b) => b.size - a.size);
-    _data.hierarchy.sort((a,b) => b.size - a.size);
-
-    _state.lastClicked = _data.hierarchy[0];
 
 
     //Stats functions
-    function _getListOfMetrics(h){
+    _getListOfMetrics(h){
         //Gets a list of metrics with 0s removed
         // 0s in hpctoolkit are too numerous and they
         // throw off outlier calculations
         var list = [];
         
         h.each(d=>{
-            if(d.data.metrics[_state.primaryMetric] != 0){
+            if(d.data.metrics[this.state.primaryMetric] != 0){
                 list.push(d.data.metrics)
             }
         })
@@ -109,39 +169,39 @@ var createModel = function() {
         return list;
     }
 
-    function _asc(arr){
+    _asc(arr){
         /**
          *  Sorts an array in ascending order.
          */
         
-        return arr.sort((a,b) => a[_state.primaryMetric]-b[_state.primaryMetric])
+        return arr.sort((a,b) => a[this.state.primaryMetric]-b[this.state.primaryMetric])
     }
     
-    function _quantile(arr, q){
+    _quantile(arr, q){
         /**
          * Gets a particular quantile from an array of numbers
          * 
          * @param {Array} arr - An array of floats
          * @param {Number} q - An float between [0-1] represening the quantile we want 
          */
-        const sorted = _asc(arr);
+        const sorted = this._asc(arr);
         const pos = (sorted.length - 1) * q;
         const base = Math.floor(pos);
         const rest = pos - base;
         if (sorted[base + 1] !== undefined) {
-            return sorted[base][_state.primaryMetric] + rest * (sorted[base + 1][_state.primaryMetric] - sorted[base][_state.primaryMetric]);
+            return sorted[base][this.state.primaryMetric] + rest * (sorted[base + 1][this.state.primaryMetric] - sorted[base][this.state.primaryMetric]);
         } else {
-            return sorted[base][_state.primaryMetric];
+            return sorted[base][this.state.primaryMetric];
         }
     }
 
-    function _getIQR(arr){
+    _getIQR(arr){
         /**
          * Returns the interquartile range for a an array of numbers
          */
         if(arr.length != 0){
-            var q25 = _quantile(arr, .25);
-            var q75 = _quantile(arr, .75);
+            var q25 = this._quantile(arr, .25);
+            var q75 = this._quantile(arr, .75);
             var IQR = q75 - q25;
             
             return IQR;
@@ -150,7 +210,7 @@ var createModel = function() {
         return NaN;
     }
 
-    function _setOutlierFlags(h){
+    _setOutlierFlags(h){
         /**
          * Sets outlier flags on a d3 hierarchy of call sites.
          * An outlier is defined as outside of the range between
@@ -159,21 +219,22 @@ var createModel = function() {
          * 
          * @param {Hierarchy} h - A d3 hierarchy containg metric values
          */
-        var outlierScalar = _data.currentStrictness;
+        var outlierScalar = this.data.currentStrictness;
         var upperOutlierThreshold = Number.MAX_VALUE;
         var lowerOutlierThreshold = Number.MIN_VALUE;
 
-        var metrics = _getListOfMetrics(h);
+        var metrics = this._getListOfMetrics(h);
 
-        var IQR = _getIQR(metrics);
+        var IQR = this._getIQR(metrics);
+        const self = this;
 
         if(!isNaN(IQR)){
-            upperOutlierThreshold = _quantile(metrics, .75) + (IQR * outlierScalar);
-            lowerOutlierThreshold = _quantile(metrics, .25) - (IQR * outlierScalar);
+            upperOutlierThreshold = this._quantile(metrics, .75) + (IQR * outlierScalar);
+            lowerOutlierThreshold = this._quantile(metrics, .25) - (IQR * outlierScalar);
         } 
 
         h.each(function(node){
-            var metric = node.data.metrics[_state.primaryMetric];
+            var metric = node.data.metrics[self.state.primaryMetric];
             if(metric != 0 &&   //zeros are not interesting outliers
                 metric >= upperOutlierThreshold || 
                 metric <= lowerOutlierThreshold){
@@ -186,7 +247,7 @@ var createModel = function() {
     }
 
 
-    function _getAggregateMetrics(h){
+    _getAggregateMetrics(h, aggFunct){
         /**
          * Utility function which gets aggregrate metrics for
          * a subtree.
@@ -195,26 +256,49 @@ var createModel = function() {
          */
         let agg = {};
         
-        for(metric of _data.metricColumns){
-            if(!metric.includes("(inc)")){
-                h.sum(d=>{
-                    if(d.aggregateMetrics){
-                        return d.aggregateMetrics[metric];
-                    } else{
-                        return d.metrics[metric];
+        for(let metric of this.data.metricColumns){
+            switch (aggFunct){
+                // Aggregation Options: Average vs. Sim
+                case globals.AVG:
+                    if(!metric.includes("(inc)")){
+                        h.sum(d=>{
+                            if(d.aggregateMetrics){
+                                return d.aggregateMetrics[metric];
+                            } else{
+                                return d.metrics[metric];
+                            }
+                        });
+
+                        agg[metric] = h.value/h.copy().count().value;
                     }
-                });
-                agg[metric] = h.value;
-            }
-            else{
-                agg[metric] = h.data.metrics[metric];
+                    else{
+                        agg[metric] = h.data.metrics[metric];
+                    }
+                    break;
+                case globals.SUM:
+                    if(!metric.includes("(inc)")){
+                        h.sum(d=>{    
+                            if(d.aggregateMetrics){
+                                return d.aggregateMetrics[metric];
+                            } else{
+                                return d.metrics[metric];
+                            }
+                        });
+                        agg[metric] = h.value;
+                    }
+                    else{
+                        agg[metric] = h.data.metrics[metric];
+                    }
+                    break;
+                default:
+                    console.warn(`${aggFunct} is not supported for aggregating subtrees.`)
             }
         }
 
         return agg;
     }
 
-    function _getSubTreeDescription(h){
+    _getSubTreeDescription(h){
         /**
          * A utility function which returns a description of a subtree in terms
          * height, and number of nodes.
@@ -223,7 +307,6 @@ var createModel = function() {
          * @param {Hierarchy} h - A d3 hierarchy containing metrics
          */
         let desc = {};
-        console.log("HIERARCHY:", h);
 
         desc.height = h.height;
         desc.size = h.count().value;
@@ -231,7 +314,7 @@ var createModel = function() {
         return desc;
     }
 
-    function _buildDummyHolder(protoype, parent, elided){
+    _buildDummyHolder(protoype, parent, elided){
         /**
          * A function that builds a surrogate node from a
          * prototype node and the parent associated with that
@@ -267,15 +350,15 @@ var createModel = function() {
         
 
         //initialize the aggregrate metrics for summing
-        for(metric of _data.metricColumns){
+        for(let metric of this.data.metricColumns){
             aggregateMetrics[metric] = 0;
         }
 
-        for(elided of dummyHolder.elided){
-            var aggMetsForChild = _getAggregateMetrics(elided);
-            var descriptionOfChild = _getSubTreeDescription(elided);
+        for(let elided of dummyHolder.elided){
+            var aggMetsForChild = this._getAggregateMetrics(elided, globals.AVG);
+            var descriptionOfChild = this._getSubTreeDescription(elided);
             
-            for(metric of _data.metricColumns){
+            for(let metric of this.data.metricColumns){
                 aggregateMetrics[metric] += aggMetsForChild[metric];
             }
 
@@ -295,12 +378,12 @@ var createModel = function() {
 
         //get the overall min and max of aggregate metrics
         // for scales
-        for(metric of _data.metricColumns){
-            if (aggregateMetrics[metric] > _data.aggregateMinMax[metric].max){
-                _data.aggregateMinMax[metric].max = aggregateMetrics[metric];
+        for(let metric of this.data.metricColumns){
+            if (aggregateMetrics[metric] > this.data.aggregateMinMax[metric].max){
+                this.data.aggregateMinMax[metric].max = aggregateMetrics[metric];
             }
-            if(aggregateMetrics[metric] < _data.aggregateMinMax[metric].min){
-                _data.aggregateMinMax[metric].min = aggregateMetrics[metric];
+            if(aggregateMetrics[metric] < this.data.aggregateMinMax[metric].min){
+                this.data.aggregateMinMax[metric].min = aggregateMetrics[metric];
             }
         }
 
@@ -309,14 +392,14 @@ var createModel = function() {
 
         //more than sum 0 nodes were aggregrated
         // together
-        if(dummyHolder.data.aggregateMetrics[_state.primaryMetric] != 0){
+        if(dummyHolder.data.aggregateMetrics[this.state.primaryMetric] != 0){
             dummyHolder.aggregate = true;
         }
 
         return dummyHolder;
     }
 
-    function _pruningVisitor(root, condition){
+    _pruningVisitor(root, condition){
         /**
          * A recursive function that scans nodes for
          *  the existance of an outlier flag and manages the
@@ -353,12 +436,12 @@ var createModel = function() {
             
             
             if (root._children && root._children.length > 0){
-                dummyHolder = _buildDummyHolder(elided[0], root, elided);
+                dummyHolder = this._buildDummyHolder(elided[0], root, elided);
                 root.children.push(dummyHolder);
             }
 
             for(let child of root.children){
-                _pruningVisitor(child, condition);
+                this._pruningVisitor(child, condition);
             }
 
             if(root.children.length == 0){
@@ -367,28 +450,28 @@ var createModel = function() {
         }
     }
 
-    function _aggregateTreeData(){
+    _aggregateTreeData(){
         /**
          * Helper function which drives the outlier
          * detection and pruning of a fresh tree.
          * This function creates a fresh hierarchy when called and
          * overwrites the current tree in the view.
          */
-        for(var i = 0; i < _data.numberOfTrees; i++){
-            var h = _data.immutableHierarchy[i].copy();
-            if(_data.currentStrictness > -1){
+        for(var i = 0; i < this.data.numberOfTrees; i++){
+            var h = this.data.immutableHierarchy[i].copy();
+            if(this.data.currentStrictness > -1){
                 //The sum ensures that we do not prune 
                 //away parent nodes of identified outliers.
-                _setOutlierFlags(h);
+                this._setOutlierFlags(h);
                 h.sum(d => d.outlier);
-                _pruningVisitor(h, 1);
+                this._pruningVisitor(h, 1);
 
                 //update size of subtrees on the nodes
                 h.size = h.descendants().length;
                 
             }
 
-            _data.hierarchy[i] = h;
+            this.data.hierarchy[i] = h;
         }
     }
 
@@ -396,7 +479,7 @@ var createModel = function() {
     // Node selection helper functions
     // --------------------------------------------
 
-    function _printNodeData(nodeList) {
+    _printNodeData(nodeList) {
         /**
              * To pretty print the node data as a IPython table
              * 
@@ -405,7 +488,7 @@ var createModel = function() {
         
         var nodeStr = '<table><tr><td>name</td>';
         var numNodes = nodeList.length;
-        var metricColumns = _data["metricColumns"];
+        var metricColumns = this.data["metricColumns"];
 
         //lay the nodes out in a table
         for (let i = 0; i < metricColumns.length; i++) {
@@ -427,10 +510,10 @@ var createModel = function() {
                     }
                 }
                 if (nodeList[i].data.aggregateMetrics){
-                    nodeStr += `<td>${nodeList[i].data.aggregateMetrics[metricColumns[j]]}</td>`
+                    nodeStr += `<td>${nodeList[i].data.aggregateMetrics[metricColumns[j]].toFixed(2)}</td>`
                 }
                 else{
-                    nodeStr += `<td>${nodeList[i].data.metrics[metricColumns[j]]}</td>`
+                    nodeStr += `<td>${nodeList[i].data.metrics[metricColumns[j]].toFixed(2)}</td>`
                 }
             }
             nodeStr += '</tr>'
@@ -440,7 +523,7 @@ var createModel = function() {
         return nodeStr;
     }
 
-    function _printQuery(nodeList) {
+    _printQuery(nodeList) {
         /**
              * Prints out user selected nodes as a query string which can be used in the GraphFrame.filter() function.
              * 
@@ -484,288 +567,238 @@ var createModel = function() {
         return queryStr;
     }
 
+    register(s){
+        /**
+         * Registers a signaller (a callback function) to be run with _observers.notify()
+         * 
+         * @param {Function} s - (a callback function) to be run with _observers.notify()
+         */
+        this._observers.add(s);
+    }
 
-    //-------------------------------------------
-    // Model Setup Processing
-    //-------------------------------------------
+    enablePruneTree(enabled, threshold){
+        /**
+         * Enables/disables the mass prune tree functionality.
+         * Prunes tree on click based on current slider position.
+         * 1.5 by default from view.
+         * 
+         * @param {bool} enabled - Switch bool that guides if we disable or enable mass pruning
+         * @param {float} threshold - User defined strictness of pruning. Used as the multiplier in set outlier flags.
+         *      On first click this will be 1.5.
+         */
+        if (enabled){
+            this.state.pruneEnabled = true;
+            this.data.currentStrictness = threshold;
+            this._aggregateTreeData();
+            this.state.hierarchyUpdated = true;
+        } 
+        else{
+            this.state.pruneEnabled = false;
+            // threshold = -1;
+        }
+        
+        this._observers.notify();
+        
+    }
 
+    pruneTree(threshold){
+        /**
+         * Interface to the private tree aggregation functions.
+         *  Calls when user adjusts automatic pruning slider.
+         * 
+         * @param {float} threshold - User defined strictness of pruning. Used as the multiplier in set outlier flags.
+         */
+        this.data.currentStrictness = threshold;
+        this._aggregateTreeData();
+        this.state.hierarchyUpdated = true;
 
-    //get the max and min metrics across the forest
-    // and for each individual tree
-    var _forestMetrics = [];
-    var _forestMinMax = {}; 
+        this._observers.notify();
+    }
 
-    for (var index = 0; index < _data.numberOfTrees; index++) {
-        var thisTree = _forestData[index];
-        let mc = _data.metricColumns;
+    updateSelected(nodes){
+        /**
+         * Updates which nodes are "Selected" by the user in the model
+         *
+         * @param {Array} nodes - A list of selected nodes
+         */
+        this.state['selectedNodes'] = nodes;
+        this.updateTooltip(nodes);
 
-        // Get tree names for the display select options
-        _data["rootNodeNames"].push(thisTree.frame.name);
+        if(nodes.length > 0 && nodes[0]){
+            RT['jsNodeSelected'] = JSON.stringify(this._printQuery(nodes));
+        } else {
+            RT['jsNodeSelected'] = JSON.stringify(["*"]);
+        }
+        
+        this._observers.notify();
+    }
 
-        var thisTreeMetrics = {};
+    handleDoubleClick(d){
+        /**
+         * Manages the collapsing and expanding of subtrees
+         *  when a user is manually pruning or exploring a tree.
+         * 
+         * @param {node} d - The node the user just double clicked.
+         *      Can be a surrogate or real node.
+         */
+        //hiding a subtree
+        if(!d.dummy){
+            if(d.parent){
+                //main manipulation is in parent scope
+                let children = d.parent.children;
 
-        for (var j = 0; j < mc.length; j++) {
-            thisTreeMetrics[mc[j]] = {};
-            thisTreeMetrics[mc[j]]["min"] = Number.MAX_VALUE;
-            thisTreeMetrics[mc[j]]["max"] = 0;
+                if(!d.parent._children){
+                    d.parent._children = [];
+                }
 
-            //only one run time
-            if(index == 0){
-                _forestMinMax[mc[j]] = {};
-                _forestMinMax[mc[j]]["min"] = Number.MAX_VALUE;
-                _forestMinMax[mc[j]]["max"] = 0;
+                d.parent._children.push(d);
+                let dummy = this._buildDummyHolder(d, d.parent, [d]);
+                let swapIndex = d.parent.children.indexOf(d);
+                children[swapIndex] = dummy;
+            }
+        } 
+
+        // Expanding a dummy node 
+        // Replaces a node if one was elided
+        // Appends if multiple were elided
+        else{
+            
+            if(d.elided.length == 1){
+                // patch that clears aggregate metrics upon doubleclick
+                delete d.elided[0].data.aggregateMetrics;
+
+                let insIndex = d.parent.children.indexOf(d);
+                d.parent.children[insIndex] = d.elided[0];
+            }
+            else{
+                for(let elided of d.elided){
+                    delete elided.data.aggregateMetrics;
+                    let delIndex = d.parent._children.indexOf(elided);
+                    d.parent._children.splice(delIndex, 1);
+
+                    d.parent.children.push(elided);
+                }
+                d.parent.children = d.parent.children.filter(child => child !== d);
             }
         }
 
-        _data['hierarchy'][index].each(function (d) {
-            for (var i = 0; i < mc.length; i++) {
-                var tempMetric = mc[i];
-                if (d.data.metrics[tempMetric] > thisTreeMetrics[tempMetric].max) {
-                    thisTreeMetrics[tempMetric].max = d.data.metrics[tempMetric];
-                }
-                if (d.data.metrics[tempMetric] < thisTreeMetrics[tempMetric].min) {
-                    thisTreeMetrics[tempMetric].min = d.data.metrics[tempMetric];
-                }
-                if (d.data.metrics[tempMetric] > _forestMinMax[tempMetric].max) {
-                    _forestMinMax[tempMetric].max = d.data.metrics[tempMetric];
-                }
-                if (d.data.metrics[tempMetric] < _forestMinMax[tempMetric].min) {
-                    _forestMinMax[tempMetric].min = d.data.metrics[tempMetric];
-                }
-            }
-        });
+        this.state["lastClicked"] = d;
 
-        _forestMetrics.push(thisTreeMetrics);
+        this.state.hierarchyUpdated = true;
+        this._observers.notify();
     }
-    _data.forestMetrics = _forestMetrics;
 
-    // Global min/max are the last entry of forestMetrics;
-    _data.forestMinMax = _forestMinMax;
-    _data.forestMetrics.push(_forestMinMax);
+    toggleBrush(){
+        /**
+         * Toggles the brushing functionality with a button click
+         *
+         */
 
-    return{
-        data: _data,
-        state: _state,
-        register: function(s){
-            /**
-             * Registers a signaller (a callback function) to be run with _observers.notify()
-             * 
-             * @param {Function} s - (a callback function) to be run with _observers.notify()
-             */
-            _observers.add(s);
-        },
-        enablePruneTree: function(enabled, threshold){
-            /**
-             * Enables/disables the mass prune tree functionality.
-             * Prunes tree on click based on current slider position.
-             * 1.5 by default from view.
-             * 
-             * @param {bool} enabled - Switch bool that guides if we disable or enable mass pruning
-             * @param {float} threshold - User defined strictness of pruning. Used as the multiplier in set outlier flags.
-             *      On first click this will be 1.5.
-             */
-            if (enabled){
-                _state.pruneEnabled = true;
-                _data.currentStrictness = threshold;
-                _aggregateTreeData();
-                _state.hierarchyUpdated = true;
-            } 
-            else{
-                _state.pruneEnabled = false;
-                // threshold = -1;
-            }
-            
-            _observers.notify();
-            
-        },
-        pruneTree: function(threshold){
-            /**
-             * Interface to the private tree aggregation functions.
-             *  Calls when user adjusts automatic pruning slider.
-             * 
-             * @param {float} threshold - User defined strictness of pruning. Used as the multiplier in set outlier flags.
-             */
-            _data.currentStrictness = threshold;
-            _aggregateTreeData();
-            _state.hierarchyUpdated = true;
+        this.state["brushOn"] = -this.state["brushOn"];
+        this._observers.notify();
+    }
 
-            _observers.notify();
-        },
-        updateSelected: function(nodes){
-            /**
-             * Updates which nodes are "Selected" by the user in the model
-             *
-             * @param {Array} nodes - A list of selected nodes
-             */
-            _state['selectedNodes'] = nodes;
-            this.updateTooltip(nodes);
+    setBrushedPoints(selection){
+        /**
+         * Calculates which nodes are in the brushing area.
+         * 
+         * @param {Array} selection - Selected nodes
+         *
+         */
 
-            if(nodes.length > 0 && nodes[0]){
-                RT['jsNodeSelected'] = JSON.stringify(_printQuery(nodes));
-            } else {
-                RT['jsNodeSelected'] = JSON.stringify(["*"]);
-            }
-            
-            _observers.notify();
-        },
-        handleDoubleClick: function(d){
-            /**
-             * Manages the collapsing and expanding of subtrees
-             *  when a user is manually pruning or exploring a tree.
-             * 
-             * @param {node} d - The node the user just double clicked.
-             *      Can be a surrogate or real node.
-             */
-            //hiding a subtree
-            if(!d.dummy){
-                if(d.parent){
-                    //main manipulation is in parent scope
-                    let children = d.parent.children;
+        if(selection){
+            this.updateSelected(selection);
+        }
+        else{
+            this.updateSelected([]);
+        }
+        
+    }
 
-                    if(!d.parent._children){
-                        d.parent._children = [];
-                    }
-
-                    d.parent._children.push(d);
-                    let dummy = _buildDummyHolder(d, d.parent, [d]);
-                    let swapIndex = d.parent.children.indexOf(d);
-                    children[swapIndex] = dummy;
+    updateTooltip(nodes){
+        /**
+         * Updates the model with new tooltip information based on user selection
+         * 
+         * @param {Array} nodes - A list of selected nodes
+         *
+         */
+        if(nodes.length > 0 && nodes[0]){
+            var longestName = 0;
+            nodes.forEach(function (d) {
+                var nodeData = d.data.frame.name + ': ' + d.data.metrics.time + 's (' + d.data.metrics["time (inc)"] + 's inc)';
+                if (nodeData.length > longestName) {
+                    longestName = nodeData.length;
                 }
-            } 
-
-            // Expanding a dummy node 
-            // Replaces a node if one was elided
-            // Appends if multiple were elided
-            else{
-                
-                if(d.elided.length == 1){
-                    // patch that clears aggregate metrics upon doubleclick
-                    delete d.elided[0].data.aggregateMetrics;
-
-                    let insIndex = d.parent.children.indexOf(d);
-                    d.parent.children[insIndex] = d.elided[0];
-                }
-                else{
-                    for(let elided of d.elided){
-                        delete elided.data.aggregateMetrics;
-                        let delIndex = d.parent._children.indexOf(elided);
-                        d.parent._children.splice(delIndex, 1);
-
-                        d.parent.children.push(elided);
-                    }
-                    d.parent.children = d.parent.children.filter(child => child !== d);
-                }
-            }
-
-            _state["lastClicked"] = d;
-
-            _state.hierarchyUpdated = true;
-            _observers.notify();
-        },
-        toggleBrush: function(){
-            /**
-             * Toggles the brushing functionality with a button click
-             *
-             */
-
-            _state["brushOn"] = -_state["brushOn"];
-            _observers.notify();
-        },
-        setBrushedPoints: function(selection){
-            /**
-             * Calculates which nodes are in the brushing area.
-             * 
-             * @param {Array} selection - Selected nodes
-             *
-             */
-
-            console.log(selection);
-            if(selection){
-                this.updateSelected(selection);
-            }
-            else{
-                this.updateSelected([]);
-            }
-            
-        },
-        updateTooltip: function(nodes){
-            /**
-             * Updates the model with new tooltip information based on user selection
-             * 
-             * @param {Array} nodes - A list of selected nodes
-             *
-             */
-            if(nodes.length > 0 && nodes[0]){
-                var longestName = 0;
-                nodes.forEach(function (d) {
-                    var nodeData = d.data.frame.name + ': ' + d.data.metrics.time + 's (' + d.data.metrics["time (inc)"] + 's inc)';
-                    if (nodeData.length > longestName) {
-                        longestName = nodeData.length;
-                    }
-                });
-                _data["tipText"] = _printNodeData(nodes);
-            } 
-            else{
-                _data["tipText"] = '<p>Click a node or "Select nodes" to see more info</p>';
-            }
-        },
-        changeMetric: function(newMetric, source){
-                /**
-             * Changes the currently selected metric in the model.
-             * 
-             * @param {String} newMetric - the most recently selected metric
-             *
-             */
-
-            if(source.includes("primary")){
-                _state.primaryMetric = newMetric;
-            } 
-            else if(source.includes("secondary")){
-                _state.secondaryMetric = newMetric;
-            }
-            
-            if(_state.pruneEnabled){
-                _aggregateTreeData();
-                _state.hierarchyUpdated = true;
-            }
-            _observers.notify();
-        },
-        changeColorScheme: function(){
-            /**
-             * Changes the current color scheme to inverse or regular. Updates the view
-             *
-             */
-
-            //loop through the possible color schemes
-            _state["colorScheme"] = (_state["colorScheme"] + 1) % _data["colors"].length;
-            _observers.notify();
-        },
-        updateLegends: function(){
-            /**
-             * Toggles between divergent or unified legends. Updates the view
-             *
-             */
-            //loop through legend configruations
-            _state["legend"] = (_state["legend"] + 1) % _data["legends"].length;
-            _observers.notify();
-        },
-        updateActiveTrees: function(activeTree){
-            /**
-             * Sets which tree is currently "active" in the model. Updates the view.
-             *
-             */
-            _state["activeTree"] = activeTree;
-            _observers.notify();
-        },
-        resetView(){
-            /**
-             * Function that sets a flag which causes the 
-             * view to reset all trees to their original layouts.
-             */
-            _state.resetView = true;
-            _observers.notify();
+            });
+            this.data["tipText"] = this._printNodeData(nodes);
+        } 
+        else{
+            this.data["tipText"] = '<p>Click a node or "Select nodes" to see more info</p>';
         }
     }
+
+    changeMetric(newMetric, source){
+            /**
+         * Changes the currently selected metric in the model.
+         * 
+         * @param {String} newMetric - the most recently selected metric
+         *
+         */
+
+        if(source.includes("primary")){
+            this.state.primaryMetric = newMetric;
+        } 
+        else if(source.includes("secondary")){
+            this.state.secondaryMetric = newMetric;
+        }
+        
+        if(this.state.pruneEnabled){
+            this._aggregateTreeData();
+            this.state.hierarchyUpdated = true;
+        }
+        this._observers.notify();
+    }
+    
+    changeColorScheme(){
+        /**
+         * Changes the current color scheme to inverse or regular. Updates the view
+         *
+         */
+
+        //loop through the possible color schemes
+        this.state["colorScheme"] = (this.state["colorScheme"] + 1) % this.data["colors"].length;
+        this._observers.notify();
+    }
+
+    updateLegends(){
+        /**
+         * Toggles between divergent or unified legends. Updates the view
+         *
+         */
+        //loop through legend configruations
+        this.state["legend"] = (this.state["legend"] + 1) % this.data["legends"].length;
+        this._observers.notify();
+    }
+
+    updateActiveTrees(activeTree){
+        /**
+         * Sets which tree is currently "active" in the model. Updates the view.
+         *
+         */
+        this.state["activeTree"] = activeTree;
+        this._observers.notify();
+    }
+
+    resetView(){
+        /**
+         * Function that sets a flag which causes the 
+         * view to reset all trees to their original layouts.
+         */
+        this.state.resetView = true;
+        this._observers.notify();
+    }
+
 }
 
-export default createModel;
+
+export default Model;

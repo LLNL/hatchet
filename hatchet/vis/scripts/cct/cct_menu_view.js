@@ -98,6 +98,12 @@ class MenuView extends View{
         htmlInputs.append('label').style('margin', '0 0 0 10px').attr('for', 'treeRootSelect').text(' Display:');
         htmlInputs.append("select") //element
                 .attr("id", "treeRootSelect")
+                .on('change', function () {
+                    self.observers.notify({
+                        type: globals.signals.TREECHANGE,
+                        display: this.value
+                    });
+                })
                 .selectAll('option')
                 .data(rootNodeNames)
                 .enter()
@@ -105,13 +111,8 @@ class MenuView extends View{
                 .attr('selected', d => d.includes('Show all trees') ? "selected" : null)
                 .text(d => d)
                 .attr('value', (d, i) => i + "|" + d)
-                .style('margin', "10px 10px 10px 0px")
-                .on('change', function () {
-                    self.observers.notify({
-                        type: globals.signals.TREECHANGE,
-                        display: this.value
-                    });
-                });
+                .style('margin', "10px 10px 10px 0px");
+                
                 
         
         
@@ -202,6 +203,13 @@ class MenuView extends View{
                     type: globals.signals.RESETVIEW
                 });
             });
+
+        this._addNewMenuButton('snapshotQuery', 'Get Snapshot Query',
+            function(){
+                self.observers.notify({
+                    type: globals.signals.SNAPSHOT
+                })
+            })
         
         this._svg.attr('height', '15px').attr('width', this.width);
 

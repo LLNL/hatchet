@@ -4,6 +4,8 @@ import * as d3 from 'd3v4';
 const globals = Object.freeze({
     UNIFIED: 0,
     DEFAULT: 0,
+    SUM: "sum",
+    AVG: "avg",
     signals: {
         CLICK: "CLICK",
         DBLCLICK: "DBLCLICK",
