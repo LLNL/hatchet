@@ -14,10 +14,12 @@ class MenuView extends View{
 
         this._svg = null;
         this._svgButtonOffset = 0;
+        this.categories = ['Metrics', 'Display', 'Select']
 
         this.width = elem.clientWidth - globals.layout.margin.right - globals.layout.margin.left;
         this.height = globals.treeHeight * (model.data["numberOfTrees"] + 1);
 
+        this._renderMenuBar();
         this._preRender();
     }
 
@@ -56,6 +58,79 @@ class MenuView extends View{
         button.attr('width', width);
 
         this._svgButtonOffset += width + buttonPad;
+    }
+
+    _renderMenuBar(){
+        /**
+         * Renders a windows/unix style top menu bar
+         */
+
+        //render a grey rectangle where categories sit
+        // 2em tall, full width
+
+        let menu_svg = d3.select(this.elem).append("svg").attr("class", "menu-svg");
+        const buttonPad = 10;
+        const bg_color = 'rgba(100,100,100,1)';
+        const menu_height = '2em';
+        const text_v_offset = '1.4em';
+
+        menu_svg.attr('width', this.elem.clientWidth)
+            .attr('height', menu_height)
+        
+        menu_svg.append('rect')
+            .attr('width', this.elem.clientWidth)
+            .attr('height', menu_height)
+            .style('fill', bg_color)
+
+        let options = menu_svg
+                        .selectAll('.option')
+                        .data(this.categories);
+        
+        let op_grp = options.enter()
+                            .append('g')
+                            .attr('class', 'option')
+                            .attr('cursor', 'pointer')
+                            .on('mouseover',function(){
+                                d3.select(this)
+                                    .select('.menu-button')
+                                    .style('fill', 'rgba(150,150,150,1)');
+                            })
+                            .on('mouseout', function(){
+                                d3.select(this)
+                                    .select('.menu-button')
+                                    .style('fill', bg_color);
+                            });
+                            
+    
+        op_grp.append('rect')
+                .attr('class','menu-button')
+                .attr('height', menu_height)
+                .style('fill', bg_color);
+        
+        op_grp.append('text')
+                .text(d=>{return d})
+                .attr('class','menu-text')
+                .attr('y', text_v_offset)
+                .attr('x', buttonPad)
+                .attr("font-family", "sans-serif")
+                .attr("font-size", "14px")
+                .style('fill', 'rgba(256,256,256,1)');
+
+        let offset = 0;
+        op_grp.each(function(d){
+            let btn_grp = d3.select(this);
+            let btn_width = btn_grp.select(".menu-text").node().getBBox().width + 2*buttonPad
+            
+            //apply modified widths and offsets
+            btn_grp.select(".menu-button").attr('width', btn_width);
+            btn_grp.attr('transform', `translate(${offset}, 0)`);
+
+            offset += btn_width;
+        })
+
+                            
+
+
     }
 
 
