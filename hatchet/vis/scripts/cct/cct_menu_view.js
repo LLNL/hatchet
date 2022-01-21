@@ -1,5 +1,7 @@
 import { makeSignaller, d3, globals } from "./cct_globals";
 import View from "../utils/view";
+import { selection } from "d3v4";
+import { mode } from "d3-array";
 
 
 class MenuView extends View{
@@ -14,15 +16,158 @@ class MenuView extends View{
 
         this._svg = null;
         this._svgButtonOffset = 0;
-        this.categories = ['Metrics', 'Display', 'Select']
+        this.categories = ['Metrics', 'Display', 'Query']
+        this.model_var_map = {};
+        this.menu_tree = [];
 
         this.width = elem.clientWidth - globals.layout.margin.right - globals.layout.margin.left;
         this.height = globals.treeHeight * (model.data["numberOfTrees"] + 1);
 
+        this.menu_height = '2em';
+        this.menu_bg_color = 'rgba(100,100,100,1)';
+        
+        this._setUpMenuTree();
         this._renderMenuBar();
         this._preRender();
     }
 
+    _makeSubmenuOption(text, type, options, model_var, callback){
+        this.model_var_map[text] = model_var;
+        if(options != null){
+            return {'text':text, 'type':type, 'options':options, 'onselect':callback}
+        }
+        return {'text':text, 'type':type, 'onclick':callback}
+    }
+
+    _setUpMenuTree(){
+        let model = this.model;
+        let rootNodeNames = model.data["rootNodeNames"];
+        let metricColumns = model.data["metricColumns"];
+        let colors = model.data["colors"];
+        let legends = model.data["legends"];
+        let self = this;
+
+        this.categories.forEach(d=>{
+            this.menu_tree[d] = [];
+        })
+
+        //add metrics submenu
+        this.menu_tree.Metrics.push(
+            this._makeSubmenuOption('Color (Primary Metric)', 'dropdown', 
+                metricColumns, 
+                'primaryMetric',
+                function(evt_sel, val){
+                    self.observers.notify({
+                        type: globals.signals.METRICCHANGE,
+                        newMetric: val,
+                        source: "primary"
+                    })
+                }
+            )
+        );
+
+        this.menu_tree.Metrics.push(
+            this._makeSubmenuOption('Size (Secondary Metric)', 'dropdown', 
+                metricColumns,
+                'secondaryMetric',
+                function(evt_sel, val){
+                    self.observers.notify({
+                        type: globals.signals.METRICCHANGE,
+                        newMetric: val,
+                        source: "secondary"
+                    })
+                }
+            )
+        );
+        
+        //add display submenu
+        this.menu_tree.Display.push(
+            this._makeSubmenuOption('Tree Select', 'dropdown', 
+                rootNodeNames,
+                'activeTree', 
+                function (evt_sel, val) {
+                    self.observers.notify({
+                        type: globals.signals.TREECHANGE,
+                        display: val
+                    });
+                }
+            )
+        )
+
+        this.menu_tree.Display.push(
+            this._makeSubmenuOption('Color Map', 'dropdown', 
+                colors,
+                'colorText',
+                function (evt_sel, val) {
+                    self.observers.notify({
+                        type: globals.signals.COLORCLICK,
+                        value: val
+                    })
+                }
+            )
+        )
+        
+        this.menu_tree.Display.push(
+            this._makeSubmenuOption('Legends', 'dropdown', 
+                legends,
+                'legendText',
+                function (evt_sel, val) {
+                    self.observers.notify({
+                        type: globals.signals.LEGENDCLICK,
+                        value: val
+                    });
+                }
+            )
+        )
+        
+        this.menu_tree.Display.push(
+            this._makeSubmenuOption('Reset View', 'button', 
+                null,
+                null,
+                function (evt_sel) {
+                    self.observers.notify({
+                        type: globals.signals.RESETVIEW
+                    })
+                }
+            )
+        )
+
+        //add query/filter
+        this.menu_tree['Query'].push(
+            this._makeSubmenuOption('Select Nodes', 'toggle', 
+                null,
+                'brushOn', 
+                function (evt_sel) {
+                    self.observers.notify({
+                        type: globals.signals.TOGGLEBRUSH
+                    })
+                }
+            )
+        )
+        this.menu_tree['Query'].push(
+            this._makeSubmenuOption('Mass Prune', 'toggle', 
+                null, 
+                'pruneEnabled',
+                function(evt_sel){
+                    self.observers.notify({
+                        type: globals.signals.ENABLEMASSPRUNE,
+                        threshold: 1.5
+                    })
+                }
+            )
+        )
+        this.menu_tree['Query'].push(
+            this._makeSubmenuOption('Get Snapshot Query', 'button', 
+                null,
+                null, 
+                function(evt_sel){
+                    self.observers.notify({
+                        type: globals.signals.SNAPSHOT
+                    })
+                }
+            )
+        )
+    }
 
     _addNewMenuButton(id, text, click){
         /**
@@ -67,12 +212,14 @@ class MenuView extends View{
 
         //render a grey rectangle where categories sit
         // 2em tall, full width
-
         let menu_svg = d3.select(this.elem).append("svg").attr("class", "menu-svg");
+        this._svg = menu_svg;
+        const self = this;
         const buttonPad = 10;
-        const bg_color = 'rgba(100,100,100,1)';
+        const bg_color = this.menu_bg_color;
         const menu_height = '2em';
         const text_v_offset = '1.4em';
+        const vis_name_text = 'Interactive Calling Context Tree'
 
         menu_svg.attr('width', this.elem.clientWidth)
             .attr('height', menu_height)
@@ -80,7 +227,20 @@ class MenuView extends View{
         menu_svg.append('rect')
             .attr('width', this.elem.clientWidth)
             .attr('height', menu_height)
-            .style('fill', bg_color)
+            .style('fill', bg_color);
+
+        let vis_name = menu_svg
+            .append('text')
+            .text(vis_name_text)
+            .attr('x', this.elem.clientWidth)
+            .attr('y', 20)
+            .attr("font-family", "sans-serif")
+            .attr("font-size", "14px")
+            .style('fill', 'rgba(256,256,256,1)');
+
+        vis_name.attr('x', function(){
+           return self.elem.clientWidth - d3.select(this).node().getBBox().width - 25;
+        })
 
         let options = menu_svg
                         .selectAll('.option')
@@ -99,6 +259,15 @@ class MenuView extends View{
                                 d3.select(this)
                                     .select('.menu-button')
                                     .style('fill', bg_color);
+                            })
+                            .on('click', function(d){
+                                let submenu = d3.select(self.elem).select(`.${d}-submenu`);
+                                if(submenu.style('visibility') == 'hidden'){
+                                    submenu.style('visibility', 'visible');
+                                }
+                                else{
+                                    submenu.style('visibility', 'hidden');
+                                }
                             });
                             
     
@@ -116,6 +285,7 @@ class MenuView extends View{
                 .attr("font-size", "14px")
                 .style('fill', 'rgba(256,256,256,1)');
 
+
         let offset = 0;
         op_grp.each(function(d){
             let btn_grp = d3.select(this);
@@ -124,170 +294,172 @@ class MenuView extends View{
             //apply modified widths and offsets
             btn_grp.select(".menu-button").attr('width', btn_width);
             btn_grp.attr('transform', `translate(${offset}, 0)`);
+            self._addSubmenu(d, self.menu_tree[d], offset);
 
             offset += btn_width;
+
         })
-
-                            
-
-
     }
 
+    _addSubmenu(submenu_name, submenu_options, x_offset){
+        let view_left =  this.elem.getBoundingClientRect().left;
+        let view_top = this._svg.select('rect').node().getBBox().height;
+        const button_pad = 10;
+        const self = this;
+
+        let submenu_window = d3.select(this.elem)
+                                .append('svg')
+                                .style('position', 'absolute')
+                                .style('top', view_top + 16 + 'px')
+                                .style('left', view_left - 15 + x_offset + 'px')
+                                .style('width', '600px')
+                                .attr('class', `${submenu_name}-submenu`)
+                                .style('visibility', 'hidden')
+                                .append('g')
+                                .attr('class', 'submenu-grp');
+
+        let border = submenu_window.append('rect')
+                        .attr('height', submenu_options.length*25)
+                        .style('stroke', 'white')
+                        .style('stroke-width', 2);
+        
+        let opt = submenu_window
+                        .selectAll('.submenu-button')
+                        .data(submenu_options);
+
+        let btn = opt.enter()
+                    .append('g')
+                    .attr('class', 'submenu-button')
+                    .attr('transform', (_,i)=>{return `translate(0, ${i*25+1})`})
+                    .attr('cursor', 'pointer')
+                    .on('mouseover',function(){
+                        d3.select(this)
+                            .select('.submenu-button-rect')
+                            .style('fill', 'rgba(150,150,150,1)');
+                    })
+                    .on('mouseout', function(){
+                        d3.select(this)
+                            .select('.submenu-button-rect')
+                            .style('fill', self.menu_bg_color);
+                    })
+                    .on('click', function(d){
+                        if(d.type != 'dropdown') d.onclick(this);   
+                    });
+                
+
+        let bar = btn.append('rect')
+            .attr('class', 'submenu-button-rect')
+            .attr('height', 25)
+            .style('fill', this.menu_bg_color);
+
+
+        btn.append('text')
+            .text((d)=>{return d['text']})
+            .attr('class', 'submenu-button-text')
+            .attr('y', '1.2em')
+            .attr('x', button_pad)
+            .attr("font-family", "sans-serif")
+            .attr("font-size", "14px")
+            .style('fill', 'rgba(256,256,256,1)');
+
+        let max_width = 0;
+        btn.each(function(d){
+            max_width = Math.max(this.getBBox().width, max_width);
+        })
+
+        let barwidth = max_width + 2*button_pad + 25;
+        bar.attr('width', barwidth);
+        border.attr('width', barwidth);
+
+        btn.each(function(d){
+            let this_button = d3.select(this);
+
+            if(d.type == 'dropdown'){
+                self._makeDropDownMenu(this_button, d.options, barwidth, d.onselect);
+                
+                this_button.on('mouseenter', function(){
+                    let submenu = d3.select(this).select(`.cct-dropdown-menu`);
+                    submenu.style('visibility', 'visible');
+                })
+                .on('mouseleave', function(){
+                    let submenu = d3.select(this).select(`.cct-dropdown-menu`);
+                    submenu.style('visibility', 'hidden');
+                })
+            }
+        })
+
+        btn.append('text')
+            .text((d)=>{ if(d.type == 'dropdown') return '▸'; })
+            .attr('class', 'submenu-icon')
+            .attr('y', '1.2em')
+            .attr('x', max_width + 25)
+            .attr("font-family", "sans-serif")
+            .attr("font-size", "14px")
+            .style('fill', 'rgba(256,256,256,1)');               
+    }
+
+    _makeDropDownMenu(button, options, xoffset, callback){
+        let xorigin = xoffset;
+        let yorigin = button.node().getBBox().y;
+        let button_pad = 10;
+        let self = this;
+        let selections = button.append('g')
+                                .attr('class', 'cct-dropdown-menu')
+                                .attr('transform', `translate(${xorigin}, ${yorigin})`)
+                                .style('visibility', 'hidden');
+
+        selections.append('rect')
+                .attr('height', options.length*25)
+                .attr('width', 150)
+                .style('stroke', 'white')
+                .style('stroke-width', 2);
+
+        let sel = selections.selectAll('.cct-dropdown-option')
+                .data(options);
+        
+        let opt = sel.enter()
+                    .append('g')
+                    .attr('class', 'cct-dropdown-option')
+                    .attr('transform', (_,i)=>{return `translate(0, ${i*25})`})
+                    .attr('cursor', 'pointer')
+                    .on('mouseenter', function(){
+                        d3.select(this).select('.cct-dropdown-option-rect').style('fill', 'rgba(150,150,150,1)');
+                    })
+                    .on('mouseleave', function(){
+                        d3.select(this).select('.cct-dropdown-option-rect').style('fill', self.menu_bg_color);
+                    })
+                    .on('click', function(d){
+                        callback(this, d);
+                    });
+
+        opt.append('rect')        
+            .attr('height', 25)
+            .attr('width', 150)
+            .attr('class', 'cct-dropdown-option-rect')
+            .style('fill', this.menu_bg_color);
+
+        opt.append('text')
+            .text((d)=>{return d})
+            .attr('class', 'cct-dropdown-option-text')
+            .attr('y', '1.2em')
+            .attr('x', button_pad)
+            .attr("font-family", "sans-serif")
+            .attr("font-size", "14px")
+            .style('fill', 'rgba(256,256,256,1)');
+
+        opt.append('text')
+            .text((_, i)=>{ if(i == 0) return '✓'; })
+            .attr('class', 'cct-dropdown-icon')
+            .attr('y', '1.2em')
+            .attr('x', 130)
+            .attr("font-family", "sans-serif")
+            .attr("font-size", "16px")
+            .style('fill', 'rgba(256,256,256,1)');      
+    }
 
     _preRender(){
         const self = this;
-        const model = this.model;
-        let rootNodeNames = model.data["rootNodeNames"];
-        let metricColumns = model.data["metricColumns"];
-
-        const htmlInputs = d3.select(this.elem).insert('div', '.canvas').attr('class','html-inputs');
-
-        //---------------------------------
-        // HTML Interactables
-        //---------------------------------
-
-        htmlInputs.append('label').attr('for', 'primaryMetricSelect').text('Color by:');
-        htmlInputs.append("select") 
-                .attr("id", "primaryMetricSelect")
-                .selectAll('option')
-                .data(metricColumns)
-                .enter()
-                .append('option')
-                .text(d => d)
-                .attr('value', d => d)
-                .style('margin', "10px 10px 10px 0px");
-
-        htmlInputs.append('label').attr('for', 'secondaryMetricSelect').text('Size:');
-        htmlInputs.append("select") 
-                .attr("id", "secondaryMetricSelect")
-                .selectAll('option')
-                .data(metricColumns)
-                .enter()
-                .append('option')
-                .attr('selected', (_,i) => i == 1 ? "selected" : null)
-                .text(d => d)
-                .attr('value', d => d)
-                .style('margin', "10px 10px 10px 0px");
-
-
-        htmlInputs.append('label').style('margin', '0 0 0 10px').attr('for', 'treeRootSelect').text(' Display:');
-        htmlInputs.append("select") //element
-                .attr("id", "treeRootSelect")
-                .on('change', function () {
-                    self.observers.notify({
-                        type: globals.signals.TREECHANGE,
-                        display: this.value
-                    });
-                })
-                .selectAll('option')
-                .data(rootNodeNames)
-                .enter()
-                .append('option')
-                .attr('selected', d => d.includes('Show all trees') ? "selected" : null)
-                .text(d => d)
-                .attr('value', (d, i) => i + "|" + d)
-                .style('margin', "10px 10px 10px 0px");
-                
-                
-        
-        
-        htmlInputs.append('label').style('margin', '0 0 0 10px').attr('for', 'enable-pruning').text(' Enable Automatic Pruning:');
-        htmlInputs
-            .append("div")
-            .style("display", "inline-block")
-            .append('input')
-            .attr('id', 'enable-pruning')
-            .attr('type', 'checkbox')
-            .style('margin-left', '10px')
-            .on('click', function(){
-                self.observers.notify({
-                    type: globals.signals.ENABLEMASSPRUNE,
-                    checked: d3.select(this).property('checked'),
-                    threshold: d3.select(self.elem).select('#pruning-slider').node().value
-                })
-            });
-        
-        
-        let sliderText = htmlInputs.append('label').style('margin', '0 0 0 10px').attr('for', 'pruning-slider').text(' Pruning Strictness (1.5):');
-        htmlInputs
-            .append("div")
-                .attr("class", "slide-container")
-                .style("width", "150px")
-                .append("input")
-                    .attr("id", "pruning-slider")
-                    .attr("type", "range")
-                    .attr("step", ".25")
-                    .attr("min", "0")
-                    .attr("max", "2")
-                    .attr("value", "1.5")
-                    .style('margin-left', "10px")
-                    .on('change', function(){
-                        // Does not conform fully to MVC model
-                        sliderText.text(()=>{
-                            return ` Pruning Strictness (${this.value})`;
-                        });
-
-                        self.observers.notify({
-                            type: globals.signals.REQUESTMASSPRUNE,
-                            threshold: parseFloat(this.value)
-                        });
-                    })
-            
-        // ----------------------------------------------
-        // Create SVG and SVG-based interactables
-        // ----------------------------------------------
-
-        //make an svg in the scope of our current
-        // element/drawing space
-        this._svg = d3.select(this.elem).append("svg").attr("class", "inputCanvas");
-        
-        //-----------------------------------
-        // SVG Interactables
-        //-----------------------------------
-
-        this._addNewMenuButton('selectButton', 'Select nodes',  
-            function () {
-                self.observers.notify({
-                    type: globals.signals.TOGGLEBRUSH
-                })
-            });
-        
-        this._addNewMenuButton('colorButton', 
-            function(){
-                return `Colors: ${model.data["colors"][model.state["colorScheme"]]}`;
-            }, 
-            function () {
-                self.observers.notify({
-                    type: globals.signals.COLORCLICK
-                })
-            });
-        
-        this._addNewMenuButton('unifyLegends', 
-            function(){ 
-                return `Legends: ${model.data["legends"][model.state["legend"]]}`;
-            }, 
-            function () {
-                self.observers.notify({
-                    type: globals.signals.LEGENDCLICK
-                });
-            });
-        
-        this._addNewMenuButton('resetZoom', 'Reset View', 
-            function () {
-                self.observers.notify({
-                    type: globals.signals.RESETVIEW
-                });
-            });
-
-        this._addNewMenuButton('snapshotQuery', 'Get Snapshot Query',
-            function(){
-                self.observers.notify({
-                    type: globals.signals.SNAPSHOT
-                })
-            })
-        
-        this._svg.attr('height', '15px').attr('width', this.width);
-
+   
         // ----------------------------------------------
         // Define and set d3 callbacks for changes
         // ----------------------------------------------
@@ -313,33 +485,6 @@ class MenuView extends View{
             .attr('class', 'brush')
             .call(brush);
         
-            
-        //When metricSelect is changed (metric_col)
-        d3.select(this.elem).select('#primaryMetricSelect')
-            .on('change', function () {
-                self.observers.notify({
-                    type: globals.signals.METRICCHANGE,
-                    newMetric: this.value,
-                    source: d3.select(this).attr('id')
-                })
-            });
-
-        d3.select(this.elem).select('#secondaryMetricSelect')
-            .on('change', function(){
-                self.observers.notify({
-                    type:globals.signals.METRICCHANGE,
-                    newMetric: this.value,
-                    source: d3.select(this).attr('id')
-                })
-            })
-        
-        this.brushButton = d3.select(this.elem).select('#selectButton');
-        this.colorButton = d3.select(this.elem).select('#colorButton');
-        this.unifyLegends = d3.select(this.elem).select('#unifyLegends');
-        this.brushButtonText = this.brushButton.select('text');
-        this.colorButtonText = this.colorButton.select('text');
-        this.legendText = this.unifyLegends.select('text');
-        this.sliderText = sliderText;
         this.brush = brush;
     }
     
@@ -350,37 +495,50 @@ class MenuView extends View{
          */
         const self = this;
         let model = this.model;
-        let brushOn = model.state["brushOn"];
-        let curColor = model.state["colorScheme"];
-        let colors = model.data["colors"];
-        let curLegend = model.state["legend"];
-        let legends = model.data["legends"];
 
+        //toggleable events
         let pruneEnabled = model.state["pruneEnabled"];
+        let brushOn = model.state["brushOn"];
+
+
+        for(let option of this.categories){
+            let submenuopts = d3.select(this.elem)
+                                .select(`.${option}-submenu`)
+                                .selectAll('.submenu-button');
+                                
+            submenuopts.each(
+                function(d){
+                    let dropdownopts = d3.select(this).selectAll(`.cct-dropdown-option`);
+                    dropdownopts
+                        .selectAll('.cct-dropdown-icon')
+                        .text((v)=>{
+                            if(model.state[self.model_var_map[d.text]] == v){
+                                return ('✓');
+                            }
+                            return ('');
+                        });
+
+                    if(d.type == 'toggle'){
+                        if(pruneEnabled && d.text == 'Mass Prune'){
+                            d3.select(this).select('.submenu-icon').text('✓');
+                        }else if(!pruneEnabled && d.text == 'Mass Prune'){
+                            d3.select(this).select('.submenu-icon').text('');
+                        }
+
+                        else if(d.text == 'Select Nodes'){
+                            if(brushOn > 0){
+                                d3.select(this).select('.submenu-icon').text('✓');
+                            }
+                            else if(brushOn < 0){
+                                d3.select(this).select('.submenu-icon').text('');
+                            }
+                        }
+                    }
+                }
+            )
+        }
 
         d3.select(this.elem).selectAll('.brush').remove();
-
-        //updates
-        this.brushButton.style("fill", function(){ 
-            if(brushOn > 0){
-                return "black";
-            }
-            else{
-                return "#ccc";
-            }
-        })
-        .attr('cursor', 'pointer');
-
-        this.brushButtonText.style("fill", function(){
-            if(brushOn > 0){
-                return "white";
-            }
-            else{
-                return "black";
-            }
-        })
-        .attr('cursor', 'pointer');
-
 
         //add brush if there should be one
         if(brushOn > 0){
@@ -389,38 +547,6 @@ class MenuView extends View{
                 .call(this.brush);
         } 
 
-        this.colorButtonText
-        .text(function(){
-            return `Colors: ${colors[curColor]}`;
-        });
-
-        this.legendText
-        .text(function(){
-            return `Legends: ${legends[curLegend]}`;
-        });
-
-        this.colorButton.attr('width', this.colorButtonText.node().getBBox().width + 10);
-        this.unifyLegends.attr('width', this.legendText.node().getBBox().width + 10);
-        
-        this.sliderText
-            .style('visibility', ()=>{
-                if(pruneEnabled){
-                    return 'visible';
-                }
-                else{
-                    return 'hidden';
-                }
-            });
-
-        d3.select(this.elem).select('.slide-container')
-            .style('display', () =>{
-                if(pruneEnabled){
-                    return 'inline-block';
-                }
-                else{
-                    return 'none';
-                }
-            });
     }
 }
 

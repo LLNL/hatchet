@@ -30,16 +30,16 @@ class Controller{
                     this.model.changeMetric(evt.newMetric, evt.source);
                     break;
                 case(globals.signals.COLORCLICK):
-                    this.model.changeColorScheme();
+                    this.model.changeColorScheme(evt.value);
                     break;
                 case(globals.signals.TREECHANGE):
                     this.model.updateActiveTrees(evt.display);
                     break;
                 case(globals.signals.LEGENDCLICK):
-                    this.model.updateLegends();
+                    this.model.updateLegends(evt.value);
                     break;
                 case(globals.signals.ENABLEMASSPRUNE):
-                    this.model.enablePruneTree(evt.checked, evt.threshold);
+                    this.model.enablePruneTree(evt.threshold);
                     break;
                 case(globals.signals.REQUESTMASSPRUNE):
                     this.model.pruneTree(evt.threshold);

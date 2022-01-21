@@ -9,7 +9,7 @@ class Model{
         //initialize default data and state
         this.data = {
                         "trees":[],
-                        "legends": ["Unified", "Indiv."],
+                        "legends": ["Unified", "Individual"],
                         "colors": ["Default", "Inverted"],
                         "forestData": null,
                         "rootNodeNames": ["Show all trees"],
@@ -38,6 +38,8 @@ class Model{
                         "lastClicked": null,
                         "legend": 0,
                         "colorScheme": 0,
+                        "legendText": this.data.legends[0],
+                        "colorText": this.data.colors[0],
                         "brushOn": -1,
                         "hierarchyUpdated": true,
                         "cachedThreshold": 0,
@@ -576,7 +578,7 @@ class Model{
         this._observers.add(s);
     }
 
-    enablePruneTree(enabled, threshold){
+    enablePruneTree(threshold){
         /**
          * Enables/disables the mass prune tree functionality.
          * Prunes tree on click based on current slider position.
@@ -586,16 +588,13 @@ class Model{
          * @param {float} threshold - User defined strictness of pruning. Used as the multiplier in set outlier flags.
          *      On first click this will be 1.5.
          */
-        if (enabled){
-            this.state.pruneEnabled = true;
+
+        this.state.pruneEnabled = !this.state.pruneEnabled;
+        if (this.state.pruneEnabled){
             this.data.currentStrictness = threshold;
             this._aggregateTreeData();
             this.state.hierarchyUpdated = true;
         } 
-        else{
-            this.state.pruneEnabled = false;
-            // threshold = -1;
-        }
         
         this._observers.notify();
         
@@ -759,24 +758,26 @@ class Model{
         this._observers.notify();
     }
     
-    changeColorScheme(){
+    changeColorScheme(v){
         /**
          * Changes the current color scheme to inverse or regular. Updates the view
          *
          */
 
         //loop through the possible color schemes
-        this.state["colorScheme"] = (this.state["colorScheme"] + 1) % this.data["colors"].length;
+        this.state["colorScheme"] = this.data["colors"].indexOf(v);
+        this.state["colorText"] = v;
         this._observers.notify();
     }
 
-    updateLegends(){
+    updateLegends(v){
         /**
          * Toggles between divergent or unified legends. Updates the view
          *
          */
         //loop through legend configruations
-        this.state["legend"] = (this.state["legend"] + 1) % this.data["legends"].length;
+        this.state["legend"] = this.data["legends"].indexOf(v);
+        this.state["legendText"] = v;
         this._observers.notify();
     }
 
