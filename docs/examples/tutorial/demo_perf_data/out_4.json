@@ -1,0 +1,13 @@
+{
+  "data": [
+    [ 0.000444, null ],
+    [ 0.083707, 0 ],
+    [ 0.062506, 1 ],
+    [ 0.293924, 2 ]
+  ],
+  "columns": [ "time", "path" ],
+  "column_metadata": [ { "is_value": true, "attribute.alias": "time", "attribute.unit": "sec" }, { "is_value": false }  ],
+  "nodes": [ { "label": "main", "column": "path" }, { "label": "init", "column": "path", "parent": 0 }, { "label": "sort_arr", "column": "path", "parent": 0 } ],
+  "cali.caliper.version": "2.5.0",
+  "cali.channel": "hatchet-region-profile"
+}
