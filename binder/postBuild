@@ -1,3 +1,6 @@
+cd docs/examples/tutorial
+
 git clone https://github.com/sshudler/hatchet.git
 git clone https://github.com/LLNL/Caliper.git
 git clone https://github.com/extra-p/extrap --branch v4.0.3
+
