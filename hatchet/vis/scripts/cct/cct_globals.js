@@ -18,7 +18,8 @@ const globals = Object.freeze({
         LEGENDCLICK: "LEGENDCLICK",
         ENABLEMASSPRUNE: "ENABLEMASSPRUNE",
         REQUESTMASSPRUNE: "REQUESTMASSPRUNE",
-        RESETVIEW: "RESET"
+        RESETVIEW: "RESET",
+        PRUNERANGEUPDATE: "PRUNERANGEUPDATE"
     },
     layout: {
         margin: {top: 20, right: 20, bottom: 20, left: 20},

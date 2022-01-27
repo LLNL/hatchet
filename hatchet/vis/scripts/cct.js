@@ -28,6 +28,7 @@ var popup = new ScentedSliderPopup(element, model);
 //register signallers 
 menu.register(cont.dispatcher());
 chart.register(cont.dispatcher());
+popup.register(cont.dispatcher());
 
 model.register(menu.renderer());
 model.register(chart.renderer());

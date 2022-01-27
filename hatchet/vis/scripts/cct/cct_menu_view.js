@@ -280,7 +280,6 @@ class MenuView extends View{
                                 }
                             });
                             
-    
         op_grp.append('rect')
                 .attr('class','menu-button')
                 .attr('height', menu_height)
@@ -302,7 +301,10 @@ class MenuView extends View{
             let btn_width = btn_grp.select(".menu-text").node().getBBox().width + 2*buttonPad
             
             //apply modified widths and offsets
-            btn_grp.select(".menu-button").attr('width', btn_width);
+            btn_grp.select(".menu-button")
+                    .attr('width', btn_width)    
+                    .style('stroke', 'black')
+                    .style('stroke-dasharray', `0, ${btn_width}, ${menu_height}, ${btn_width}, ${menu_height}, 0`);
             btn_grp.attr('transform', `translate(${offset}, 0)`);
             self._addSubmenu(d, self.menu_tree[d], offset);
 

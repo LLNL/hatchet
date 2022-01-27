@@ -48,14 +48,21 @@ class Model{
         this.state.activeTree = "Show all trees";
         this.state.treeXOffsets = [];
         this.state.lastClicked = this.forest.getCurrentTree(0);
+        this.state.prune_range = {"low": Number.MAX_SAFE_INTEGER, "high": Number.MIN_SAFE_INTEGER};
 
-        this.forest.aggregateTreeData(this.state.primaryMetric, 0.0, "FlagZeros")
-
+        this.forest.aggregateTreeData(this.state.primaryMetric, 0.0, "FlagZeros");
     }
 
     // --------------------------------------------
     // Node selection helper functions
     // --------------------------------------------
+
+    _initializePruneRange(bins){
+        bins.forEach(d=>{
+            this.state.prune_range["low"] = Math.min(d.length, this.state.prune_range[0]);
+            this.state.prune_range["high"] = Math.max(d.length, this.state.prune_range[1]);
+        })
+    }
 
     _printNodeData(nodeList) {
         /**
@@ -154,9 +161,9 @@ class Model{
         this._observers.add(s);
     }
 
-
-    fetchBins(numBins){
+    updateBins(numBins){
         let nodes = []
+        this.state.numBins = numBins;
         if(this.data.distCounts.length != numBins){
             for(let t of this.forest.getTrees()){
                 nodes = nodes.concat(t.descendants()); 
@@ -164,9 +171,18 @@ class Model{
         }
 
         let bins = bin().value(d=>d.data.metrics[this.state.primaryMetric]).thresholds(numBins);
-        this.data.distCounts = bins(nodes);
+        let bin_dist = bins(nodes);
 
-        return this.data.distCounts;
+        /**
+         * NOTE TO SELF: Seperate out zeros from nonzeros.
+         */
+
+        console.log(bin_dist);
+        if(this.state.prune_range["low"] === Number.MAX_SAFE_INTEGER){
+            this._initializePruneRange(bin_dist);
+        }
+
+        this.data.distCounts = {"nonzero": bin_dist, "internalzero": bin_dist};
     }
 
     enablePruneTree(threshold){
@@ -343,8 +359,9 @@ class Model{
         }
         
         if(this.state.pruneEnabled){
-            this.forest._aggregateTreeData(this.state.primaryMetric, this.state.currentStrictness);
+            this.forest.aggregateTreeData(this.state.primaryMetric, this.state.currentStrictness);
             this.state.hierarchyUpdated = true;
+            this.updateBins(this.state.numBins);
         }
         this._observers.notify();
     }
@@ -378,6 +395,12 @@ class Model{
          *
          */
         this.state["activeTree"] = activeTree;
+        this._observers.notify();
+    }
+
+    updatePruneRange(low, high){
+        this.state.prune_range.low = low;
+        this.state.prune_range.high = high;
         this._observers.notify();
     }
 

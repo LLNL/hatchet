@@ -47,6 +47,9 @@ class Controller{
                 case(globals.signals.RESETVIEW):
                     this.model.resetView();
                     break;
+                case(globals.signals.PRUNERANGEUPDATE):
+                    this.model.updatePruneRange(evt.low, evt.high);
+                    break;
                 default:
                     console.warn('Unknown event type', evt.type);
             }
