@@ -1,7 +1,5 @@
 import { makeSignaller, d3, globals } from "./cct_globals";
 import View from "../utils/view";
-import { selection } from "d3v4";
-import { mode } from "d3-array";
 
 
 class MenuView extends View{
@@ -21,7 +19,7 @@ class MenuView extends View{
         this.menu_tree = [];
 
         this.width = elem.clientWidth - globals.layout.margin.right - globals.layout.margin.left;
-        this.height = globals.treeHeight * (model.data["numberOfTrees"] + 1);
+        this.height = globals.treeHeight * (model.forest.numberOfTrees + 1);
 
         this.menu_height = '2em';
         this.menu_bg_color = 'rgba(100,100,100,1)';
@@ -32,6 +30,18 @@ class MenuView extends View{
     }
 
     _makeSubmenuOption(text, type, options, model_var, callback){
+        /**
+         * Makes a data-based defintion of a submenu option which
+         * can be used with d3 to make our menu.
+         * @param {String} text - Text which will appear to the user on the submenu option
+         * @param {String} type - Describes the type of submenu option: 'button', 'dropdown' or 'toggle'
+         * @param {Array{String}} options - Array of strings which are the dropdown options
+         *                                  for 'dropdown' buttons
+         * @param {String} model_var - A key which accesses a variable in the model that our submenu option
+         *                              state is dependant on, so active selections can be 'checkmarked', etc.
+         * @param {Function} callback - A callback function which runs when a user clicks the submenu button,
+         *                              or a dropdown option in the case of a 'dropdown' type
+         */
         this.model_var_map[text] = model_var;
         if(options != null){
             return {'text':text, 'type':type, 'options':options, 'onselect':callback}
@@ -41,8 +51,8 @@ class MenuView extends View{
 
     _setUpMenuTree(){
         let model = this.model;
-        let rootNodeNames = model.data["rootNodeNames"];
-        let metricColumns = model.data["metricColumns"];
+        let rootNodeNames = model.forest.rootNodeNames;
+        let metricColumns = model.forest.metricColumns;
         let colors = model.data["colors"];
         let legends = model.data["legends"];
         let self = this;

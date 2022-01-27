@@ -29,10 +29,10 @@ const makeColorManager = function(model) {
     };
 
     const _state = model.state;
-    const _forestMinMax = model.data["forestMinMax"];
-    const _forestStats = model.data["forestMetrics"];
-    const _metricColumns = model.data["metricColumns"];
-    const _attributeColumns = model.data["attributeColumns"];
+    const _forestMinMax = model.forest.forestMinMax;
+    const _forestStats = model.forest.forestMetrics;
+    const _metricColumns = model.forest.metricColumns;
+    const _attributeColumns = model.forest.attributeColumns;
 
     return {
         setColors: function(treeIndex) {

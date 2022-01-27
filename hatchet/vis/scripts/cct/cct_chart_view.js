@@ -26,19 +26,22 @@ class ChartView extends View{
                     .attr("width", this._width)
                     .attr("height", this._height);
 
+        const fMaxHeight = model.forest.maxHeight;
+        const secondaryMinMax = model.forest.forestMinMax[model.state.secondaryMetric];
+
         //scales
         this._treeCanvasHeightScale = d3.scaleQuantize().range([250, 1000, 1250, 1500]).domain([1, 300]);
-        this._treeDepthScale = d3.scaleLinear().range([0, element.offsetWidth-200]).domain([0, model.data.maxHeight])
-        this._nodeScale = d3.scaleLinear().range([5, this._maxNodeRadius]).domain([model.data.forestMinMax[model.state.secondaryMetric].min, model.data.forestMinMax[model.state.secondaryMetric].max]);
-        this._barScale = d3.scaleLinear().range([5, 25]).domain([model.data.forestMinMax[model.state.secondaryMetric].min, model.data.forestMinMax[model.state.secondaryMetric].max]);
+        this._treeDepthScale = d3.scaleLinear().range([0, element.offsetWidth-200]).domain([0, fMaxHeight])
+        this._nodeScale = d3.scaleLinear().range([5, this._maxNodeRadius]).domain([secondaryMinMax.min, secondaryMinMax.max]);
+        this._barScale = d3.scaleLinear().range([5, 25]).domain([secondaryMinMax.min, secondaryMinMax.max]);
 
         //view specific data stores
         this.nodes = [];
         this.surrogates = [];
         this.aggregates = [];
         this.links = [];
-        this.metricColumns = model.data["metricColumns"];
-        this.attributeColumns = model.data["attributeColumns"];
+        this.metricColumns = model.forest.metricColumns;
+        this.attributeColumns = model.forest.attributeColumns;
 
         this._preRender();
     }
@@ -120,7 +123,7 @@ class ChartView extends View{
          */
         let brushedNodes = [];
         if (selection){
-            for(var i = 0; i < this.model.data["numberOfTrees"]; i++){
+            for(var i = 0; i < this.model.forest.numberOfTrees; i++){
                 this.nodes[i].forEach((d) => {
                     if(selection[0][0] <= d.yMainG && selection[1][0] >= d.yMainG 
                         && selection[0][1] <= d.xMainG && selection[1][1] >= d.xMainG){
@@ -142,7 +145,6 @@ class ChartView extends View{
          * @param {Array} nodes - An array of all nodes in a tree
          * @param {Number} treeIndex - An integer of the current tree index
          */
-        console.log("called");
         nodes.forEach(
             (d) => {
                     d.x0 = this._getLocalNodeX(d.x, treeIndex);
@@ -193,9 +195,9 @@ class ChartView extends View{
 
 
         // Add a group and tree for each forestData[i]
-        for (var treeIndex = 0; treeIndex < this.model.data.numberOfTrees; treeIndex++) {
-            let tree = d3.tree().size([this._treeCanvasHeightScale(this.model.data.hierarchy[treeIndex].size), this._width - this._margin.left - 200]);
-            let currentRoot = tree(this.model.data.hierarchy[treeIndex]);
+        for (var treeIndex = 0; treeIndex < this.model.forest.numberOfTrees; treeIndex++) {
+            let tree = d3.tree().size([this._treeCanvasHeightScale(this.model.forest.getCurrentTree(treeIndex).size), this._width - this._margin.left - 200]);
+            let currentRoot = tree(this.model.forest.getCurrentTree(treeIndex));
             let currentLayoutHeight = this._getHeightFromTree(currentRoot);
             let currentMinMax = this._getMinxMaxxFromTree(currentRoot);
             
@@ -256,7 +258,7 @@ class ChartView extends View{
             newg.style("display", "inline-block");
 
             //store node and link layout data for use later
-            var treeLayout = tree(this.model.data.hierarchy[treeIndex]);
+            var treeLayout = tree(this.model.forest.getCurrentTree(treeIndex));
             this.nodes.push(treeLayout.descendants());
             this.surrogates.push([]);
             this.aggregates.push([]);
@@ -309,8 +311,8 @@ class ChartView extends View{
         this._height = this._margin.top + this._margin.bottom;
 
         //update scales
-        this._nodeScale.domain([0, this.model.data.forestMinMax[this.model.state.secondaryMetric].max]);
-        this._barScale.domain([this.model.data.aggregateMinMax[this.model.state.secondaryMetric].min, this.model.data.aggregateMinMax[this.model.state.secondaryMetric].max]);
+        this._nodeScale.domain([0, this.model.forest.forestMinMax[this.model.state.secondaryMetric].max]);
+        this._barScale.domain([this.model.forest.aggregateMinMax[this.model.state.secondaryMetric].min, this.model.forest.aggregateMinMax[this.model.state.secondaryMetric].max]);
 
         //add brush if there should be one
         if(this.model.state.brushOn > 0){
@@ -320,15 +322,15 @@ class ChartView extends View{
         } 
 
         //render for any number of trees
-        for(var treeIndex = 0; treeIndex < this.model.data.numberOfTrees; treeIndex++){
+        for(var treeIndex = 0; treeIndex < this.model.forest.numberOfTrees; treeIndex++){
             //retrieve new data from model
             var secondaryMetric = this.model.state.secondaryMetric;
-            var source = this.model.data.hierarchy[treeIndex];
+            var source = this.model.forest.getCurrentTree(treeIndex);
 
             //will need to optimize this redrawing
             // by cacheing tree between calls
             if(this.model.state.hierarchyUpdated == true){
-                let tree = d3.tree().size([this._treeCanvasHeightScale(this.model.data.hierarchy[treeIndex].size), this._width - this._margin.left - 200]);
+                let tree = d3.tree().size([this._treeCanvasHeightScale(this.model.forest.getCurrentTree(treeIndex).size), this._width - this._margin.left - 200]);
                 var treeLayout = tree(source);
                 this.nodes[treeIndex] = treeLayout.descendants().filter(d=>{return !d.dummy});
                 this.surrogates[treeIndex] = treeLayout.descendants().filter(d=>{return (d.dummy && !d.aggregate)});
@@ -342,7 +344,7 @@ class ChartView extends View{
                 this._minmax[treeIndex] = this._getMinxMaxxFromTree(treeLayout);
 
                 //only update after last tree
-                if(treeIndex == this.model.data.numberOfTrees - 1){
+                if(treeIndex == this.model.forest.numberOfTrees - 1){
                     this.model.state.hierarchyUpdated = false;
                 }
             }
@@ -366,7 +368,7 @@ class ChartView extends View{
                 );
 
                 //only update after last tree
-                if(treeIndex == this.model.data.numberOfTrees - 1){
+                if(treeIndex == this.model.forest.numberOfTrees - 1){
                     this.model.state.resetView = false;
                 }
             }
@@ -488,7 +490,11 @@ class ChartView extends View{
                     })
                     .text((d) => {
                         if(!d.children){
-                            return d.data.name;
+                            let n = d.data.name;
+                            if (n.includes("<unknown file>")){
+                                n = n.replace('<unknown file>', '');
+                            }
+                            return n;
                         }
                         else if(d.children.length == 1){
                             return "";
@@ -575,7 +581,7 @@ class ChartView extends View{
                 .transition()
                 .duration(globals.duration)
                 .attr("transform", () => {
-                    if(this.model.state["activeTree"].includes(this.model.data["rootNodeNames"][treeIndex+1])){
+                    if(this.model.state["activeTree"].includes(this.model.forest.rootNodeNames[treeIndex+1])){
                         return `translate(${this._margin.left}, ${this._margin.top})`;
                     } 
                     else {
@@ -586,7 +592,7 @@ class ChartView extends View{
                     if(this.model.state["activeTree"].includes("Show all trees")){
                         return "inline-block";
                     } 
-                    else if(this.model.state["activeTree"].includes(this.model.data["rootNodeNames"][treeIndex+1])){
+                    else if(this.model.state["activeTree"].includes(this.model.forest.rootNodeNames[treeIndex+1])){
                         return "inline-block";
                     } 
                     else {
@@ -683,7 +689,11 @@ class ChartView extends View{
                 })
                 .text((d) => {
                     if(!d.children || d.children.length == 0){
-                        return d.data.name;
+                    let n = d.data.name;
+                        if (n.includes("<unknown file>")){
+                            n = n.replace('<unknown file>', '');
+                        }
+                        return n;
                     }
                     return "";
                 });

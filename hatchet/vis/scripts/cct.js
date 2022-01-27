@@ -5,6 +5,7 @@ import Model from './cct/cct_model';
 import MenuView from './cct/cct_menu_view';
 import ChartView from './cct/cct_chart_view';
 import TooltipView from './cct/cct_tooltip_view';
+import ScentedSliderPopup from './cct/cct_scented_slider_popup';
 
 d3.select(element).attr('width', '100%');
 
@@ -22,6 +23,7 @@ var cont = new Controller(model);
 var menu = new MenuView(element, model);
 var tooltip = new TooltipView(element, model);
 var chart = new ChartView(element, model);
+var popup = new ScentedSliderPopup(element, model);
 
 //register signallers 
 menu.register(cont.dispatcher());
@@ -30,6 +32,7 @@ chart.register(cont.dispatcher());
 model.register(menu.renderer());
 model.register(chart.renderer());
 model.register(tooltip.renderer());
+model.register(popup.renderer());
 
 //render all views one time
 menu.render();
