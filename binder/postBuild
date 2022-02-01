@@ -4,6 +4,7 @@ git clone https://github.com/sshudler/hatchet.git --branch modeling
 git clone https://github.com/LLNL/Caliper.git
 git clone https://github.com/extra-p/extrap.git --branch v4.0.3
 git clone https://github.com/LLNL/spotbe.git
+git clone https://github.com/slabasan/hatchet-notebooks-sc19.git --branch add-scaling-study
 
 cd hatchet
 ./install.sh
