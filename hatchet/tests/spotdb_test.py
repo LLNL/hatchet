@@ -8,12 +8,6 @@ import pytest
 from hatchet import GraphFrame
 from hatchet.readers.spotdb_reader import SpotDatasetReader, SpotDBReader
 
-spotdb_avail = True
-try:
-    import spotdb
-except ImportError:
-    spotdb_avail = False
-
 
 def test_spot_dataset_reader():
     """Sanity-check the Spot dataset reader"""
@@ -39,9 +33,9 @@ def test_spot_dataset_reader():
     assert gf.default_metric == "M Alias (inc)"
 
 
-@pytest.mark.skipif(not spotdb_avail, reason="spotdb module not available")
 def test_spotdb_reader(spotdb_data):
     """Sanity check for the SpotDB reader"""
+    spotdb = pytest.importorskip("spotdb", reason="spotdb module not available")
 
     db = spotdb_data
 
@@ -60,9 +54,9 @@ def test_spotdb_reader(spotdb_data):
     assert "launchdate" in gfs[0].metadata.keys()
 
 
-@pytest.mark.skipif(not spotdb_avail, reason="spotdb module not available")
 def test_from_spotdb(spotdb_data):
     """Sanity check for GraphFrame.from_spotdb"""
+    spotdb = pytest.importorskip("spotdb", reason="spotdb module not available")
 
     db = spotdb_data
     runs = db.get_all_run_ids()
