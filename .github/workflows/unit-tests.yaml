@@ -46,6 +46,7 @@ jobs:
         pip install -r requirements.txt
         # Optional Dependency for HDF Checkpointing
         pip install tables
+        pip install flake8-pytest-importorskip
         python setup.py install
         python setup.py build_ext --inplace
         python -m pip list
