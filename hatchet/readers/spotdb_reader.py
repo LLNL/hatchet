@@ -3,7 +3,6 @@
 #
 # SPDX-License-Identifier: MIT
 
-from numpy import string_
 import pandas as pd
 
 import hatchet.graphframe
