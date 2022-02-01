@@ -53,7 +53,7 @@ jobs:
     - name: Update Black
       if: ${{ matrix.python-version == 3.7 }}
       run: |
-        pip install --upgrade black
+        pip install black==21.12b0
 
     - name: Lint and Format Check with Flake8 and Black
       if: ${{ matrix.python-version == 3.7 }}
