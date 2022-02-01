@@ -6,7 +6,8 @@ class Forest{
 
     constructor(cct_forest_def){
         //initialize forest containers
-        this.immutableTrees =  [];
+        this.immutableTrees = [];
+        this.prePrunedTrees = [];
         this.mutableTrees = [];
 
         //initialize forest descriptors
@@ -26,7 +27,6 @@ class Forest{
         //setup functions
         this.instantiateTrees(cct_forest_def);
         this.organizeMetrics(cct_forest_def);
-
     }
 
     instantiateTrees(forestData){
@@ -39,21 +39,14 @@ class Forest{
             let hierarchy = d3v7_hierarchy(forestData[treeIndex], d => d.children);
             hierarchy.size = hierarchy.descendants().length;
 
-            //add a surrogate id if _hatchet_nid is not present
-            if(!Object.keys(hierarchy.descendants()[0].data.metrics).includes("_hatchet_nid")){
-                hierarchy.descendants().forEach(function(d, i){
-                    if(d.data.metrics !== undefined){
-                        d.data.metrics.id = offset+i;
-                    }
-                    else{
-                        d.data.id = offset+i;
-                    }
-                })
-                offset += hierarchy.size;
-            }
+            //add a local nid to this representation
+            hierarchy.descendants().forEach(function(d, i){
+                d.data.id = offset+i;
+            })
+            offset += hierarchy.size;
 
             this.immutableTrees.push(hierarchy);
-            this.mutableTrees.push(hierarchy);
+            this.mutableTrees.push(hierarchy);   
 
             if (this.immutableTrees[treeIndex].height > this.maxHeight){
                 this.maxHeight = this.immutableTrees[treeIndex].height;
@@ -62,6 +55,32 @@ class Forest{
 
         //sort in descending order
         this.immutableTrees.sort((a,b) => b.size - a.size);
+        this.mutableTrees.sort((a,b) => b.size - a.size);
+    }
+
+    initializePrunedTrees(primaryMetric){
+        let newTrees = this.getFreshTrees();
+
+        for(let t in newTrees){
+            let pt = this.pruneTree(newTrees[t], primaryMetric, (h, primaryMetric)=>{
+                h.each(function(node){
+                    var metric = node.data.metrics[primaryMetric];
+                    if(metric != 0){
+                        node.data.show = 1;
+                    }
+                    else{
+                        node.data.show = 0;
+                    }
+                })
+            });
+
+            pt.size = pt.descendants().length;
+
+            this.prePrunedTrees.push(pt);
+            this.mutableTrees[t] = pt;   
+        }
+
+        this.prePrunedTrees.sort((a,b) => b.size - a.size);
         this.mutableTrees.sort((a,b) => b.size - a.size);
     }
 
@@ -132,51 +151,12 @@ class Forest{
         this.forestMetrics.push(_forestMinMax);
     }
 
-
-    _setZeroFlags(h, primaryMetric){
-        //runs on default
-        h.each(function(node){
-            var metric = node.data.metrics[primaryMetric];
-            if(metric != 0){
-                node.data.show = 1;
-            }
-            else{
-                node.data.show = 0;
-            }
-        })
-    }
-
-    _setOutlierFlags(h, primaryMetric, currentStrictness){
+    _setPruneFlags(tree, primaryMetric, callback){
         /**
-         * Sets outlier flags on a d3 hierarchy of call sites.
-         * An outlier is defined as outside of the range between
-         * the IQR*(a user defined scalar) + 75th quantile and
-         * 25th quantile - IQR*(scalar). 
-         * 
-         * @param {Hierarchy} h - A d3 hierarchy containg metric values
+         * Function which evokes an arbitraty callback that sets show
+         * flags on the passed tree using the primary metric.
          */
-        var outlierScalar = currentStrictness;
-        var upperOutlierThreshold = Number.MAX_VALUE;
-        var lowerOutlierThreshold = Number.MIN_VALUE;
-
-        var metrics = this._getListOfMetrics(h, primaryMetric);
-        var IQR = this.stats._getIQR(metrics, primaryMetric);
-
-        if(!isNaN(IQR)){
-            upperOutlierThreshold = this.stats._quantile(metrics, .75, primaryMetric) + (IQR * outlierScalar);
-            lowerOutlierThreshold = this.stats._quantile(metrics, .25, primaryMetric) - (IQR * outlierScalar);
-        } 
-
-        h.each(function(node){
-            var metric = node.data.metrics[primaryMetric];
-            if( metric >= upperOutlierThreshold || 
-                metric <= lowerOutlierThreshold){
-                node.data.show = 1;
-            }
-            else{
-                node.data.show = 0;
-            }
-        })
+        callback(tree, primaryMetric);
     }
 
     _getAggregateMetrics(h, aggFunct){
@@ -296,7 +276,7 @@ class Forest{
 
             description.size += descriptionOfChild.size;
 
-            if(descriptionOfChild.height > description.maxHeight){
+            if(descriptionOfChild.height > description.maxHeight){0.0, "FlagZeros"
                 description.maxHeight = descriptionOfChild.height;
             }
 
@@ -381,45 +361,43 @@ class Forest{
         }
     }
 
-    _setDisplayFlags(flagOp, t, primaryMetric, currentStrictness){
-        if(flagOp == "FlagZeros"){
-            this._setZeroFlags(t, primaryMetric);
-        }
-        else if(flagOp == "FlagOutliers"){
-            this._setZeroFlags(t, primaryMetric);
-            this._setOutlierFlags(t, primaryMetric, currentStrictness);
-        }
-        else if(flagOp == "FlagRange"){
-            this._setZeroFlags(t, primaryMetric);
-            this._setRangeFlags(t, primaryMetric, inclusiveRange);
-        }
-
+    _setDisplayFlags(t, primaryMetric, conditionCallback){
+        this._setPruneFlags(t, primaryMetric, conditionCallback);
     }
 
-    aggregateTreeData(primaryMetric, currentStrictness, op){
+    pruneTree(t, primaryMetric, conditionCallback){
+        this._setDisplayFlags(t, primaryMetric, conditionCallback);
+
+        //The sum ensures that we do not prune 
+        //away parent nodes of identified outliers.
+        t.sum(d => d.show);
+        this._pruningVisitor(t, 1, primaryMetric);
+
+        //update size of subtrees on the nodes
+        t.size = t.descendants().length;
+
+        return t;
+    }
+
+    aggregateTreeData(primaryMetric, conditionCallback){
         /**
          * Helper function which drives the outlier
          * detection and pruning of a fresh tree.
          * This function creates a fresh hierarchy when called and
          * overwrites the current tree in the view.
          */
-        let newTrees = this.getFreshTrees();
+        let newTrees;
+        if(this.zeros == true){
+            newTrees = this.getFreshTrees();
+        }else{
+            newTrees = this.getPrePrunedTrees();
+        }
 
         for(let i in newTrees){
             let t = newTrees[i];
-            if(currentStrictness > -1){
-                this._setDisplayFlags(op, t, primaryMetric, currentStrictness);
-
-                //The sum ensures that we do not prune 
-                //away parent nodes of identified outliers.
-                t.sum(d => d.show);
-                this._pruningVisitor(t, 1, primaryMetric);
-
-                //update size of subtrees on the nodes
-                t.size = t.descendants().length;
+            
+            t = this.pruneTree(t, primaryMetric, conditionCallback);
                 
-            }
-
             this.mutableTrees[i] = t;
         }
     }
@@ -439,11 +417,34 @@ class Forest{
         return list;
     }
 
+    resetMutable(){
+        if(this.zeroes){
+            this.mutableTrees = this.getFreshTrees();
+        }
+        else{
+            this.mutableTrees = this.getPrePrunedTrees();
+        }
+    }
+
+    getPrePrunedTrees(){
+        let mutableTrees = [];
+
+        for(let tree of this.prePrunedTrees){
+            let t = tree.copy();
+            t.size = t.descendants().length;
+            mutableTrees.push(t);
+        }
+
+        return mutableTrees;
+    }
+
     getFreshTrees(){
         let mutableTrees = [];
 
         for(let tree of this.immutableTrees){
-            mutableTrees.push(tree.copy());
+            let t = tree.copy();
+            t.size = t.descendants().length;
+            mutableTrees.push(t);
         }
 
         return mutableTrees;

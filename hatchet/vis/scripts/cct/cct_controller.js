@@ -14,6 +14,9 @@ class Controller{
             // All types of events run through a central dispatch
             // function. The dispatch function decides what to do.
             switch(evt.type) {
+                case(globals.signals.UPDATESELECTED):    
+                    this.model.updateSelected(evt.nodes);
+                    break;
                 case (globals.signals.CLICK):
                     this.model.updateSelected([evt.node]);
                     break;

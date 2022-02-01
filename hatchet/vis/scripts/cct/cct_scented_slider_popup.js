@@ -7,12 +7,15 @@ class ScentedSliderPopup extends View{
     constructor(elem,model){
         super(elem, model);
         this.popup_dims = {
-            'width': 300,
-            'height': 150,
-            'padding': 30
+            'width': 350,
+            'height': 200,
+            'left_padding': 45,
+            'right_padding': 30,
+            'top_padding': 30
         }
-        this.full_hist_height = this.popup_dims.height*.5;
-        this.hist_height = this.full_hist_height/2;
+        this.full_hist_height = this.popup_dims.height*.6;
+        this.hist_height = this.full_hist_height*.7;
+        this.icycle_height = this.full_hist_height-this.hist_height;
         this.num_bins = 25;
         this.slider_width = 10;
         this.slider_height = 20;
@@ -22,18 +25,22 @@ class ScentedSliderPopup extends View{
                         .attr('width', this.popup_dims['width'])
                         .attr('height', this.popup_dims['height'])
                         .style('position', 'absolute')
-                        .style('left', (this.elem.clientWidth*.5 - this.popup_dims.width*.5) + 'px')
-                        // .style('visibility', 'hidden');
+                        // .style('left', (this.elem.clientWidth*.5 - this.popup_dims.width*.5) + 'px')
+                        .style('left', '145px')
+                        .style('top', '150px')
+                        .style('visibility', 'hidden');
 
         model.updateBins(this.num_bins);
         this.bins = model.data.distCounts["nonzero"];
+        this.zero_bins = model.data.distCounts["internalzero"]
+        this.zero_cnt = this.zero_bins[0].length;
         this.update_bin_count_ranges();
 
         this.slider_range = model.forest.forestMetrics[model.state.primaryMetric];
-        this.h_x_scale = d3.scaleLinear().domain([0,this.bins.length]).range([0, this.popup_dims['width']-2*this.popup_dims.padding]);
+        this.h_x_scale = d3.scaleLinear().domain([0,this.bins.length]).range([0, this.popup_dims['width']-this.popup_dims.left_padding-this.popup_dims.right_padding]);
         this.h_y_scale = d3.scaleLinear().domain(this.bin_count_range).range([4, this.hist_height]);
         this.invert_y_scale = d3.scaleLinear().domain(this.bin_count_range).range([this.hist_height, 0]);
-
+        this.i_y_scale = d3.scaleLinear().domain([0, this.zero_cnt]).range([0, this.icycle_height]);
 
         this.pre_render();
         this.render();
@@ -66,15 +73,16 @@ class ScentedSliderPopup extends View{
         else{
             range_val = self.bins[bin_num].x1;
             if(bin_num != this.current_r_bin && bin_num >= this.current_l_bin){
-                update = true;
-                this.current_r_bin = bin_num;
                 step_loc = self.h_x_scale(bin_num+1);
+                this.current_r_bin = bin_num;
+                update = true;
             }
         }
 
         if(update == true){
             slider.attr('transform', `translate(${step_loc-(this.slider_width/2)},0)`);
             slider.select('text').text(`${range_val}`);
+            slider.select('text').attr('x', function(){return -(this.getBBox().width/2) + self.slider_width/2});
             this.observers.notify({
                 type: globals.signals.PRUNERANGEUPDATE,
                 low: self.bins[this.current_l_bin].x0,
@@ -111,7 +119,7 @@ class ScentedSliderPopup extends View{
                     .attr('stroke-width', 2);
         
         this._svg.append('text')
-                    .text('Brush Over Distribution to Set Filter Range')
+                    .text('Move Sliders to Set Prune Range')
                     .attr('fill', 'rgba(0,0,0,1)')
                     .attr('y', 20)
                     .attr('x', 20);
@@ -120,17 +128,28 @@ class ScentedSliderPopup extends View{
                     .attr('class', 'hist-grp')
                     .attr('height', this.hist_height)
                     .attr('width', this.popup_dims['width'])
-                    .attr('transform', `translate(${this.popup_dims.padding}, ${this.popup_dims.padding+5})`);
-        
+                    .attr('transform', `translate(${this.popup_dims.left_padding}, ${this.popup_dims.top_padding+5})`);
+    
+        this._svg.append('g')
+                    .attr('class', 'ice-grp')
+                    .attr('height', this.icycle_height)
+                    .attr('width', this.popup_dims['width'])
+                    .attr('transform', `translate(${this.popup_dims.left_padding},${this.popup_dims.top_padding+5+this.hist_height})`)
+
         this.hist_grp = this._svg.select('.hist-grp');
+        this.ice_grp = this._svg.select('.ice-grp');
 
         this.hist_grp.append('g')
                         .attr('class', 'left-axis')
                         .attr('transform', `translate(0, 0)`)
-                        .call(d3.axisLeft(this.invert_y_scale).ticks(5));
+                        .call(d3.axisLeft(this.invert_y_scale).ticks(4));
+
+        this.ice_grp.append('g')
+                    .attr('class', 'left-ice-axis')
+                    .call(d3.axisLeft(this.i_y_scale).ticks(4));
 
         this.l_slider_pos_origin = -(this.slider_width/2);
-        this.r_slider_pos_origin = this.popup_dims['width']-2*this.popup_dims.padding - (this.slider_width/2);
+        this.r_slider_pos_origin = this.popup_dims['width']-this.popup_dims.left_padding - this.popup_dims.right_padding - (this.slider_width/2);
         this.current_l_bin = parseInt(this.h_x_scale.invert(this.l_slider_pos_origin));
         this.current_r_bin = parseInt(this.h_x_scale.invert(this.r_slider_pos_origin));
 
@@ -164,9 +183,12 @@ class ScentedSliderPopup extends View{
                     .attr('y2', this.full_hist_height+2)
                     .attr('stroke', 'rgba(200,50,50,1)');
 
-        l_slider.append('text')
-                .text(`${this.bins[parseInt(this.h_x_scale.invert(this.l_slider_pos_origin))].x0}`)
-                .attr('y', this.full_hist_height+2+this.slider_height+14);
+        let txt = l_slider.append('text')
+                            .text(`${this.bins[parseInt(this.h_x_scale.invert(this.l_slider_pos_origin))].x0}`)
+                            .attr('y', this.full_hist_height+2+this.slider_height+14);
+
+        txt.attr('x', function(){return -(this.getBBox().width/2) + self.slider_width/2});
+        
 
         let r_slider = this.hist_grp.append('g')
                                 .attr('class', 'r-slider-grp')
@@ -189,38 +211,48 @@ class ScentedSliderPopup extends View{
                     .attr('y2', this.full_hist_height+2)
                     .attr('stroke', 'rgba(200,50,50,1)');
 
-        r_slider.append('text')
+        txt = r_slider.append('text')
                 .text(`${this.bins[parseInt(this.h_x_scale.invert(this.r_slider_pos_origin))].x1}`)
                 .attr('y', this.full_hist_height+2+this.slider_height+14);
+
+        txt.attr('x', function(){return -(this.getBBox().width/2) + self.slider_width/2});
         
         dragHandler(l_slider);
         dragHandler(r_slider);
     }
 
     render(){
+        const self = this;
         this.bins = this.model.data.distCounts["nonzero"];
+        this.zero_bins = this.model.data.distCounts["internalzero"];
         this.update_bin_count_ranges();
 
         this.h_y_scale.domain(this.bin_count_range);
         this.invert_y_scale.domain(this.bin_count_range);
+        this.h_x_scale.domain([0, this.bins.length]);
 
-        this.hist_grp.select('.left-axis')
-                .transition()
-                .duration(globals.duration)
-                .call(d3.axisLeft(this.invert_y_scale).ticks(5));
 
-        // this._svg.style('visibility', ()=>{
-        //     if(this.model.state.pruneEnabled) return 'visible';
-        //     return 'hidden';
-        // });
+        this._svg.style('visibility', ()=>{
+            if(this.model.state.pruneEnabled) return 'visible';
+            return 'hidden';
+        });
+
 
         let bars = this.hist_grp.selectAll('.hist-bar')
-        .data(this.bins);
+            .data(this.bins);  
+        
+        let rev_bars = this.ice_grp.selectAll('.ice-bar')
+            .data(this.zero_bins);
 
+        /**
+         * 
+         * ENTER
+         * 
+         */
         bars.enter()
             .append('rect')
             .attr('class', 'hist-bar')
-            .attr('width', (this.popup_dims['width']-this.popup_dims.padding*2)/this.bins.length)
+            .attr('width', (this.popup_dims['width']-this.popup_dims.left_padding-this.popup_dims.right_padding)/this.bins.length)
             .attr('height', d => {
                 if(d.length != 0){
                     return this.h_y_scale(d.length);
@@ -240,9 +272,90 @@ class ScentedSliderPopup extends View{
                 }
             })
             .attr('stroke','rgba(0,0,0,1)')
-            .attr('stroke-width', '1px');
+            .attr('stroke-width', '1px')
+            .on('mouseenter',(d)=>{
+                this.observers.notify({
+                    type: globals.signals.UPDATESELECTED,
+                    nodes: d
+                });
+            })
+            .on('mouseleave', ()=>{
+                this.observers.notify({
+                    type: globals.signals.UPDATESELECTED,
+                    nodes: []
+                });
+            });
 
-        //update bars
+    
+        rev_bars.enter()
+            .append('rect')
+            .attr('class', 'ice-bar')
+            .attr('width', (this.popup_dims['width']-this.popup_dims.left_padding-this.popup_dims.right_padding)/this.bins.length)
+            .attr('height', d => {
+                if(d.length != 0){
+                    return this.i_y_scale(d.length);
+                } 
+                return 0;
+            })
+            .attr('x', (_,i)=>{return this.h_x_scale(i)})
+            .attr('y', 0)
+            .attr('fill', (_,i)=>{
+                return 'rgba(200,200,200,1';
+            })
+            .attr('stroke','rgba(0,0,0,1)')
+            .attr('stroke-width', '1px')
+            .on('mouseenter',(d)=>{
+                this.observers.notify({
+                    type: globals.signals.UPDATESELECTED,
+                    nodes: d
+                });
+            })
+            .on('mouseleave', ()=>{
+                this.observers.notify({
+                    type: globals.signals.UPDATESELECTED,
+                    nodes: []
+                });
+            });
+
+        /**
+         * 
+         * UPDATE
+         * 
+         */
+
+
+         if(this.model.state.metricUpdated){
+            this.current_l_bin = 0;
+            this.current_r_bin = parseInt(self.h_x_scale.invert(this.r_slider_pos_origin));
+            let l_step_loc = self.h_x_scale(this.current_l_bin);
+            let r_step_loc = self.h_x_scale(this.current_r_bin+1);
+
+            let l_slider = this._svg.select('.l-slider-grp');
+            let r_slider = this._svg.select('.r-slider-grp');
+
+            l_slider.attr('transform', `translate(${l_step_loc-(this.slider_width/2)},0)`);
+            l_slider.select('text').text(`${self.bins[this.current_l_bin].x0}`);
+            l_slider.select('text').attr('x', function(){return -(this.getBBox().width/2) + self.slider_width/2});
+
+            r_slider.attr('transform', `translate(${r_step_loc-(this.slider_width/2)},0)`);
+            r_slider.select('text').text(`${self.bins[this.current_r_bin].x1}`);
+            r_slider.select('text').attr('x', function(){return -(this.getBBox().width/2) + self.slider_width/2});
+
+            
+            this.model.state.metricUpdated = false;
+        }
+        
+        
+        this.hist_grp.select('.left-axis')
+                .transition()
+                .duration(globals.duration)
+                .call(d3.axisLeft(this.invert_y_scale).ticks(4));
+
+        this.hist_grp.select('.left-ice-axis')
+                .transition()
+                .duration(globals.duration)
+                .call(d3.axisLeft(this.i_y_scale).ticks(4));
+
         bars.attr('fill', (_,i)=>{
                 if(i >= this.current_l_bin && i <= this.current_r_bin){
                     return 'rgba(100,100,200,1)';
@@ -251,12 +364,14 @@ class ScentedSliderPopup extends View{
             })
             .transition()
             .duration(750)
+            .attr('width', (this.popup_dims['width']-this.popup_dims.left_padding-this.popup_dims.right_padding)/this.bins.length)
             .attr('height', d => {
                 if(d.length != 0){
                     return this.h_y_scale(d.length);
                 } 
                 return 0;
             })
+            .attr('x', (_,i)=>{return this.h_x_scale(i)})
             .attr('y', (d)=>{
                 if(d.length != 0){
                     return (this.hist_height-this.h_y_scale(d.length)) //- v_bar_negative_padding;
@@ -264,7 +379,27 @@ class ScentedSliderPopup extends View{
                 return this.hist_height;
             });
 
+        rev_bars
+            .transition()
+            .duration(750)
+            .attr('width', (this.popup_dims['width']-this.popup_dims.left_padding-this.popup_dims.right_padding)/this.bins.length)
+            .attr('height', d => {
+                if(d.length != 0){
+                    return this.i_y_scale(d.length);
+                } 
+                return 0;
+            })
+            .attr('x', (_,i)=>{return this.h_x_scale(i)});
 
+
+        /**
+         * 
+         * EXIT
+         * 
+         */
+        
+        bars.exit().remove();
+        rev_bars.exit().remove();
     }
 
 }

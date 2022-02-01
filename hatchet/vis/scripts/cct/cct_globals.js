@@ -19,7 +19,8 @@ const globals = Object.freeze({
         ENABLEMASSPRUNE: "ENABLEMASSPRUNE",
         REQUESTMASSPRUNE: "REQUESTMASSPRUNE",
         RESETVIEW: "RESET",
-        PRUNERANGEUPDATE: "PRUNERANGEUPDATE"
+        PRUNERANGEUPDATE: "PRUNERANGEUPDATE",
+        UPDATESELECTED: "UPDATESELECTED"
     },
     layout: {
         margin: {top: 20, right: 20, bottom: 20, left: 20},

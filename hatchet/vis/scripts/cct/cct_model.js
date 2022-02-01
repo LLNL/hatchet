@@ -34,7 +34,8 @@ class Model{
                         "hierarchyUpdated": true,
                         "cachedThreshold": 0,
                         "outlierThreshold": 0,
-                        "pruneEnabled": false
+                        "pruneEnabled": false,
+                        "metricUpdated": true
                     };
 
         //setup model
@@ -49,8 +50,8 @@ class Model{
         this.state.treeXOffsets = [];
         this.state.lastClicked = this.forest.getCurrentTree(0);
         this.state.prune_range = {"low": Number.MAX_SAFE_INTEGER, "high": Number.MIN_SAFE_INTEGER};
-
-        this.forest.aggregateTreeData(this.state.primaryMetric, 0.0, "FlagZeros");
+        //prunes away non-internal zero nodes
+        this.forest.initializePrunedTrees(this.state.primaryMetric);
     }
 
     // --------------------------------------------
@@ -59,9 +60,9 @@ class Model{
 
     _initializePruneRange(bins){
         bins.forEach(d=>{
-            this.state.prune_range["low"] = Math.min(d.length, this.state.prune_range[0]);
-            this.state.prune_range["high"] = Math.max(d.length, this.state.prune_range[1]);
-        })
+            this.state.prune_range["low"] = Math.min(d.x0, this.state.prune_range[0]);
+            this.state.prune_range["high"] = Math.max(d.x1, this.state.prune_range[1]);
+        });
     }
 
     _printNodeData(nodeList) {
@@ -84,14 +85,16 @@ class Model{
             nodeStr += "<tr>"
             for (var j = 0; j < metricColumns.length; j++) {
                 if (j == 0) {
-                    if (nodeList[i].data.aggregateMetrics && nodeList[i].elided.length == 1){
-                        nodeStr += `<td>${nodeList[i].data.frame.name} Subtree </td>`
-                    }
-                    else if(nodeList[i].data.aggregateMetrics && nodeList[i].elided.length > 1){
-                        nodeStr += `<td>Children of: ${nodeList[i].parent.data.frame.name} </td>`
+                    if(nodeList[i].elided !== undefined){
+                        if (nodeList[i].elided.length == 1){
+                            nodeStr += `<td>${nodeList[i].data.name} Subtree </td>`
+                        }
+                        else if(nodeList[i].elided.length > 1){
+                            nodeStr += `<td>Children of: ${nodeList[i].parent.data.name} </td>`
+                        }
                     }
                     else{
-                        nodeStr += `<td>${nodeList[i].data.frame.name}</td>`;
+                        nodeStr += `<td>${nodeList[i].data.name}</td>`;
                     }
                 }
                 if (nodeList[i].data.aggregateMetrics){
@@ -172,17 +175,42 @@ class Model{
 
         let bins = bin().value(d=>d.data.metrics[this.state.primaryMetric]).thresholds(numBins);
         let bin_dist = bins(nodes);
+        let zero_cnts = new Array(bin_dist.length).fill().map(d=>([]));
+        let b = 0;
 
-        /**
-         * NOTE TO SELF: Seperate out zeros from nonzeros.
-         */
+        let x0 = bin_dist[b].x0;
+        let x1 = bin_dist[b].x1;
+        bin_dist[b] = bin_dist[b].filter((value)=>{
+            return value.data.metrics[this.state.primaryMetric] != 0;
+        })
 
-        console.log(bin_dist);
+        bin_dist[b]['x0'] = x0;
+        bin_dist[b]['x1'] = x1;
+
+        //store zero metric internal nodes
+        for(let bn in bin_dist){
+            let parent = null;
+            for(let n of bin_dist[bn]){
+                parent = n.parent;
+                while(parent !== null){
+                    if(zero_cnts[bn].some(node => { return node.data.id == parent.data.id })){
+                        break;
+                    }
+                    else if(parent.data.metrics[this.state.primaryMetric] == 0){
+                        zero_cnts[bn].push(parent);
+                    }
+                    parent = parent.parent;
+                }
+            }
+            zero_cnts[bn].x0 = bin_dist[bn].x0;
+            zero_cnts[bn].x1 = bin_dist[bn].x1;
+        }
+
         if(this.state.prune_range["low"] === Number.MAX_SAFE_INTEGER){
             this._initializePruneRange(bin_dist);
         }
 
-        this.data.distCounts = {"nonzero": bin_dist, "internalzero": bin_dist};
+        this.data.distCounts = {"nonzero": bin_dist, "internalzero": zero_cnts};
     }
 
     enablePruneTree(threshold){
@@ -197,14 +225,84 @@ class Model{
          */
 
         this.state.pruneEnabled = !this.state.pruneEnabled;
-        if (this.state.pruneEnabled){
-            this.data.currentStrictness = threshold;
-            this.forest.aggregateTreeData(this.state.primaryMetric, threshold, "FlagOutliers");
-            this.state.hierarchyUpdated = true;
-        } 
+        // if (this.state.pruneEnabled){
+        //     this.data.currentStrictness = threshold;
+        //     this.forest.aggregateTreeData(this.state.primaryMetric, threshold, "FlagOutliers");
+        //     this.state.hierarchyUpdated = true;
+        // } 
         
         this._observers.notify();
         
+    }
+
+    _setZeroFlags(){
+        return (h, primaryMetric)=>{
+            h.each(function(node){
+                var metric = node.data.metrics[primaryMetric];
+                if(metric != 0){
+                    node.data.show = 1;
+                }
+                else{
+                    node.data.show = 0;
+                }
+            })
+        }
+    }
+
+    _setRangeFlags(){
+        /**
+         * Sets a show flag when a metric is inside of the provided range.
+         */
+        const mdl = this;
+
+        return (tree, primaryMetric) => {
+            tree.each((node)=>{
+                var metric = node.data.metrics[primaryMetric];
+                if(metric >= mdl.state.prune_range.low && metric <= mdl.state.prune_range.high){
+                    node.data.show = 1;
+                }
+                else{
+                    node.data.show = 0;
+                }
+            })        
+        }
+    }
+
+    _setOutlierFlags(){
+        /**
+         * Sets outlier flags on a d3 hierarchy of call sites.
+         * An outlier is defined as outside of the range between
+         * the IQR*(a user defined scalar) + 75th quantile and
+         * 25th quantile - IQR*(scalar). 
+         * 
+         * @param {Hierarchy} h - A d3 hierarchy containg metric values
+         */
+        const mdl = this;
+
+        return (h, primaryMetric) => {
+            var outlierScalar = mdl.data.currentStrictness;
+            var upperOutlierThreshold = Number.MAX_VALUE;
+            var lowerOutlierThreshold = Number.MIN_VALUE;
+
+            var metrics = mdl.forest._getListOfMetrics(h, primaryMetric);
+            var IQR = mdl.forest.stats._getIQR(metrics, primaryMetric);
+
+            if(!isNaN(IQR)){
+                upperOutlierThreshold = mdl.forest.stats._quantile(metrics, .75, primaryMetric) + (IQR * outlierScalar);
+                lowerOutlierThreshold = mdl.forest.stats._quantile(metrics, .25, primaryMetric) - (IQR * outlierScalar);
+            } 
+
+            h.each(function(node){
+                var metric = node.data.metrics[primaryMetric];
+                if( metric >= upperOutlierThreshold || 
+                    metric <= lowerOutlierThreshold){
+                    node.data.show = 1;
+                }
+                else{
+                    node.data.show = 0;
+                }
+            })
+        }
     }
 
     pruneTree(threshold){
@@ -215,7 +313,7 @@ class Model{
          * @param {float} threshold - User defined strictness of pruning. Used as the multiplier in set outlier flags.
          */
         this.data.currentStrictness = threshold;
-        this.forest.aggregateTreeData(this.state.primaryMetric, threshold, "FlagOutliers");
+        this.forest.aggregateTreeData(this.state.primaryMetric, this._setRangeFlags());
         this.state.hierarchyUpdated = true;
 
         this._observers.notify();
@@ -358,11 +456,19 @@ class Model{
             this.state.secondaryMetric = newMetric;
         }
         
-        if(this.state.pruneEnabled){
-            this.forest.aggregateTreeData(this.state.primaryMetric, this.state.currentStrictness);
-            this.state.hierarchyUpdated = true;
+        if(this.state.pruneEnabled && source.includes("primary")){
+
+            this.forest.resetMutable();
             this.updateBins(this.state.numBins);
+        
+            this.state.prune_range.low = this.data.distCounts.nonzero[0].x0;
+            this.state.prune_range.high = this.data.distCounts.nonzero[this.data.distCounts.nonzero.length-1].x1;
+
+
+            this.state.hierarchyUpdated = true;
+            this.state.metricUpdated = true;
         }
+
         this._observers.notify();
     }
     
@@ -401,6 +507,23 @@ class Model{
     updatePruneRange(low, high){
         this.state.prune_range.low = low;
         this.state.prune_range.high = high;
+
+        this.forest.aggregateTreeData(this.state.primaryMetric, (h, primaryMetric)=>{
+            h.each(function(node){
+                var metric = node.data.metrics[primaryMetric];
+                if(metric != 0){
+                    node.data.show = 1;
+                }
+                else{
+                    node.data.show = 0;
+                }
+            })
+        });
+
+        this.forest.aggregateTreeData(this.state.primaryMetric, this._setRangeFlags());
+
+        this.state.hierarchyUpdated = true;
+        
         this._observers.notify();
     }
 

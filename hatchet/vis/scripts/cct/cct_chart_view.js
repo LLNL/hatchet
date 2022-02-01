@@ -211,6 +211,14 @@ class ChartView extends View{
                 .attr('class', 'legend-grp-' + treeIndex)
                 .attr('transform', 'translate(0, 0)');
 
+            legGroup.append('text')
+                        .text(`Legend for Metric: ${this.model.state.primaryMetric}`)
+                        .attr('x', 0)
+                        .attr('y', 0)
+                        .attr('font-family', 'sans-serif')
+                        .attr('font-size', '14px');
+    
+
             const legendGroups = legGroup.selectAll("g")
                     .data([0, 1, 2, 3, 4, 5])
                     .enter()
@@ -260,6 +268,7 @@ class ChartView extends View{
             //store node and link layout data for use later
             var treeLayout = tree(this.model.forest.getCurrentTree(treeIndex));
             this.nodes.push(treeLayout.descendants());
+
             this.surrogates.push([]);
             this.aggregates.push([]);
             this.links.push(treeLayout.descendants().slice(1));
@@ -347,6 +356,7 @@ class ChartView extends View{
                 if(treeIndex == this.model.forest.numberOfTrees - 1){
                     this.model.state.hierarchyUpdated = false;
                 }
+
             }
 
             
@@ -378,17 +388,17 @@ class ChartView extends View{
             // ---------------------------------------------
             var node = treeGroup.selectAll("g.node")
                     .data(this.nodes[treeIndex], (d) =>  {
-                        return d.data.metrics._hatchet_nid || d.data.metrics.id;
+                        return d.data.metrics._hatchet_nid || d.data.id;
                     });
             
             var dummyNodes = treeGroup.selectAll("g.fakeNode")
                 .data(this.surrogates[treeIndex], (d) =>  {
-                    return d.data.metrics._hatchet_nid || d.data.metrics.id;
+                    return d.data.metrics._hatchet_nid || d.data.id;
                 });
 
             var aggBars = treeGroup.selectAll("g.aggBar")
                 .data(this.aggregates[treeIndex], (d) =>  {
-                    return d.data.metrics._hatchet_nid || d.data.metrics.id;
+                    return d.data.metrics._hatchet_nid || d.data.id;
                 });
             
             // Enter any new nodes at the parent's previous position.
@@ -546,7 +556,7 @@ class ChartView extends View{
             // links
             var link = treeGroup.selectAll("path.link")
             .data(this.links[treeIndex], (d) =>  {
-                return d.data.metrics._hatchet_nid || d.data.metrics.id;
+                return d.data.metrics._hatchet_nid || d.data.id;
             });
 
             // Enter any new links at the parent's previous position.
@@ -655,7 +665,7 @@ class ChartView extends View{
                     if (this.model.state['collapsedNodes'].includes(d)){
                         return '6px';
                     } 
-                    else if (this.model.state['selectedNodes'].includes(d)){
+                    else if (this.model.state['selectedNodes'].some(n=>n.data.id == d.data.id)){
                         return '4px';
                     } 
                     else {
@@ -665,8 +675,8 @@ class ChartView extends View{
                 .attr('cursor', 'pointer')
                 .transition()
                 .duration(globals.duration)
-                .attr("r", (d) => {
-                    if (this.model.state['selectedNodes'].includes(d)){
+                .attr("r", (d, i) => {
+                    if (this.model.state['selectedNodes'].some(n=>n.data.id == d.data.id)){
                         return this._nodeScale(d.data.metrics[secondaryMetric]) + 2;
                     }
                     return this._nodeScale(d.data.metrics[secondaryMetric]);
