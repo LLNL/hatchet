@@ -1,7 +1,96 @@
 import { d3, globals } from "./cct_globals";
 import makeColorManager from "./cct_color_manager";
 import View from "../utils/view";
-import { selection } from "d3v4";
+import { selection, timeHours } from "d3v4";
+
+class Legend extends View{
+    constructor(elem, model, title, encoding_type, tree_index){
+        super(elem, model);
+        this._colorManager = makeColorManager(model);
+        this.metricColumns = model.forest.metricColumns;
+        this.attributeColumns = model.forest.attributeColumns;
+        this.tree_index = tree_index;
+
+        this.title = title;
+        this.type = encoding_type;
+
+        this.leg_grp = elem
+                    .append('g')
+                    .attr('class', 'legend-grp');
+        
+        this.preRender();
+
+    }
+
+    getLegendHeight(){
+        return this.leg_grp.node().getBBox().height;
+    }
+
+    preRender(){
+
+        this.leg_grp.append('text')
+                    .text(`Legend for metric: ${this.model.state.primaryMetric}`)
+                    .attr('x', '-2em')
+                    .attr('y', '-1em')
+                    .attr('font-family', 'sans-serif')
+                    .attr('font-size', '14px');
+
+
+        const legendGroups = this.leg_grp.selectAll("g")
+                .data([0, 1, 2, 3, 4, 5])
+                .enter()
+                .append('g')
+                .attr('class', 'legend-lines')
+                .attr('transform', (d, i) => {
+                    const y = 18 * i;
+                    return "translate(-20, " + y + ")";
+                });
+        
+        //legend rectangles & text
+        legendGroups.append('rect')
+                .attr('class', 'legend-samples')
+                .attr('x', 0)
+                .attr('y', 0)
+                .attr('height', 15)
+                .attr('width', 10)
+                .style('stroke', 'black');
+
+        legendGroups.append('text')
+                .attr('class', 'legend-ranges')
+                .attr('x', 12)
+                .attr('y', 13)
+                .text("0.0 - 0.0")
+                .style('font-family', 'monospace')
+                .style('font-size', '12px');
+
+        this.legendOffset = this.leg_grp.node().getBBox().height;
+
+    }
+
+    render(){
+        //legend updates
+        this.leg_grp.selectAll(".legend-samples")
+            .transition()
+            .duration(globals.duration)
+            .attr('fill', (d) => {
+                return this._colorManager.getColorLegend(this.tree_index)[d];
+            })
+            .attr('stroke', 'black');
+
+      this.leg_grp.selectAll('.legend-ranges')
+          .transition()
+          .duration(globals.duration)
+          .text((d, i) => {
+              if (this.metricColumns.includes(this.model.state["primaryMetric"])) {
+                  return this._colorManager.getLegendDomains(this.tree_index)[6 - d - 1].toFixed(2) + ' - ' + this._colorManager.getLegendDomains(this.tree_index)[6 - d].toFixed(2);
+              } else if (this.attributeColumns.includes(this.model.state["primaryMetric"])) {
+                  return this._colorManager.getLegendDomains(this.tree_index)[i];
+              }
+          });
+
+    }
+}
+
 
 class ChartView extends View{
 
@@ -42,6 +131,8 @@ class ChartView extends View{
         this.links = [];
         this.metricColumns = model.forest.metricColumns;
         this.attributeColumns = model.forest.attributeColumns;
+
+        this.primary_legends = [];
 
         this._preRender();
     }
@@ -206,46 +297,14 @@ class ChartView extends View{
                     .attr('tree_id', treeIndex)
                     .attr("transform", "translate(" + this._margin.left + "," + this.chartOffset + ")");
 
-            const legGroup = newg
-                .append('g')
-                .attr('class', 'legend-grp-' + treeIndex)
-                .attr('transform', 'translate(0, 0)');
 
-            legGroup.append('text')
-                        .text(`Legend for Metric: ${this.model.state.primaryMetric}`)
-                        .attr('x', 0)
-                        .attr('y', 0)
-                        .attr('font-family', 'sans-serif')
-                        .attr('font-size', '14px');
-    
+            this.primary_legends.push(new Legend(newg, 
+                                                this.model, 
+                                                `Legend for metric: ${this.model.state.primaryMetric}`, 
+                                                'color', 
+                                                treeIndex));
 
-            const legendGroups = legGroup.selectAll("g")
-                    .data([0, 1, 2, 3, 4, 5])
-                    .enter()
-                    .append('g')
-                    .attr('class', 'legend legend' + treeIndex)
-                    .attr('transform', (d, i) => {
-                        const y = 18 * i;
-                        return "translate(-20, " + y + ")";
-                    });
-            
-            //legend rectangles & text
-            legendGroups.append('rect')
-                    .attr('class', 'legend legend' + treeIndex)
-                    .attr('x', 0)
-                    .attr('y', 0)
-                    .attr('height', 15)
-                    .attr('width', 10)
-                    .style('stroke', 'black');
-            legendGroups.append('text')
-                    .attr('class', 'legend legend' + treeIndex)
-                    .attr('x', 12)
-                    .attr('y', 13)
-                    .text("0.0 - 0.0")
-                    .style('font-family', 'monospace')
-                    .style('font-size', '12px');
-
-            this.legendOffset = legGroup.node().getBBox().height;
+            this.legendOffset = this.primary_legends[treeIndex].getLegendHeight();
 
             //make an invisible rectangle for zooming on
             newg.append('rect')
@@ -578,14 +637,6 @@ class ChartView extends View{
             var linkUpdate = linkEnter.merge(link);
             var aggNodeUpdate = aggNodeEnter.merge(aggBars);
             
-
-            /**
-             * 
-             * 
-             * NOTE TO CONNOR: THIS IS NOT WORKING. FIND OUT WHY!?
-             * 
-             * 
-             */
             // Chart updates
             chart
                 .transition()
@@ -611,25 +662,7 @@ class ChartView extends View{
                 });
 
             //legend updates
-            chart.selectAll(".legend rect")
-                .transition()
-                .duration(globals.duration)
-                .attr('fill', (d) => {
-                    return this._colorManager.getColorLegend(treeIndex)[d];
-                })
-                .attr('stroke', 'black');
-
-            chart.selectAll('.legend text')
-                .transition()
-                .duration(globals.duration)
-                .text((d, i) => {
-                    if (this.metricColumns.includes(this.model.state["primaryMetric"])) {
-                        return this._colorManager.getLegendDomains(treeIndex)[6 - d - 1].toFixed(2) + ' - ' + this._colorManager.getLegendDomains(treeIndex)[6 - d].toFixed(2);
-                    } else if (this.attributeColumns.includes(this.model.state["primaryMetric"])) {
-                        return this._colorManager.getLegendDomains(treeIndex)[i];
-                    }
-                });
-
+            this.primary_legends[treeIndex].render();
 
             // Transition links to their new position.
             linkUpdate.transition()
@@ -637,7 +670,6 @@ class ChartView extends View{
                     .attr("d", (d) => {
                         return this.diagonal(d, d.parent, treeIndex);
                     });
-
 
             // Transition normal nodes to their new position.
             nodeUpdate
