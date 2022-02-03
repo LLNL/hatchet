@@ -1,9 +1,45 @@
 //d3.v4
 (function (element) {
-    require(['https://d3js.org/d3.v4.min.js'], function (d3) {
+    const [roundtrip_path, visType, variableString] = cleanInputs(argList);
 
-        d3.select(element).attr('width', '100%');
+    // Quit if visType is not literal_tree. 
+    if (visType !== "literal_tree") {
+        console.error("Incorrect visualization type passed.")
+        return;
+    }
 
+    // --------------------------------------------------------------------------------
+    // RequireJS setup.
+    // --------------------------------------------------------------------------------
+    // Setup the requireJS config to get required libraries.
+    requirejs.config({
+        baseUrl: roundtrip_path,
+        paths: {
+            d3src: 'https://d3js.org',
+            lib: 'lib',
+        },
+        map: {
+            '*': {
+                'd3': 'd3src/d3.v4.min',
+            }
+        }
+    });
+
+    // --------------------------------------------------------------------------------
+    // Utility functions.
+    // --------------------------------------------------------------------------------
+    // TODO: Move this to a common utils folder.
+    /**
+     * Utility to remove single quotes.
+     * 
+     * @param {String} strings strings with single quotes.
+     * @returns {String} strings without single quotes.
+     */
+    function cleanInputs(strings) {
+        return strings.map((_) => _.replace(/'/g, '"'));
+    }
+
+    require(['d3'], function (d3) {
         const globals = Object.freeze({
             UNIFIED: 0,
             DEFAULT: 0,
@@ -292,25 +328,11 @@
                             "pruneEnabled": false
                         };
 
-            //setup model
-            var cleanTree = argList[0].replace(/'/g, '"').replace(/nan/g, '\"nan\"');
-            var _forestData = JSON.parse(cleanTree);
-
-            _data.numberOfTrees = _forestData.length;
-            _data.metricColumns = d3.keys(_forestData[0].metrics);
-            _data["attributeColumns"] = d3.keys(_forestData[0].attributes);
-            
-            for(var metric = 0; metric < _data.metricColumns.length; metric++){
-                metricName = _data.metricColumns[metric];
-                //remove private metric
-                if(_data.metricColumns[metric][0] == '_'){
-                    _data.metricColumns.splice(metric, 1);
-                }
-                else{
-                    //setup aggregrate min max for metric
-                    _data.aggregateMinMax[metricName] = {min: Number.MAX_VALUE, max: Number.MIN_VALUE};
-                }
-            }
+            //setup model            
+            _data["forestData"] = JSON.parse(variableString);
+            _data["rootNodeNames"].push("Show all trees");
+            _data["numberOfTrees"] = _data["forestData"].length;
+            _data["metricColumns"] = d3.keys(_data["forestData"][0].metrics);
 
             // pick the first metric listed to color the nodes
             _state.primaryMetric = _data.metricColumns[0];

@@ -10,4 +10,5 @@ PyYAML
 cython
 multiprocess
 textX
+jsonschema
 caliper-reader
