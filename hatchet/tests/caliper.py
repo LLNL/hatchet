@@ -212,7 +212,6 @@ def test_graphframe_native_lulesh_from_file(lulesh_caliper_cali):
     """Sanity check the native Caliper reader by examining a known input."""
 
     gf = GraphFrame.from_caliperreader(str(lulesh_caliper_cali))
-    print(list(gf.dataframe.columns))
 
     assert len(gf.dataframe.groupby("name")) == 19
     assert "cali.caliper.version" in gf.metadata.keys()
@@ -262,3 +261,37 @@ def test_inclusive_time_calculation(lulesh_caliper_json):
     assert all(
         gf.dataframe["time (inc)"].values == gf.dataframe["orig_inc_time"].values
     )
+
+
+def test_sw4_cuda_from_caliperreader(sw4_caliper_cuda_activity_profile_cali):
+    gf = GraphFrame.from_caliperreader(sw4_caliper_cuda_activity_profile_cali)
+
+    assert len(gf.graph) == 549
+    assert all(
+        metric in gf.dataframe.columns for metric in gf.exc_metrics + gf.inc_metrics
+    )
+
+    for col in gf.dataframe.columns:
+        if col in ("#scale#cupti.activity.duration", "#scale#sum#cupti.host.duration"):
+            assert gf.dataframe[col].dtype == np.float64
+        elif col in "rank":
+            assert gf.dataframe[col].dtype == np.int64
+        elif col in "name":
+            assert gf.dataframe[col].dtype == np.object
+
+    for col in gf.exc_metrics + gf.inc_metrics:
+        assert col in gf.dataframe.columns
+
+
+def test_sw4_cuda_summary_from_caliperreader(
+    sw4_caliper_cuda_activity_profile_summary_cali,
+):
+    gf = GraphFrame.from_caliperreader(sw4_caliper_cuda_activity_profile_summary_cali)
+
+    assert len(gf.graph) == 393
+    assert all(
+        metric in gf.dataframe.columns for metric in gf.exc_metrics + gf.inc_metrics
+    )
+
+    for col in gf.exc_metrics + gf.inc_metrics:
+        assert col in gf.dataframe.columns
