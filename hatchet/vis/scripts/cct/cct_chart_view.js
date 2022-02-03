@@ -1,25 +1,40 @@
 import { d3, globals } from "./cct_globals";
-import makeColorManager from "./cct_color_manager";
+import ColorManager from "./cct_color_manager";
 import View from "../utils/view";
-import { selection, timeHours } from "d3v4";
 
 class Legend extends View{
-    constructor(elem, model, title, encoding_type, tree_index){
+    constructor(elem, model, encoding_type, tree_index, cm, nodeScale){
         super(elem, model);
-        this._colorManager = makeColorManager(model);
+        this._colorManager = cm;
+        this._nodeScale = nodeScale;
         this.metricColumns = model.forest.metricColumns;
         this.attributeColumns = model.forest.attributeColumns;
         this.tree_index = tree_index;
+        this.secondaryMinMax = this.model.forest.forestMinMax;
 
-        this.title = title;
         this.type = encoding_type;
+        this.agg = false;
 
         this.leg_grp = elem
                     .append('g')
                     .attr('class', 'legend-grp');
         
+        this.quantNodeScale = d3.scaleQuantize().range([0,1,2,3,4,5]).domain([this.secondaryMinMax[this.model.state.secondaryMetric].min, this.secondaryMinMax[this.model.state.secondaryMetric].max]);
+
         this.preRender();
 
+    }
+
+    setAgg(){
+        this.agg = true;
+    }
+
+    offset(x){
+        this.leg_grp.attr('transform', `translate(${x}, 0)`);
+    }
+
+    getLegendWidth(){
+        return this.leg_grp.node().getBBox().width;
     }
 
     getLegendHeight(){
@@ -29,64 +44,125 @@ class Legend extends View{
     preRender(){
 
         this.leg_grp.append('text')
-                    .text(`Legend for metric: ${this.model.state.primaryMetric}`)
+                    .text(()=>{
+                        if(this.type == 'color'){
+                            return `Legend for metric: ${this.model.state.primaryMetric}`;
+                        }
+                        else if(this.type == 'radius'){
+                            return `Legend for metric: ${this.model.state.secondaryMetric}`;
+                        }
+                    })
+                    .attr('class', 'legend-title')
                     .attr('x', '-2em')
                     .attr('y', '-1em')
                     .attr('font-family', 'sans-serif')
                     .attr('font-size', '14px');
 
-
+        
         const legendGroups = this.leg_grp.selectAll("g")
-                .data([0, 1, 2, 3, 4, 5])
+                .data([0,1,2,3,4,5])
                 .enter()
                 .append('g')
                 .attr('class', 'legend-lines')
-                .attr('transform', (d, i) => {
-                    const y = 18 * i;
-                    return "translate(-20, " + y + ")";
+                .attr('transform', (_,i) => {
+                    if(this.type == 'color'){
+                        const y = 18 * i;
+                        return "translate(-20, " + y + ")";
+                    }
+                    else if(this.type == 'radius'){
+                        return `translate(-20, ${i*(this._nodeScale(this.quantNodeScale.invertExtent(5)[0]+1)+13)})`;
+                    }
                 });
-        
+
         //legend rectangles & text
-        legendGroups.append('rect')
-                .attr('class', 'legend-samples')
-                .attr('x', 0)
-                .attr('y', 0)
-                .attr('height', 15)
-                .attr('width', 10)
-                .style('stroke', 'black');
+        if(this.type == 'color'){
+            legendGroups.append('rect')
+                    .attr('class', 'legend-samples')
+                    .attr('x', 0)
+                    .attr('y', 0)
+                    .attr('height', 15)
+                    .attr('width', 10)
+                    .style('stroke', 'black');
 
-        legendGroups.append('text')
-                .attr('class', 'legend-ranges')
-                .attr('x', 12)
-                .attr('y', 13)
-                .text("0.0 - 0.0")
-                .style('font-family', 'monospace')
-                .style('font-size', '12px');
+            legendGroups.append('text')
+                    .attr('class', 'legend-ranges')
+                    .attr('x', 12)
+                    .attr('y', 13)
+                    .text("0.0 - 0.0")
+                    .style('font-family', 'monospace')
+                    .style('font-size', '12px');
+        }
+        if(this.type == 'radius'){
+            legendGroups.append('circle')
+                    .attr('class', 'legend-samples')
+                    .attr('cx', 0)
+                    .attr('cy', (_,i)=>{
+                        return (this._nodeScale(this.quantNodeScale.invertExtent(5)[0]+1)/2 + 3);
+                    })
+                    .attr('r', (_,i)=>{
+                        return this._nodeScale(this.quantNodeScale.invertExtent(5-i)[0]+1);
+                    })
+                    .style('stroke', 'black')
+                    .style('fill', 'white');
 
+            legendGroups.append('text')
+                    .attr('class', 'legend-ranges')
+                    .attr('x', (_,i)=>{
+                        return this._nodeScale(this.quantNodeScale.invertExtent(5)[0]+1)+5
+                    }) 
+                    .attr('y', 13)
+                    .text("0.0 - 0.0")
+                    .style('font-family', 'monospace')
+                    .style('font-size', '12px');
+        }
         this.legendOffset = this.leg_grp.node().getBBox().height;
 
     }
 
     render(){
-        //legend updates
+        this.quantNodeScale.domain([this.secondaryMinMax[this.model.state.secondaryMetric].min, this.secondaryMinMax[this.model.state.secondaryMetric].max]);
+        let leg_dom = this._colorManager.getLegendDomains(this.tree_index);
+
+        
+        this.leg_grp.selectAll(".legend-title")
+            .text(()=>{
+                if(this.type == 'color'){
+                    return `Legend for metric: ${this.model.state.primaryMetric}`;
+                }
+                else if(this.type = 'radius'){
+                    return `Legend for metric: ${this.model.state.secondaryMetric}`;
+                }
+            });
+
         this.leg_grp.selectAll(".legend-samples")
             .transition()
             .duration(globals.duration)
             .attr('fill', (d) => {
-                return this._colorManager.getColorLegend(this.tree_index)[d];
+                if(this.type == "color"){
+                    return this._colorManager.getColorLegend(this.tree_index)[5-d];
+                }
+                return 'white';
             })
             .attr('stroke', 'black');
 
-      this.leg_grp.selectAll('.legend-ranges')
-          .transition()
-          .duration(globals.duration)
-          .text((d, i) => {
-              if (this.metricColumns.includes(this.model.state["primaryMetric"])) {
-                  return this._colorManager.getLegendDomains(this.tree_index)[6 - d - 1].toFixed(2) + ' - ' + this._colorManager.getLegendDomains(this.tree_index)[6 - d].toFixed(2);
-              } else if (this.attributeColumns.includes(this.model.state["primaryMetric"])) {
-                  return this._colorManager.getLegendDomains(this.tree_index)[i];
-              }
-          });
+        this.leg_grp.selectAll('.legend-ranges')
+            .transition()
+            .duration(globals.duration)
+            .text((_, i) => {
+                if(this.type == "color"){
+
+                    if (this.metricColumns.includes(this.model.state["primaryMetric"])) {
+                        return leg_dom[5 - i][0].toFixed(2) + ' - ' + leg_dom[5 - i][1].toFixed(2);
+                    } 
+                    else if (this.attributeColumns.includes(this.model.state["primaryMetric"])) {
+                        return leg_dom[i];
+                    }
+                }
+                else if(this.type == "radius"){
+                    let range = this.quantNodeScale.invertExtent(5-i);
+                    return `${range[0].toFixed(2)} - ${range[1].toFixed(2)}`;
+                } 
+            });
 
     }
 }
@@ -96,13 +172,12 @@ class ChartView extends View{
 
     constructor(elem, model){
         super(elem, model);
-        this._colorManager = makeColorManager(model);
 
         //layout variables
         this._margin = globals.layout.margin;     
         this._width = element.clientWidth - this._margin.right - this._margin.left;
         this._height = this._margin.top + this._margin.bottom;
-        this._maxNodeRadius = 20;
+        this._maxNodeRadius = 12;
         this._treeLayoutHeights = [];
         this.legendOffset = 0;
         this.chartOffset = this._margin.top;
@@ -121,7 +196,7 @@ class ChartView extends View{
         //scales
         this._treeCanvasHeightScale = d3.scaleQuantize().range([250, 1000, 1250, 1500]).domain([1, 300]);
         this._treeDepthScale = d3.scaleLinear().range([0, element.offsetWidth-200]).domain([0, fMaxHeight])
-        this._nodeScale = d3.scaleLinear().range([5, this._maxNodeRadius]).domain([secondaryMinMax.min, secondaryMinMax.max]);
+        this._nodeScale = d3.scaleLinear().range([4, this._maxNodeRadius]).domain([secondaryMinMax.min, secondaryMinMax.max]);
         this._barScale = d3.scaleLinear().range([5, 25]).domain([secondaryMinMax.min, secondaryMinMax.max]);
 
         //view specific data stores
@@ -133,6 +208,8 @@ class ChartView extends View{
         this.attributeColumns = model.forest.attributeColumns;
 
         this.primary_legends = [];
+        this.secondary_legends = [];
+        this.color_managers = [];
 
         this._preRender();
     }
@@ -297,12 +374,16 @@ class ChartView extends View{
                     .attr('tree_id', treeIndex)
                     .attr("transform", "translate(" + this._margin.left + "," + this.chartOffset + ")");
 
+            let cm = new ColorManager(this.model, treeIndex);
 
-            this.primary_legends.push(new Legend(newg, 
-                                                this.model, 
-                                                `Legend for metric: ${this.model.state.primaryMetric}`, 
-                                                'color', 
-                                                treeIndex));
+            let primary_legend = new Legend(newg, this.model, 'color', treeIndex, cm, this._nodeScale);
+            let secondary_legend = new Legend(newg, this.model, 'radius', treeIndex, cm, this._nodeScale);
+
+            secondary_legend.offset(primary_legend.getLegendWidth()+20);
+
+            this.color_managers.push(cm);
+            this.primary_legends.push(primary_legend);
+            this.secondary_legends.push(secondary_legend);
 
             this.legendOffset = this.primary_legends[treeIndex].getLegendHeight();
 
@@ -523,10 +604,7 @@ class ChartView extends View{
                     .attr('class', 'circleNode')
                     .attr("r", 1e-6)
                     .style("fill", (d) => {
-                        if(this.model.state["legend"] == globals.UNIFIED){
-                            return this._colorManager.calcColorScale(d.data, -1);
-                        }
-                        return this._colorManager.calcColorScale(d.data, treeIndex);
+                        return this.color_managers[treeIndex].calcColorScale(d.data);
                     })
                     .style('stroke-width', '1px')
                     .style('stroke', 'black');
@@ -602,10 +680,18 @@ class ChartView extends View{
                 })
                 .text((d) =>  {
                     if (d.elided.length > 1){
-                        return `Children of: ${d.parent.data.name}` ;
+                        let n = d.parent.data.name;
+                        if (n.includes("<unknown file>")){
+                            n = n.replace('<unknown file>', '');
+                        }
+                        return `Children of: ${n}` ;
                     } 
                     else{
-                        return `${d.data.name} Subtree`;
+                        let n = d.data.name;
+                        if (n.includes("<unknown file>")){
+                            n = n.replace('<unknown file>', '');
+                        }
+                        return `${n} Subtree`;
                     }
                 })
                 .style("font", "12px monospace")
@@ -663,6 +749,9 @@ class ChartView extends View{
 
             //legend updates
             this.primary_legends[treeIndex].render();
+            this.secondary_legends[treeIndex].render();
+
+
 
             // Transition links to their new position.
             linkUpdate.transition()
@@ -714,10 +803,7 @@ class ChartView extends View{
                     return this._nodeScale(d.data.metrics[secondaryMetric]);
                 })
                 .style('fill', (d) => {
-                    if(this.model.state["legend"] == globals.UNIFIED){
-                        return this._colorManager.calcColorScale(d.data, -1);
-                    }
-                    return this._colorManager.calcColorScale(d.data, treeIndex);
+                    return this.color_managers[treeIndex].calcColorScale(d.data);
 
                 });
             
@@ -771,10 +857,7 @@ class ChartView extends View{
                     }
                 })
                 .style('fill', (d) =>  {
-                    if(this.model.state["legend"] == globals.UNIFIED){
-                        return this._colorManager.calcColorScale(d.data, -1);
-                    }
-                    return this._colorManager.calcColorScale(d.data, treeIndex);
+                    return this.color_managers[treeIndex].calcColorScale(d.data);
                 });
 
             aggNodeUpdate

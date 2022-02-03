@@ -1,38 +1,138 @@
+import { d3 } from './cct_globals';
+
+
+class ColorManager{
+    constructor(model, treeIndex){
+        const REGULAR_COLORS = [
+            ['#006d2c', '#31a354', '#74c476', '#a1d99b', '#c7e9c0', '#edf8e9'], //green
+            ['#a50f15', '#de2d26', '#fb6a4a', '#fc9272', '#fcbba1', '#fee5d9'], //red
+            ['#08519c', '#3182bd', '#6baed6', '#9ecae1', '#c6dbef', '#eff3ff'], //blue
+            ['#54278f', '#756bb1', '#9e9ac8', '#bcbddc', '#dadaeb', '#f2f0f7'], //purple
+            ['#a63603', '#e6550d', '#fd8d3c', '#fdae6b', '#fdd0a2', '#feedde'], //orange
+            ['#252525', '#636363', '#969696', '#bdbdbd', '#d9d9d9', '#f7f7f7']
+        ];
+    
+        const CAT_COLORS = ["#3366cc", "#dc3912", "#ff9900", "#109618", "#990099", "#0099c6", "#dd4477", "#66aa00", "#b82e2e", "#316395", "#994499", "#22aa99", "#aaaa11", "#6633cc", "#e67300", "#8b0707", "#651067", "#329262", "#5574a6", "#3b3eac"];
+    
+        this._regularColors = {
+            0: REGULAR_COLORS.map((colorArr) => [].concat(colorArr).reverse()),
+            1: REGULAR_COLORS,
+            2: CAT_COLORS,
+            3: [].concat(CAT_COLORS).reverse()
+        };
+    
+        const ALL_COLORS = ['#d73027', '#fc8d59', '#fee090', '#e0f3f8', '#91bfdb', '#4575b4'];
+    
+        this._allTreesColors = {
+            0: [].concat(ALL_COLORS).reverse(),
+            1: ALL_COLORS,
+            2: CAT_COLORS,
+            3: [].concat(CAT_COLORS).reverse(),
+        };
+        
+        this._model = model;
+        this._state = model.state;
+        this._forestMinMax = model.forest.forestMinMax;
+        this._forestStats = model.forest.forestMetrics;
+        this._metricColumns = model.forest.metricColumns;
+        this._attributeColumns = model.forest.attributeColumns;
+        this._aggregateMinMax = model.forest.aggregateMinMax;
+
+        this.treeIndex = treeIndex;
+        this.cachedPrimaryMetric = this._state.primaryMetric;
+        this.cachedColorScheme = this._state.colorScheme;
+
+        this.universal_color_scale = d3.scaleQuantize()
+                                .domain([this._forestMinMax[this._state.primaryMetric].min,this._forestMinMax[this._state.primaryMetric].max])
+                                .range(this._allTreesColors[this._state.colorScheme]);
+
+        this.single_color_scale = d3.scaleQuantize()
+                                    .domain([this._forestStats[this.treeIndex][this._state.primaryMetric].min, this._forestStats[this.treeIndex][this._state.primaryMetric].max])
+                                    .range(this._regularColors[this._state.colorScheme][this.treeIndex]);
+        this.agg_color_scale = d3.scaleQuantize()
+                                .domain([this._aggregateMinMax.min, this._aggregateMinMax.max])
+                                .range(this._allTreesColors[this._state.colorScheme]);
+
+    }
+
+    _updateScales(){
+        if(this._state.primaryMetric != this.cachedPrimaryMetric){
+            const u_dom = this._forestMinMax[this._state.primaryMetric];
+            const s_dom = this._forestStats[this.treeIndex][this._state.primaryMetric];
+            const a_dom = this._aggregateMinMax;
+
+            this.universal_color_scale.domain([u_dom.min,u_dom.max]);
+            this.single_color_scale.domain([s_dom.min,s_dom.max]);
+            this.agg_color_scale.domain([a_dom.min,a_dom.max]);
+            this.cachedPrimaryMetric = this._state.primaryMetric;
+        }
+        if(this._state.colorScheme != this.cachedColorScheme){
+            this.universal_color_scale.range(this._allTreesColors[this._state.colorScheme]);
+            this.single_color_scale.range(this._regularColors[this._state.colorScheme][this.treeIndex]);
+            this.agg_color_scale.range(this._allTreesColors[this._state.colorScheme]);
+            this.cachedColorScheme = this._state.primaryMetric;
+        }
+    }
+
+    _getDomainFromScale(scale){
+        let ranges = []
+        for(let col of scale.range()){
+            ranges.push(scale.invertExtent(col));
+        }
+        return ranges;
+    }
+
+    _getCorrectScale(){
+        if(this._model.data["legends"][this._state["legend"]].includes("Unified")){
+            return this.universal_color_scale;
+        }
+        else{
+            return this.single_color_scale;
+        }
+    }
+
+    getAggLegendDomains(){
+        this._updateScales();
+        return this._getDomainFromScale(this.agg_color_scale);
+    }
+
+    getLegendDomains(){
+        this._updateScales();
+        
+        if(this._model.data["legends"][this._state["legend"]].includes("Unified")){
+            return this._getDomainFromScale(this.universal_color_scale);
+        }
+        else{
+            return this._getDomainFromScale(this.single_color_scale);
+        }
+    }
+
+    calcColorScale(nodeData){
+        this._updateScales();
+        const nodeMetric = nodeData.metrics[this._state.primaryMetric];
+        return this._getCorrectScale()(nodeMetric);
+    }
+
+    getColorLegend(){
+        this._updateScales();
+
+        return this._getCorrectScale().range();
+    }
+
+    getAggColorLegend(){
+        this._updateScales();
+        return this.agg_color_scale.range();
+    }
+
+}
+
 
 const makeColorManager = function(model) {
     // TODO: Move the colors to a color.js.
-    const REGULAR_COLORS = [
-        ['#006d2c', '#31a354', '#74c476', '#a1d99b', '#c7e9c0', '#edf8e9'], //green
-        ['#a50f15', '#de2d26', '#fb6a4a', '#fc9272', '#fcbba1', '#fee5d9'], //red
-        ['#08519c', '#3182bd', '#6baed6', '#9ecae1', '#c6dbef', '#eff3ff'], //blue
-        ['#54278f', '#756bb1', '#9e9ac8', '#bcbddc', '#dadaeb', '#f2f0f7'], //purple
-        ['#a63603', '#e6550d', '#fd8d3c', '#fdae6b', '#fdd0a2', '#feedde'], //orange
-        ['#252525', '#636363', '#969696', '#bdbdbd', '#d9d9d9', '#f7f7f7']
-    ];
+   
 
-    const CAT_COLORS = ["#3366cc", "#dc3912", "#ff9900", "#109618", "#990099", "#0099c6", "#dd4477", "#66aa00", "#b82e2e", "#316395", "#994499", "#22aa99", "#aaaa11", "#6633cc", "#e67300", "#8b0707", "#651067", "#329262", "#5574a6", "#3b3eac"];
 
-    const _regularColors = {
-        0: REGULAR_COLORS,
-        1: REGULAR_COLORS.map((colorArr) => [].concat(colorArr).reverse()),
-        2: CAT_COLORS,
-        3: [].concat(CAT_COLORS).reverse()
-    };
-
-    const ALL_COLORS = ['#d73027', '#fc8d59', '#fee090', '#e0f3f8', '#91bfdb', '#4575b4'];
-
-    const _allTreesColors = {
-        0: ALL_COLORS,
-        1: [].concat(ALL_COLORS).reverse(),
-        2: CAT_COLORS,
-        3: [].concat(CAT_COLORS).reverse(),
-    };
-
-    const _state = model.state;
-    const _forestMinMax = model.forest.forestMinMax;
-    const _forestStats = model.forest.forestMetrics;
-    const _metricColumns = model.forest.metricColumns;
-    const _attributeColumns = model.forest.attributeColumns;
+    let color_scale = d3.scaleQuantize();
 
     return {
         setColors: function(treeIndex) {
@@ -68,6 +168,7 @@ const makeColorManager = function(model) {
                 metricMinMax = _forestStats[treeIndex][curMetric]
             }
 
+
             let colorScaleDomain;
             if (_metricColumns.includes(curMetric)) {
                 let metricRange = metricMinMax.max - metricMinMax.min;
@@ -77,6 +178,8 @@ const makeColorManager = function(model) {
             } else if (_attributeColumns.includes(curMetric)) {
                 colorScaleDomain = metricMinMax;
             }
+
+
 
             return colorScaleDomain;
         },
@@ -118,39 +221,11 @@ const makeColorManager = function(model) {
                 return colorSchemeUsed[indexOfMetric];
             } else if (_metricColumns.includes(curMetric)) {
                 const nodeMetric = nodeData.metrics[curMetric];
-
-                // Calculate the range of min/max.
-                const metricRange = _d.max - _d.min;
-
-                // Set colorMap for runtime metrics.
-                let proportion_of_total = nodeMetric / 1;
-
-                // If min != max, we can split the runtime into bins.
-                if (metricRange != 0) {
-                    proportion_of_total = (nodeMetric - _d.min) / metricRange;
-                }
-
-                // TODO: Generalize to any bin size.
-                if (proportion_of_total > 0.9) {
-                    return colorSchemeUsed[0];
-                }
-                if (proportion_of_total > 0.7) {
-                    return colorSchemeUsed[1];
-                }
-                if (proportion_of_total > 0.5) {
-                    return colorSchemeUsed[2];
-                }
-                if (proportion_of_total > 0.3) {
-                    return colorSchemeUsed[3];
-                }
-                if (proportion_of_total > 0.1) {
-                    return colorSchemeUsed[4];
-                } else {
-                    return colorSchemeUsed[5];
-                }
+                color_scale.domain([_d.min, _d.max]).range(colorSchemeUsed);
+                return color_scale(nodeMetric);
             }
         }
     }
 }
 
-export default makeColorManager;
+export default ColorManager;
