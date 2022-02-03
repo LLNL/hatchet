@@ -33,7 +33,7 @@ def test_add(mock_graph_literal):
 
     assert len(gf3.graph) == gf3.dataframe.shape[0]
     assert gf3.dataframe["time"].sum() == 330
-    assert gf3.dataframe["time (inc)"].sum() == 1280
+    assert gf3.dataframe["time (inc)"].sum() == 1320
 
     gf4 = gf3.copy()
     assert gf4.graph is gf3.graph
@@ -96,7 +96,7 @@ def test_mul(mock_graph_literal):
     assert gf3.graph == gf1.graph.union(gf2.graph)
 
     assert gf3.dataframe["time"].sum() == 1575
-    assert gf3.dataframe["time (inc)"].sum() == 35400
+    assert gf3.dataframe["time (inc)"].sum() == 37900
 
 
 def test_add_operator(mock_graph_literal):
@@ -111,7 +111,7 @@ def test_add_operator(mock_graph_literal):
     assert len(gf3.graph) == gf3.dataframe.shape[0]
 
     assert gf3.dataframe["time"].sum() == 330
-    assert gf3.dataframe["time (inc)"].sum() == 1280
+    assert gf3.dataframe["time (inc)"].sum() == 1320
 
     gf4 = gf3.copy()
     assert gf4.graph is gf3.graph
@@ -199,7 +199,7 @@ def test_mul_operator(mock_graph_literal):
     assert len(gf4.graph) == gf4.dataframe.shape[0]
 
     assert gf4.dataframe["time"].sum() == 17625
-    assert gf4.dataframe["time (inc)"].sum() == 3060250
+    assert gf4.dataframe["time (inc)"].sum() == 3397500
 
 
 def test_iadd_operator(mock_graph_literal):
@@ -214,7 +214,7 @@ def test_iadd_operator(mock_graph_literal):
     assert len(gf1.graph) == gf1.dataframe.shape[0]
 
     assert gf1.dataframe["time"].sum() == 330
-    assert gf1.dataframe["time (inc)"].sum() == 1280
+    assert gf1.dataframe["time (inc)"].sum() == 1320
 
     gf3 = gf1.copy()
     assert gf3.graph is gf1.graph
@@ -281,4 +281,4 @@ def test_imul_operator(mock_graph_literal):
     assert len(gf1.graph) == gf1.dataframe.shape[0]
 
     assert gf1.dataframe["time"].sum() == 1575
-    assert gf1.dataframe["time (inc)"].sum() == 35400
+    assert gf1.dataframe["time (inc)"].sum() == 37900

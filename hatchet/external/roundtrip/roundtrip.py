@@ -42,6 +42,7 @@ class Roundtrip(Magics):
         "json": "text/json",
         "css": "text/css",
     }
+
     codeMap = {}
 
     def cleanLineArgument(self, arg):
@@ -195,6 +196,7 @@ class Roundtrip(Magics):
             <div id=\"{0}\">
             </div>
             <script>
+                var jsNodeSelected = "";
                 elementTop.appendChild(document.getElementById('{1}'));
                 var element = document.getElementById('{1}');
                 {2}

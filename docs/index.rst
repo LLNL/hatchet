@@ -21,17 +21,17 @@ operations to analyze a single hierarchical data set or compare multiple data
 sets, and its API facilitates analyzing such data programmatically.
 
 You can get hatchet from its `GitHub repository
-<https://github.com/hatchet/hatchet>`_:
+<https://github.com/llnl/hatchet>`_:
 
 .. code-block:: console
 
-  $ git clone https://github.com/hatchet/hatchet.git
+  $ git clone https://github.com/llnl/hatchet.git
 
 or install it using pip:
 
 .. code-block:: console
 
-  $ pip install hatchet
+  $ pip install llnl-hatchet
 
 If you are new to hatchet and want to start using it, see :doc:`Getting Started
 <getting_started>`, or refer to the full :doc:`User Guide <user_guide>` below.
@@ -47,8 +47,14 @@ If you are new to hatchet and want to start using it, see :doc:`Getting Started
    data_generation
    analysis_examples
 
+.. toctree::
+   :maxdepth: 2
+   :caption: Tutorials
 
-If you encounter bugs while using hatchet, you can report them by opening an issue on `GitHub <http://github.com/hatchet/hatchet/issues>`_.
+   basic_tutorial
+
+
+If you encounter bugs while using hatchet, you can report them by opening an issue on `GitHub <http://github.com/llnl/hatchet/issues>`_.
 
 If you are referencing hatchet in a publication, please cite the
 following `paper <http://www.cs.umd.edu/~bhatele/pubs/pdf/2019/sc2019.pdf>`_:
@@ -59,12 +65,11 @@ following `paper <http://www.cs.umd.edu/~bhatele/pubs/pdf/2019/sc2019.pdf>`_:
   (SC '19). ACM, New York, NY, USA.
   `DOI <https://doi.org/10.1145/3295500.3356219>`_
 
-
 .. toctree::
    :maxdepth: 2
-   :caption: Tutorials
+   :caption: Developer Docs
 
-   basic_tutorial
+   developer_guide
 
 .. toctree::
    :maxdepth: 2

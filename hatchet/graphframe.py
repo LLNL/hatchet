@@ -52,6 +52,7 @@ class GraphFrame:
         exc_metrics=None,
         inc_metrics=None,
         default_metric="time",
+        metadata={},
     ):
         """Create a new GraphFrame from a graph and a dataframe.
 
@@ -82,6 +83,7 @@ class GraphFrame:
         self.exc_metrics = [] if exc_metrics is None else exc_metrics
         self.inc_metrics = [] if inc_metrics is None else inc_metrics
         self.default_metric = default_metric
+        self.metadata = metadata
 
     @staticmethod
     def from_hpctoolkit(dirname):
@@ -126,6 +128,29 @@ class GraphFrame:
         from .readers.caliper_native_reader import CaliperNativeReader
 
         return CaliperNativeReader(filename_or_caliperreader).read()
+
+    @staticmethod
+    def from_spotdb(db_key, list_of_ids=None):
+        """Read multiple graph frames from a SpotDB instance
+
+        Args:
+            db_key (str or SpotDB object): locator for SpotDB instance
+                This can be a SpotDB object directly, or a locator for a spot
+                database, which is a string with either
+                    * A directory for .cali files,
+                    * A .sqlite file name
+                    * A SQL database URL (e.g., "mysql://hostname/db")
+
+            list_of_ids: The list of run IDs to read from the database.
+                If this is None, returns all runs.
+
+        Returns:
+            A list of graphframes, one for each requested run that was found
+        """
+
+        from .readers.spotdb_reader import SpotDBReader
+
+        return SpotDBReader(db_key, list_of_ids).read()
 
     @staticmethod
     def from_gprof_dot(filename):
@@ -553,10 +578,39 @@ class GraphFrame:
         # sum over the output columns
         for node in self.graph.traverse(order="post"):
             if node.children:
-                for col in out_columns:
-                    self.dataframe.loc[node, col] = function(
-                        self.dataframe.loc[[node] + node.children, col]
+                # TODO: need a better way of aggregating inclusive metrics when
+                # TODO: there is a multi-index
+                try:
+                    is_multi_index = isinstance(
+                        self.dataframe.index, pd.core.index.MultiIndex
                     )
+                except AttributeError:
+                    is_multi_index = isinstance(self.dataframe.index, pd.MultiIndex)
+
+                if is_multi_index:
+                    for rank_thread in self.dataframe.loc[
+                        (node), out_columns
+                    ].index.unique():
+                        # rank_thread is either rank or a tuple of (rank, thread).
+                        # We check if rank_thread is a tuple and if it is, we
+                        # create a tuple of (node, rank, thread). If not, we create
+                        # a tuple of (node, rank).
+                        if isinstance(rank_thread, tuple):
+                            df_index1 = (node,) + rank_thread
+                            df_index2 = ([node] + node.children,) + rank_thread
+                        else:
+                            df_index1 = (node, rank_thread)
+                            df_index2 = ([node] + node.children, rank_thread)
+
+                        for col in out_columns:
+                            self.dataframe.loc[df_index1, col] = function(
+                                self.dataframe.loc[df_index2, col]
+                            )
+                else:
+                    for col in out_columns:
+                        self.dataframe.loc[node, col] = function(
+                            self.dataframe.loc[[node] + node.children, col]
+                        )
 
     def subgraph_sum(
         self, columns, out_columns=None, function=lambda x: x.sum(min_count=1)
@@ -801,14 +855,14 @@ class GraphFrame:
 
         return folded_stack
 
-    def to_literal(self, name="name", rank=0, thread=0):
+    def to_literal(self, name="name", rank=0, thread=0, cat_columns=[]):
         """Format this graph as a list of dictionaries for Roundtrip
         visualizations.
         """
         graph_literal = []
         visited = []
 
-        def metrics_to_dict(hnode):
+        def _get_df_index(hnode):
             if (
                 "rank" in self.dataframe.index.names
                 and "thread" in self.dataframe.index.names
@@ -821,6 +875,9 @@ class GraphFrame:
             else:
                 df_index = hnode
 
+            return df_index
+
+        def metrics_to_dict(df_index):
             metrics_dict = {}
             for m in sorted(self.inc_metrics + self.exc_metrics):
                 node_metric_val = self.dataframe.loc[df_index, m]
@@ -828,18 +885,20 @@ class GraphFrame:
 
             return metrics_dict
 
+        def attributes_to_dict(df_index):
+            valid_columns = [
+                col for col in cat_columns if col in self.dataframe.columns
+            ]
+
+            attributes_dict = {}
+            for m in sorted(valid_columns):
+                node_attr_val = self.dataframe.loc[df_index, m]
+                attributes_dict[m] = node_attr_val
+
+            return attributes_dict
+
         def add_nodes(hnode):
-            if (
-                "rank" in self.dataframe.index.names
-                and "thread" in self.dataframe.index.names
-            ):
-                df_index = (hnode, rank, thread)
-            elif "rank" in self.dataframe.index.names:
-                df_index = (hnode, rank)
-            elif "thread" in self.dataframe.index.names:
-                df_index = (hnode, thread)
-            else:
-                df_index = hnode
+            df_index = _get_df_index(hnode)
 
             node_dict = {}
 
@@ -847,8 +906,9 @@ class GraphFrame:
 
             node_dict["name"] = node_name
             node_dict["frame"] = hnode.frame.attrs
-            node_dict["metrics"] = metrics_to_dict(hnode)
+            node_dict["metrics"] = metrics_to_dict(df_index)
             node_dict["metrics"]["_hatchet_nid"] = hnode._hatchet_nid
+            node_dict["attributes"] = attributes_to_dict(df_index)
 
             if hnode.children and hnode not in visited:
                 visited.append(hnode)

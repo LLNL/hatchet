@@ -719,7 +719,7 @@ def test_tree(mock_graph_literal):
         colormap="RdYlGn",
         invert_colormap=False,
     )
-    assert "50.000 waldo" in output
+    assert "55.000 waldo" in output
     assert "15.000 garply" in output
 
 
@@ -806,9 +806,9 @@ def test_sub_decorator(small_mock1, small_mock2, small_mock3):
         colormap="RdYlGn",
         invert_colormap=False,
     )
-    assert "0.000 A" in output
+    assert "15.000 A" in output
     assert u"5.000 C ◀" in output
-    assert u"55.000 H ◀" in output
+    assert u"10.000 H ◀" in output
 
 
 def test_div_decorator(small_mock1, small_mock2):
