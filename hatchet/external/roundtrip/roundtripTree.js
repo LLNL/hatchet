@@ -1,7 +1,9 @@
-
 //d3.v4
 (function (element) {
     require(['https://d3js.org/d3.v4.min.js'], function (d3) {
+
+        d3.select(element).attr('width', '100%');
+
         const globals = Object.freeze({
             UNIFIED: 0,
             DEFAULT: 0,
@@ -15,13 +17,14 @@
                 TREECHANGE: "TREECHANGE",
                 COLORCLICK: "COLORCLICK",
                 LEGENDCLICK: "LEGENDCLICK",
-                ZOOM: "ZOOM"
+                ENABLEMASSPRUNE: "ENABLEMASSPRUNE",
+                REQUESTMASSPRUNE: "REQUESTMASSPRUNE",
+                RESETVIEW: "RESET"
             },
             layout: {
                 margin: {top: 20, right: 20, bottom: 20, left: 20},
             },
-            duration: 750,
-            treeHeight: 300
+            duration: 750
         });
 
         jsNodeSelected = "['*']";
@@ -63,7 +66,7 @@
 
             return {
                 setColors: function(treeIndex) {
-                    const curMetric = _state["selectedMetric"];
+                    const curMetric = _state["primaryMetric"];
                     const colorScheme = _state["colorScheme"];
 
                     if (_metricColumns.includes(curMetric)) {
@@ -81,7 +84,7 @@
                      * @param {Int} treeIndex - The index of the current tree's legend being set
                      */
 
-                    const curMetric = _state["selectedMetric"];
+                    const curMetric = _state["primaryMetric"];
 
                     // so hacky: need to fix later
                     if (model.data["legends"][_state["legend"]].includes("Unified")) {
@@ -127,14 +130,9 @@
                      *
                      * @param {String} nodeData - the name of the current metric being mapped to a color range
                      */
-
-                    if (model.state["legend"] == globals.UNIFIED) {
-                        treeIndex  = -1
-                    }
-
                     // Decide the color scheme for the settings.
                     const colorSchemeUsed = this.setColors(treeIndex);
-                    const curMetric = _state["selectedMetric"];
+                    const curMetric = _state["primaryMetric"];
 
                     // Get the suitable data based on the Legend settings.
                     let _d;
@@ -185,7 +183,6 @@
             }
         }
 
-        // This is the makeSignaller from class
         var makeSignaller = function() {
             let _subscribers = []; // Private member
 
@@ -204,8 +201,11 @@
             };
         }
 
-        // Create an object that handles user interaction and events
         var createController = function(model) {
+            /**
+             * Handles interaction and events by taking requests from the view
+             * and firing off functions in the model.
+             */
             var _model = model;
 
             return {
@@ -217,7 +217,7 @@
                             _model.updateSelected([evt.node]);
                             break;
                         case (globals.signals.DBLCLICK):
-                            _model.handleDoubleClick(evt.node,evt.tree);
+                            _model.handleDoubleClick(evt.node);
                             break;
                         case(globals.signals.TOGGLEBRUSH):
                             _model.toggleBrush();
@@ -226,7 +226,7 @@
                             _model.setBrushedPoints(evt.selection, evt.end);
                             break;
                         case (globals.signals.METRICCHANGE):
-                            _model.changeMetric(evt.newMetric);
+                            _model.changeMetric(evt.newMetric, evt.source);
                             break;
                         case(globals.signals.COLORCLICK):
                             _model.changeColorScheme();
@@ -237,88 +237,418 @@
                         case(globals.signals.LEGENDCLICK):
                             _model.updateLegends();
                             break;
-                        case(globals.signals.ZOOM):
-                            _model.updateNodeLocations(evt.index, evt.transformation);
+                        case(globals.signals.ENABLEMASSPRUNE):
+                            _model.enablePruneTree(evt.checked, evt.threshold);
+                            break;
+                        case(globals.signals.REQUESTMASSPRUNE):
+                            _model.pruneTree(evt.threshold);
+                            break;
+                        case(globals.signals.RESETVIEW):
+                            _model.resetView();
                             break;
                         default:
-                            console.log('Unknown event type', evt.type);
+                            console.warn('Unknown event type', evt.type);
                     }
                 }
             };
         }
-
 
         var createModel = function() {
             var _observers = makeSignaller();
 
             //initialize default data and state
             var _data = {
-                "trees": [],
-                "legends": ["Unified", "Indiv."],
-                "colors": ["Default", "Inverted"],
-                "forestData": null,
-                "rootNodeNames": [],
-                "numberOfTrees": 0,
-                "metricColumns": [],
-                "attributeColumns": [],
-                "forestMinMax": [],
-                "forestStats": []
-            };
+                            "trees":[],
+                            "legends": ["Unified", "Indiv."],
+                            "colors": ["Default", "Inverted"],
+                            "forestData": null,
+                            "rootNodeNames": ["Show all trees"],
+                            "numberOfTrees": 0,
+                            "metricColumns": [],
+                            "attributeColumns": [],
+                            "forestMinMax": [],
+                            "aggregateMinMax": {},
+                            "forestMetrics": [],
+                            "metricLists":[],
+                            "currentStrictness": 1.5,
+                            "treeSizes": [],
+                            "hierarchy": [],
+                            "immutableHierarchy": [],
+                            "maxHeight": 0
+                        };
 
             var _state = {
                             "selectedNodes":[], 
                             "collapsedNodes":[],
-                            "selectedMetric": [],
+                            "primaryMetric": null,
+                            "secondaryMetric": null,
                             "lastClicked": null,
                             "legend": 0,
                             "colorScheme": 0,
-                            "brushOn": -1
+                            "brushOn": -1,
+                            "hierarchyUpdated": true,
+                            "cachedThreshold": 0,
+                            "outlierThreshold": 0,
+                            "pruneEnabled": false
                         };
 
             //setup model
-            var cleanTree = argList[0].replace(/'/g, '"');
+            var cleanTree = argList[0].replace(/'/g, '"').replace(/nan/g, '\"nan\"');
+            var _forestData = JSON.parse(cleanTree);
+
+            _data.numberOfTrees = _forestData.length;
+            _data.metricColumns = d3.keys(_forestData[0].metrics);
+            _data["attributeColumns"] = d3.keys(_forestData[0].attributes);
             
-            _data["forestData"] = JSON.parse(cleanTree);
-            _data["rootNodeNames"].push("Show all trees");
-            _data["numberOfTrees"] = _data["forestData"].length;
-            _data["metricColumns"] = d3.keys(_data["forestData"][0].metrics);
-            _data["attributeColumns"] = d3.keys(_data["forestData"][0].attributes);
-
-            // pick the first metric listed to color the nodes
-            _state["selectedMetric"] = _data["metricColumns"][0];
-            _state["lastClicked"] = d3.hierarchy(_data["forestData"][0], d => d.children)
-            _state["activeTree"] = "Show all trees";
-            
-            //forest stats holds statistical descriptions of
-            // the metrics on each tree in the forest
-            var _forestStats = [];
-            var _forestMinMax = {}; 
-            for (var i = 0; i < _data["numberOfTrees"]; i++) {
-                var thisTree = _data["forestData"][i];
-
-                // Get tree names for the display select options
-                _data["rootNodeNames"].push(thisTree.frame.name);
-
-                var thisTreeMetrics = {};
-
-                // init the min/max for all trees' metricColumns
-                for (let metric of _data["metricColumns"]) {
-                    thisTreeMetrics[metric] = { "min": Number.MAX_VALUE, "max": 0 };
-                    _forestMinMax[metric] = { "min": Number.MAX_VALUE, "max": 0 };
+            for(var metric = 0; metric < _data.metricColumns.length; metric++){
+                metricName = _data.metricColumns[metric];
+                //remove private metric
+                if(_data.metricColumns[metric][0] == '_'){
+                    _data.metricColumns.splice(metric, 1);
                 }
-
-                for (let attribute of _data["attributeColumns"]) {
-                    thisTreeMetrics[attribute] = [];
-                    _forestMinMax[attribute] = [];
+                else{
+                    //setup aggregrate min max for metric
+                    _data.aggregateMinMax[metricName] = {min: Number.MAX_VALUE, max: Number.MIN_VALUE};
                 }
-
-                _forestStats.push(thisTreeMetrics);
             }
 
-            _data["forestMinMax"] = _forestMinMax;
-            _data["forestStats"] = _forestStats;
+            // pick the first metric listed to color the nodes
+            _state.primaryMetric = _data.metricColumns[0];
+            _state.secondaryMetric = _data.metricColumns[1];
+            _state.activeTree = "Show all trees";
+            _state.treeXOffsets = [];
+            
+            let offset = 0;
+            for (let treeIndex = 0; treeIndex < _forestData.length; treeIndex++) {
+                hierarchy = d3.hierarchy(_forestData[treeIndex], d => d.children);
+                hierarchy.size = hierarchy.descendants().length;
 
-            // HELPER FUNCTION DEFINTIONS
+                //add a surrogate id if _hatchet_nid is not present
+                if(!Object.keys(hierarchy.descendants()[0].data.metrics).includes("_hatchet_nid")){
+                    hierarchy.descendants().forEach(function(d, i){
+                        d.data.metrics.id = offset+i;
+                    })
+                    offset += hierarchy.size;
+                }
+
+                _data.immutableHierarchy.push(hierarchy);
+                _data.hierarchy.push(hierarchy);
+
+                if (_data.immutableHierarchy[treeIndex].height > _data.maxHeight){
+                    _data.maxHeight = _data.immutableHierarchy[treeIndex].height;
+                }
+            }
+
+            //sort in descending order
+            _data.immutableHierarchy.sort((a,b) => b.size - a.size);
+            _data.hierarchy.sort((a,b) => b.size - a.size);
+
+            _state.lastClicked = _data.hierarchy[0];
+
+
+            //Stats functions
+            function _getListOfMetrics(h){
+                //Gets a list of metrics with 0s removed
+                // 0s in hpctoolkit are too numerous and they
+                // throw off outlier calculations
+                var list = [];
+                
+                h.each(d=>{
+                    if(d.data.metrics[_state.primaryMetric] != 0){
+                        list.push(d.data.metrics)
+                    }
+                })
+
+                return list;
+            }
+
+            function _asc(arr){
+                /**
+                 *  Sorts an array in ascending order.
+                 */
+                
+                return arr.sort((a,b) => a[_state.primaryMetric]-b[_state.primaryMetric])
+            }
+            
+            function _quantile(arr, q){
+                /**
+                 * Gets a particular quantile from an array of numbers
+                 * 
+                 * @param {Array} arr - An array of floats
+                 * @param {Number} q - An float between [0-1] represening the quantile we want 
+                 */
+                const sorted = _asc(arr);
+                const pos = (sorted.length - 1) * q;
+                const base = Math.floor(pos);
+                const rest = pos - base;
+                if (sorted[base + 1] !== undefined) {
+                    return sorted[base][_state.primaryMetric] + rest * (sorted[base + 1][_state.primaryMetric] - sorted[base][_state.primaryMetric]);
+                } else {
+                    return sorted[base][_state.primaryMetric];
+                }
+            }
+
+            function _getIQR(arr){
+                /**
+                 * Returns the interquartile range for a an array of numbers
+                 */
+                if(arr.length != 0){
+                    var q25 = _quantile(arr, .25);
+                    var q75 = _quantile(arr, .75);
+                    var IQR = q75 - q25;
+                    
+                    return IQR;
+                }
+                
+                return NaN;
+            }
+
+            function _setOutlierFlags(h){
+                /**
+                 * Sets outlier flags on a d3 hierarchy of call sites.
+                 * An outlier is defined as outside of the range between
+                 * the IQR*(a user defined scalar) + 75th quantile and
+                 * 25th quantile - IQR*(scalar). 
+                 * 
+                 * @param {Hierarchy} h - A d3 hierarchy containg metric values
+                 */
+                var outlierScalar = _data.currentStrictness;
+                var upperOutlierThreshold = Number.MAX_VALUE;
+                var lowerOutlierThreshold = Number.MIN_VALUE;
+
+                var metrics = _getListOfMetrics(h);
+
+                var IQR = _getIQR(metrics);
+
+                if(!isNaN(IQR)){
+                    upperOutlierThreshold = _quantile(metrics, .75) + (IQR * outlierScalar);
+                    lowerOutlierThreshold = _quantile(metrics, .25) - (IQR * outlierScalar);
+                } 
+
+                h.each(function(node){
+                    var metric = node.data.metrics[_state.primaryMetric];
+                    if(metric != 0 &&   //zeros are not interesting outliers
+                       metric >= upperOutlierThreshold || 
+                       metric <= lowerOutlierThreshold){
+                        node.data.outlier = 1;
+                    }
+                    else{
+                        node.data.outlier = 0;
+                    }
+                })
+            }
+
+
+            function _getAggregateMetrics(h){
+                /**
+                 * Utility function which gets aggregrate metrics for
+                 * a subtree.
+                 * 
+                 * @param {Hierarchy} h - A d3 hierarchy containing metrics
+                 */
+                let agg = {};
+                
+                for(metric of _data.metricColumns){
+                    if(!metric.includes("(inc)")){
+                        h.sum(d=>{
+                            if(d.aggregateMetrics){
+                                return d.aggregateMetrics[metric];
+                            } else{
+                                return d.metrics[metric];
+                            }
+                        });
+                        agg[metric] = h.value;
+                    }
+                    else{
+                        agg[metric] = h.data.metrics[metric];
+                    }
+                }
+
+                return agg;
+            }
+
+            function _getSubTreeDescription(h){
+                /**
+                 * A utility function which returns a description of a subtree in terms
+                 * height, and number of nodes.
+                 * **TODO** - Add other descriptive details
+                 *
+                 * @param {Hierarchy} h - A d3 hierarchy containing metrics
+                 */
+                let desc = {};
+
+                desc.height = h.height;
+                desc.size = h.count().value;
+                
+                return desc;
+            }
+
+            function _buildDummyHolder(protoype, parent, elided){
+                /**
+                 * A function that builds a surrogate node from a
+                 * prototype node and the parent associated with that
+                 * prototype.
+                 * 
+                 * @param {Node} prototype - A node which are going to replace with the resulting surrogate node
+                 *      A prototype is used here to preserve the descriptive stats of the removed node
+                 * @param {Node} parent - A node we are linking the new surrogate node to
+                 * @param {Node} elided - A list of sibling nodes which this surrogate is eliding from view
+                 */
+                var dummyHolder = null;
+                var aggregateMetrics = {};
+                var description = {
+                    maxHeight: 0,
+                    minHeight: Number.MAX_VALUE,
+                    size: 0,
+                    elidedSubtrees:0
+                };
+
+
+                dummyHolder = protoype.copy();
+                dummyHolder.depth = protoype.depth;
+                dummyHolder.height = protoype.height;
+                dummyHolder.children = null;
+
+                //need a better way to make elided happen
+                // pass in as arg makes sense
+                dummyHolder.elided = elided;
+                dummyHolder.dummy = true;
+                dummyHolder.aggregate = false;
+                dummyHolder.parent = parent;
+                dummyHolder.outlier = 0;
+                
+
+                //initialize the aggregrate metrics for summing
+                for(metric of _data.metricColumns){
+                    aggregateMetrics[metric] = 0;
+                }
+
+                for(elided of dummyHolder.elided){
+                    var aggMetsForChild = _getAggregateMetrics(elided);
+                    var descriptionOfChild = _getSubTreeDescription(elided);
+                    
+                    for(metric of _data.metricColumns){
+                        aggregateMetrics[metric] += aggMetsForChild[metric];
+                    }
+
+                    description.size += descriptionOfChild.size;
+
+                    if(descriptionOfChild.height > description.maxHeight){
+                        description.maxHeight = descriptionOfChild.height;
+                    }
+
+                    if(descriptionOfChild.height < description.minHeight){
+                        description.minHeight = descriptionOfChild.height;
+                    }
+
+                }
+
+                description.elidedSubtrees = elided.length;
+
+                //get the overall min and max of aggregate metrics
+                // for scales
+                for(metric of _data.metricColumns){
+                    if (aggregateMetrics[metric] > _data.aggregateMinMax[metric].max){
+                        _data.aggregateMinMax[metric].max = aggregateMetrics[metric];
+                    }
+                    if(aggregateMetrics[metric] < _data.aggregateMinMax[metric].min){
+                        _data.aggregateMinMax[metric].min = aggregateMetrics[metric];
+                    }
+                }
+
+                dummyHolder.data.aggregateMetrics = aggregateMetrics;
+                dummyHolder.data.description = description;
+
+                //more than sum 0 nodes were aggregrated
+                // together
+                if(dummyHolder.data.aggregateMetrics[_state.primaryMetric] != 0){
+                    dummyHolder.aggregate = true;
+                }
+
+                return dummyHolder;
+            }
+
+            function _pruningVisitor(root, condition){
+                /**
+                 * A recursive function that scans nodes for
+                 *  the existance of an outlier flag and manages the
+                 *  removal of non-outlier nodes in addition to the 
+                 *  creation of surrogate nodes that hold aggregated
+                 *  data.
+                 * 
+                 *  Note - The processing is done on the children of root primarily.
+                 *  
+                 *  @param {Hierarchy} root - Or current root node in our recursive scanning and modification of trees.
+                 *  @param {Number} condition - The comparision condition which our node value is compared against
+                 */
+                if(root.children){
+                    var dummyHolder = null;
+                    var lastChildNdx = null;
+                    var elided = [];
+                   
+                    for(var childNdx = root.children.length-1; childNdx >= 0; childNdx--){
+                        var child = root.children[childNdx];
+                        //clear dummy node codition so it
+                        // doesnt carry on between re-draws
+                        child.data.dummy = false;
+
+                        //condition where we remove child
+                        if(child.value < condition){
+                            if(!root._children){
+                                root._children = [];
+                            }
+
+                            elided.push(child);
+                            root._children.push(child);
+                            root.children.splice(childNdx, 1);
+                        }
+                    } 
+                    
+                    
+                    if (root._children && root._children.length > 0){
+                        dummyHolder = _buildDummyHolder(elided[0], root, elided);
+                        root.children.push(dummyHolder);
+                    }
+
+                    for(var child of root.children){
+                        _pruningVisitor(child, condition);
+                    }
+
+                    if(root.children.length == 0){
+                        root.children = null;
+                    }
+                }
+            }
+
+            function _aggregateTreeData(){
+                /**
+                 * Helper function which drives the outlier
+                 * detection and pruning of a fresh tree.
+                 * This function creates a fresh hierarchy when called and
+                 * overwrites the current tree in the view.
+                 */
+                for(var i = 0; i < _data.numberOfTrees; i++){
+                    var h = _data.immutableHierarchy[i].copy();
+                    if(_data.currentStrictness > -1){
+                        //The sum ensures that we do not prune 
+                        //away parent nodes of identified outliers.
+                        _setOutlierFlags(h);
+                        h.sum(d => d.outlier);
+                        _pruningVisitor(h, 1);
+
+                        //update size of subtrees on the nodes
+                        h.size = h.descendants().length;
+                        
+                    }
+
+                    _data.hierarchy[i] = h;
+                }
+            }
+
+            // --------------------------------------------
+            // Node selection helper functions
+            // --------------------------------------------
+
             function _printNodeData(nodeList) {
                 /**
                   * To pretty print the node data as a IPython table
@@ -328,7 +658,7 @@
                 
                 var nodeStr = '<table><tr><td>name</td>';
                 var numNodes = nodeList.length;
-                var metricColumns = model.data["metricColumns"];
+                var metricColumns = _data["metricColumns"];
 
                 //lay the nodes out in a table
                 for (var i = 0; i < metricColumns.length; i++) {
@@ -336,19 +666,30 @@
                 }
                 nodeStr += '</tr>';
                 for (var i = 0; i < numNodes; i++) {
+                    nodeStr += "<tr>"
                     for (var j = 0; j < metricColumns.length; j++) {
                         if (j == 0) {
-                            nodeStr += '<tr><td>' + nodeList[i].data.frame.name + '</td><td>' + nodeList[i].data.metrics[metricColumns[j]] + '</td><td>';
+                            if (nodeList[i].data.aggregateMetrics && nodeList[i].elided.length == 1){
+                                nodeStr += `<td>${nodeList[i].data.frame.name} Subtree </td>`
+                            }
+                            else if(nodeList[i].data.aggregateMetrics && nodeList[i].elided.length > 1){
+                                nodeStr += `<td>Children of: ${nodeList[i].parent.data.frame.name} </td>`
+                            }
+                            else{
+                                nodeStr += `<td>${nodeList[i].data.frame.name}</td>`;
+                            }
                         }
-                        else if (j == metricColumns.length - 1) {
-                            nodeStr += nodeList[i].data.metrics[metricColumns[j]] + '</td></tr>';
+                        if (nodeList[i].data.aggregateMetrics){
+                            nodeStr += `<td>${nodeList[i].data.aggregateMetrics[metricColumns[j]]}</td>`
                         }
-                        else {
-                            nodeStr += nodeList[i].data.metrics[metricColumns[j]];
+                        else{
+                            nodeStr += `<td>${nodeList[i].data.metrics[metricColumns[j]]}</td>`
                         }
                     }
+                    nodeStr += '</tr>'
                 }
                 nodeStr = nodeStr + '</table>';
+
                 return nodeStr;
             }
 
@@ -398,7 +739,64 @@
             }
 
 
-            /* Class object created from call to createModel */
+            //-------------------------------------------
+            // Model Setup Processing
+            //-------------------------------------------
+
+
+            //get the max and min metrics across the forest
+            // and for each individual tree
+            var _forestMetrics = [];
+            var _forestMinMax = {}; 
+
+            for (var index = 0; index < _data.numberOfTrees; index++) {
+                var thisTree = _forestData[index];
+                let mc = _data.metricColumns;
+
+                // Get tree names for the display select options
+                _data["rootNodeNames"].push(thisTree.frame.name);
+
+                var thisTreeMetrics = {};
+
+                for (var j = 0; j < mc.length; j++) {
+                    thisTreeMetrics[mc[j]] = {};
+                    thisTreeMetrics[mc[j]]["min"] = Number.MAX_VALUE;
+                    thisTreeMetrics[mc[j]]["max"] = 0;
+
+                    //only one run time
+                    if(index == 0){
+                        _forestMinMax[mc[j]] = {};
+                        _forestMinMax[mc[j]]["min"] = Number.MAX_VALUE;
+                        _forestMinMax[mc[j]]["max"] = 0;
+                    }
+                }
+
+                _data['hierarchy'][index].each(function (d) {
+                    for (var i = 0; i < mc.length; i++) {
+                        var tempMetric = mc[i];
+                        if (d.data.metrics[tempMetric] > thisTreeMetrics[tempMetric].max) {
+                            thisTreeMetrics[tempMetric].max = d.data.metrics[tempMetric];
+                        }
+                        if (d.data.metrics[tempMetric] < thisTreeMetrics[tempMetric].min) {
+                            thisTreeMetrics[tempMetric].min = d.data.metrics[tempMetric];
+                        }
+                        if (d.data.metrics[tempMetric] > _forestMinMax[tempMetric].max) {
+                            _forestMinMax[tempMetric].max = d.data.metrics[tempMetric];
+                        }
+                        if (d.data.metrics[tempMetric] < _forestMinMax[tempMetric].min) {
+                            _forestMinMax[tempMetric].min = d.data.metrics[tempMetric];
+                        }
+                    }
+                });
+
+                _forestMetrics.push(thisTreeMetrics);
+            }
+            _data.forestMetrics = _forestMetrics;
+
+            // Global min/max are the last entry of forestMetrics;
+            _data.forestMinMax = _forestMinMax;
+            _data.forestMetrics.push(_forestMinMax);
+
             return{
                 data: _data,
                 state: _state,
@@ -410,85 +808,42 @@
                      */
                     _observers.add(s);
                 },
-                addTree: function(tm){
+                enablePruneTree: function(enabled, threshold){
                     /**
-                     * Pushes a tree into the model.
+                     * Enables/disables the mass prune tree functionality.
+                     * Prunes tree on click based on current slider position.
+                     * 1.5 by default from view.
                      * 
-                     * @param {Object} tm - A d3 tree constructed from a d3 hierarchy
+                     * @param {bool} enabled - Switch bool that guides if we disable or enable mass pruning
+                     * @param {float} threshold - User defined strictness of pruning. Used as the multiplier in set outlier flags.
+                     *      On first click this will be 1.5.
                      */
-
-                    _data['trees'].push(tm);
-                },
-                getTree: function(index){
-                    /**
-                     * Retrieves a tree from the model.
-                     * 
-                     * @param {Number} index - The index of the tree we want to get
-                     */
-                    return _data['trees'][index];
-                },
-                getNodesFromMap: function(index){
-                    /**
-                     * Retrieves tree nodes from the model
-                     * 
-                     * @param {Number} index - The index of the tree nodes we want to get
-                     */
-                    return _data['trees'][index].descendants();
-                },
-                getLinksFromMap: function(index){
-                    /**
-                     * Retrieves tree links from the model
-                     * 
-                     * @param {Number} index - The index of the tree links we want to get
-                     */
-                    return _data['trees'][index].descendants().slice(1);
-                },
-                updateNodes: function(index, f){
-                    /**
-                     * Updates the nodes in the model according to the passed in callback function.
-                     *
-                     * @param {Number} index - The index of the tree we are updating
-                     * @param {Function} f - The callback function being applied to the nodes
-                     */
-                    f(_data['trees'][index].descendants());
-                },
-                updateforestStats: function(index){
-                    /**
-                     * Updates the local maximum and minimum metrics for a single tree in the forest. 
-                     * Updates the global maximum and minimum metrics across all trees in our forest.
-                     * Stores these values in the model.
-                     *
-                     * @param {Number} index - The index of the tree we are updating
-                     */
-
-                    var curTreeData = _forestStats[index];
-                    for(let metric of  _data["metricColumns"]) {
-                        // get local minimum and maximum for our current tree
-                        // for each metric
-                        _data['trees'][index].descendants().forEach(function (d) {
-                            curTreeData[metric].max = Math.max(curTreeData[metric].max, d.data.metrics[metric]);
-                            curTreeData[metric].min = Math.min(curTreeData[metric].min, d.data.metrics[metric]);
-                        });
-
-                        //Update global minimum and maximum per metric
-                        _forestMinMax[metric].max = Math.max(_forestMinMax[metric].max, curTreeData[metric].max);
-                        _forestMinMax[metric].min = Math.min(_forestMinMax[metric].min, curTreeData[metric].min);
+                    if (enabled){
+                        _state.pruneEnabled = true;
+                        _data.currentStrictness = threshold;
+                        _aggregateTreeData();
+                        _state.hierarchyUpdated = true;
+                    } 
+                    else{
+                        _state.pruneEnabled = false;
+                        // threshold = -1;
                     }
+                    
+                    _observers.notify();
+                    
+                },
+                pruneTree: function(threshold){
+                    /**
+                     * Interface to the private tree aggregation functions.
+                     *  Calls when user adjusts automatic pruning slider.
+                     * 
+                     * @param {float} threshold - User defined strictness of pruning. Used as the multiplier in set outlier flags.
+                     */
+                    _data.currentStrictness = threshold;
+                    _aggregateTreeData();
+                    _state.hierarchyUpdated = true;
 
-                    for (let attribute of _data["attributeColumns"]) {
-                        // get all the unique types into the array.
-                        _data['trees'][index].descendants().forEach(function(d) {
-                            if (!curTreeData[attribute].includes(d.data.attributes[attribute])) {
-                                curTreeData[attribute].push(d.data.attributes[attribute]);
-                            }
-                            if (!_forestMinMax[attribute].includes(d.data.attributes[attribute])) {
-                                _forestMinMax[attribute].push(d.data.attributes[attribute]);
-                            }
-                        });
-                    }
-
-                    _data["forestStats"] = _forestStats;
-                    _data["forestMinMax"] = _forestMinMax;
+                    _observers.notify();
                 },
                 updateSelected: function(nodes){
                     /**
@@ -496,11 +851,10 @@
                      *
                      * @param {Array} nodes - A list of selected nodes
                      */
-
                     _state['selectedNodes'] = nodes;
                     this.updateTooltip(nodes);
 
-                    if(nodes.length > 0){
+                    if(nodes.length > 0 && nodes[0]){
                         jsNodeSelected = _printQuery(nodes);
                     } else {
                         jsNodeSelected = "['*']";
@@ -510,36 +864,56 @@
                 },
                 handleDoubleClick: function(d){
                     /**
-                     * Handles the model functionlaity of hiding and un-hiding subtrees
-                     * on double click
-                     *
-                     * @param {Object} d - The node which was double clicked
+                     * Manages the collapsing and expanding of subtrees
+                     *  when a user is manually pruning or exploring a tree.
+                     * 
+                     * @param {node} d - The node the user just double clicked.
+                     *      Can be a surrogate or real node.
                      */
+                    //hiding a subtree
+                    if(!d.dummy){
+                        if(d.parent){
+                            //main manipulation is in parent scope
+                            let children = d.parent.children;
 
-                    // if the node is not already collapsed
-                    // keep track of collapsed nodes
-                    if (! _state["collapsedNodes"].includes(d) ){
-                        _state["collapsedNodes"].push(d);
-                    }
+                            if(!d.parent._children){
+                                d.parent._children = [];
+                            }
+
+                            d.parent._children.push(d);
+                            dummy = _buildDummyHolder(d, d.parent, [d]);
+                            swapIndex = d.parent.children.indexOf(d);
+                            children[swapIndex] = dummy;
+                        }
+                    } 
+
+                    //Expanding a dummy node
+                    // Replaces a node if one was elided
+                    // Appends if multiple were elided
                     else{
-                        index = _state["collapsedNodes"].indexOf(d);
-                        _state["collapsedNodes"].splice(index, 1);
-                    }
+                        
+                        if(d.elided.length == 1){
+                            // patch that clears aggregate metrics upon doubleclick
+                            delete d.elided[0].data.aggregateMetrics;
 
-                    //this is kind of a hack for this paradigm
-                    // but it updates the passed data directly
-                    // and hides children nodes triggering update
-                    // when view is re-rendered
-                    if (d.children) {
-                        d._children = d.children;
-                        d.children = null;
-                    } else {
-                        d.children = d._children;
-                        d._children = null;
+                            insIndex = d.parent.children.indexOf(d);
+                            d.parent.children[insIndex] = d.elided[0];
+                        }
+                        else{
+                            for(elided of d.elided){
+                                delete elided.data.aggregateMetrics;
+                                delIndex = d.parent._children.indexOf(elided);
+                                d.parent._children.splice(delIndex, 1);
+
+                                d.parent.children.push(elided);
+                            }
+                            d.parent.children = d.parent.children.filter(child => child !== d);
+                        }
                     }
 
                     _state["lastClicked"] = d;
-                    
+
+                    _state.hierarchyUpdated = true;
                     _observers.notify();
                 },
                 toggleBrush: function(){
@@ -551,7 +925,7 @@
                     _state["brushOn"] = -_state["brushOn"];
                     _observers.notify();
                 },
-                setBrushedPoints(selection, end){
+                setBrushedPoints: function(selection){
                     /**
                      * Calculates which nodes are in the brushing area.
                      * 
@@ -559,13 +933,10 @@
                      * @param {Boolean} end - A variable which tests if the brushing is over or not
                      *
                      */
-
-                    var brushedNodes = [];
-
                     if(selection){
                         //calculate brushed points
                         for(var i = 0; i < _data["numberOfTrees"]; i++){
-                            nodes = _data['trees'][i].descendants();
+                            var nodes = _data['trees'][i].descendants();
                             nodes.forEach(function(d){
                                 if(selection[0][0] <= d.yMainG && selection[1][0] >= d.yMainG 
                                     && selection[0][1] <= d.xMainG && selection[1][1] >= d.xMainG){
@@ -592,8 +963,7 @@
                      * @param {Array} nodes - A list of selected nodes
                      *
                      */
-
-                    if(nodes.length > 0){
+                    if(nodes.length > 0 && nodes[0]){
                         var longestName = 0;
                         nodes.forEach(function (d) {
                             var nodeData = d.data.frame.name + ': ' + d.data.metrics.time + 's (' + d.data.metrics["time (inc)"] + 's inc)';
@@ -607,15 +977,25 @@
                         _data["tipText"] = '<p>Click a node or "Select nodes" to see more info</p>';
                     }
                 },
-                changeMetric: function(newMetric){
-                    /**
+                changeMetric: function(newMetric, source){
+                      /**
                      * Changes the currently selected metric in the model.
                      * 
                      * @param {String} newMetric - the most recently selected metric
                      *
                      */
 
-                    _state["selectedMetric"] = newMetric;
+                    if(source.includes("primary")){
+                        _state.primaryMetric = newMetric;
+                    } 
+                    else if(source.includes("secondary")){
+                        _state.secondaryMetric = newMetric;
+                    }
+                    
+                    if(_state.pruneEnabled){
+                        _aggregateTreeData();
+                        _state.hierarchyUpdated = true;
+                    }
                     _observers.notify();
                 },
                 changeColorScheme: function(){
@@ -645,25 +1025,13 @@
                     _state["activeTree"] = activeTree;
                     _observers.notify();
                 },
-                updateNodeLocations: function(index, transformation){
+                resetView(){
                     /**
-                     * Transforms the x and y values of nodes based on transformations
-                     * applied to their parent group
-                     * 
-                     * @param {Number} index - Index of the tree who's nodes are being updated
-                     * @param {Object} transformation - The current transformation matrix (CTM) of an parent group
-                     *
+                     * Function that sets a flag which causes the 
+                     * view to reset all trees to their original layouts.
                      */
-                    _data["trees"][index].descendants().forEach(function(d, i) {
-                        // This function gets the absolute location for each point based on the relative
-                        // locations of the points based on transformations
-                        // the margins were being added into the .e and .f values so they have to be subtracted
-                        // I think they come from the margins being added into the "main group" when it is created
-                        // We can brush regardless of zoom or pan
-                        // Adapted from: https://stackoverflow.com/questions/18554224/getting-screen-positions-of-d3-nodes-after-transform
-                        d.yMainG = transformation.e + d.y0*transformation.d + d.x0*transformation.c - globals.layout.margin.left;
-                        d.xMainG = transformation.f + d.y0*transformation.b + d.x0*transformation.a - globals.layout.margin.top;
-                    });
+                    _state.resetView = true;
+                    _observers.notify();
                 }
             }
         }
@@ -683,7 +1051,9 @@
             const allColumns = metricColumns.concat(attributeColumns);
             var brushOn = model.state["brushOn"];
             var curColor = model.state["colorScheme"];
-            var colors = model.data["colors"];
+            var colors = model.data["colors"];        
+            var curLegend = model.state["legend"];
+            var legends = model.data["legends"];
 
             //initialize bounds for svg
             var width = element.clientWidth - globals.layout.margin.right - globals.layout.margin.left;
@@ -692,18 +1062,74 @@
             // ----------------------------------------------
             // Create HTML interactables
             // ----------------------------------------------
-            const htmlInputs = d3.select(elem).insert('div', '.canvas').attr('class','html-inputs');
 
-            htmlInputs.append('label').attr('for', 'metricSelect').text('Color by:');
-            var metricInput = htmlInputs.append("select") //element
-                .attr("id", "metricSelect")
-                .selectAll('option')
-                .data(allColumns)
-                .enter()
-                .append('option')
-                .text(d => d)
-                .attr('value', d => d);
-            document.getElementById("metricSelect").style.margin = "10px 10px 10px 0px";
+            const htmlInputs = d3.select(elem).insert('div', '.canvas').attr('class','html-inputs');
+            //setup scale
+            var _svgButtonOffset = 0;
+
+
+            function _addNewMenuButton(id, text, click){
+                /**
+                 * Function created to remove some repeated code blocks and make it
+                 *  easier to add SVG buttons with a more dynamic left offset.
+                 * 
+                 * @param {string} id - The HTML id which will be affixed to the newly created button
+                 * @param {string} text - The text to be displayed on the button itself
+                 * @param {function} click - Callback function to be called on click of button.
+                 */
+                var buttonPad = 5;
+                var textPad = 3;
+                var button = _svg.append('g')
+                    .attr('id', id)
+                    .append('rect')
+                    .attr('height', '15px')
+                    .attr('x', _svgButtonOffset).attr('y', 0).attr('rx', 5)
+                    .style('fill', '#ccc')
+                    .on('click', click);
+
+                var buttonText = d3.select(elem).select('#'+id).append('text')
+                        .attr("x", _svgButtonOffset + textPad)
+                        .attr("y", 12)
+                        .text(text)
+                        .attr("font-family", "sans-serif")
+                        .attr("font-size", "12px")
+                        .attr('cursor', 'pointer')
+                        .on('click', click);
+                
+                var width = buttonText.node().getBBox().width + 2*textPad;
+                    
+                button.attr('width', width);
+
+                _svgButtonOffset += width + buttonPad;
+            }
+
+            //---------------------------------
+            // HTML Interactables
+            //---------------------------------
+
+            htmlInputs.append('label').attr('for', 'primaryMetricSelect').text('Color by:');
+            var metricInput = htmlInputs.append("select") 
+                    .attr("id", "primaryMetricSelect")
+                    .selectAll('option')
+                    .data(metricColumns)
+                    .enter()
+                    .append('option')
+                    .text(d => d)
+                    .attr('value', d => d);
+            document.getElementById("primaryMetricSelect").style.margin = "10px 10px 10px 0px";
+
+            htmlInputs.append('label').attr('for', 'secondaryMetricSelect').text('Size:');
+            var metricInputRadius = htmlInputs.append("select") 
+                    .attr("id", "secondaryMetricSelect")
+                    .selectAll('option')
+                    .data(metricColumns)
+                    .enter()
+                    .append('option')
+                    .attr('selected', (d,i) => i == 1 ? "selected" : null)
+                    .text(d => d)
+                    .attr('value', d => d);
+            document.getElementById("secondaryMetricSelect").style.margin = "10px 10px 10px 0px";
+
 
             htmlInputs.append('label').style('margin', '0 0 0 10px').attr('for', 'treeRootSelect').text(' Display:');
             var treeRootInput = htmlInputs.append("select") //element
@@ -716,9 +1142,9 @@
                     .text(d => d)
                     .attr('value', (d, i) => i + "|" + d);
 
-            document.getElementById("treeRootSelect").style.margin = "10px 10px 10px 10px";
+            htmlInputs.select("#treeRootSelect").node().style.margin = "10px 10px 10px 10px";
 
-            d3.select(elem).select('#treeRootSelect')
+            htmlInputs.select('#treeRootSelect')
                     .on('change', function () {
                         _observers.notify({
                             type: globals.signals.TREECHANGE,
@@ -726,87 +1152,99 @@
                         });
                     });
             
+            
+            htmlInputs.append('label').style('margin', '0 0 0 10px').attr('for', 'enable-pruning').text(' Enable Automatic Pruning:');
+            htmlInputs
+                .append("div")
+                .style("display", "inline-block")
+                .append('input')
+                .attr('id', 'enable-pruning')
+                .attr('type', 'checkbox')
+                .style('margin-left', '10px')
+                .on('click', function(){
+                    _observers.notify({
+                        type: globals.signals.ENABLEMASSPRUNE,
+                        checked: d3.select(this).property('checked'),
+                        threshold: d3.select(elem).select('#pruning-slider').node().value
+                    })
+                });
+            
+            
+            sliderText = htmlInputs.append('label').style('margin', '0 0 0 10px').attr('for', 'pruning-slider').text(' Pruning Strictness (1.5):');
+            htmlInputs
+                .append("div")
+                .attr("class", "slide-container")
+                .style("width", "150px")
+                .append("input")
+                .attr("id", "pruning-slider")
+                .attr("type", "range")
+                .attr("step", ".25")
+                .attr("min", "0")
+                .attr("max", "2")
+                .attr("value", "1.5");
+
+            document.getElementById("pruning-slider").style.marginLeft = "10px";
+        
+            htmlInputs.select('#pruning-slider')
+                .on('change', function(){
+                    // Does not conform fully to MVC model
+                    sliderText.text(()=>{
+                        return ` Pruning Strictness (${this.value})`;
+                    });
+
+                    _observers.notify({
+                        type: globals.signals.REQUESTMASSPRUNE,
+                        threshold: parseFloat(this.value)
+                    });
+                })
+            
             // ----------------------------------------------
             // Create SVG and SVG-based interactables
             // ----------------------------------------------
 
-            //make an svg in the scope of the current
+            //make an svg in the scope of our current
             // element/drawing space
-            var _svg = d3.select(elem).append('svg').attr('class','inputCanvas');
+            var _svg = d3.select(element).append("svg").attr("class", "inputCanvas");
+            
+            //-----------------------------------
+            // SVG Interactables
+            //-----------------------------------
 
-
-            var brushButton = _svg.append('g')
-                    .attr('id', 'selectButton')
-                    .append('rect')
-                    .attr('width', '80px')
-                    .attr('height', '15px')
-                    .attr('x', 0).attr('y', 0).attr('rx', 5)
-                    .style('fill', '#ccc')
-                    .on('click', function () {
-                        _observers.notify({
-                            type: globals.signals.TOGGLEBRUSH
-                        })
-                    });
-            var brushButtonText = d3.select(elem).select('#selectButton').append('text')
-                    .attr("x", 3)
-                    .attr("y", 12)
-                    .text('Select nodes')
-                    .attr("font-family", "sans-serif")
-                    .attr("font-size", "12px")
-                    .attr('cursor', 'pointer')
-                    .on('click', function () {
-                        _observers.notify({
-                            type: globals.signals.TOGGLEBRUSH
-                        })
-                    });
-
-            var colorButton = _svg.append('g')
-                    .attr('id', 'colorButton')
-                    .append('rect')
-                    .attr('width', '90px')
-                    .attr('height', '15px')
-                    .attr('x', 90).attr('y', 0).attr('rx', 5)
-                    .style('fill', '#ccc');
-
-            var colorButtonText = d3.select(elem).select('#colorButton').append('text')
-                    .attr("x", 93)
-                    .attr("y", 12)
-                    .text(function(){
-                        return `Colors: ${model.data["colors"][model.state["colorScheme"]]}`
+            _addNewMenuButton('selectButton', 'Select nodes',  
+                function () {
+                    _observers.notify({
+                        type: globals.signals.TOGGLEBRUSH
                     })
-                    .attr("font-family", "sans-serif")
-                    .attr("font-size", "12px")
-                    .attr('cursor', 'pointer')
-                    .on('click', function () {
-                        _observers.notify({
-                            type: globals.signals.COLORCLICK
-                        })
-                    });
+                });
+            
+            _addNewMenuButton('colorButton', 
+                function(){
+                    return `Colors: ${model.data["colors"][model.state["colorScheme"]]}`;
+                }, 
+                function () {
+                    _observers.notify({
+                        type: globals.signals.COLORCLICK
+                    })
+                });
 
-            var unifyLegends = _svg.append('g')
-                    .attr('id', 'unifyLegends')
-                    .append('rect')
-                    .attr('width', '100px')
-                    .attr('height', '15px')
-                    .attr('x', 190)
-                    .attr('y', 0)
-                    .attr('rx', 5)
-                    .style('fill', '#ccc');
-            var legendText = d3.select(elem).select('#unifyLegends').append('text')
-                    .attr("x", 195)
-                    .attr("y", 12)
-                    .text(function(){ return `Legends: ${model.data["legends"][model.state["legend"]]}`})
-                    .attr("font-family", "sans-serif")
-                    .attr("font-size", "12px")
-                    .attr('cursor', 'pointer')
-                    .on('click', function () {
-                        _observers.notify({
-                            type: globals.signals.LEGENDCLICK
-                        });
+            _addNewMenuButton('unifyLegends', 
+                function(){ 
+                    return `Legends: ${model.data["legends"][model.state["legend"]]}`;
+                }, 
+                function () {
+                    _observers.notify({
+                        type: globals.signals.LEGENDCLICK
                     });
+                });
+            
+            _addNewMenuButton('resetZoom', 'Reset View', 
+                function () {
+                    _observers.notify({
+                        type: globals.signals.RESETVIEW
+                    });
+                });
             
             _svg.attr('height', '15px').attr('width', width);
-
 
            // ----------------------------------------------
             // Define and set d3 callbacks for changes
@@ -834,13 +1272,32 @@
             
                 
             //When metricSelect is changed (metric_col)
-            d3.select(element).select('#metricSelect')
-            .on('change', function () {
-                _observers.notify({
-                    type: globals.signals.METRICCHANGE,
-                    newMetric: this.value
+            d3.select(element).select('#primaryMetricSelect')
+                .on('change', function () {
+                    _observers.notify({
+                        type: globals.signals.METRICCHANGE,
+                        newMetric: this.value,
+                        source: d3.select(this).attr('id')
+                    })
+                });
+
+            d3.select(element).select('#secondaryMetricSelect')
+                .on('change', function(){
+                    _observers.notify({
+                        type:globals.signals.METRICCHANGE,
+                        newMetric: this.value,
+                        source: d3.select(this).attr('id')
+                    })
                 })
-            });
+            
+            var brushButton = d3.select('#selectButton');
+            var colorButton = d3.select('#colorButton');
+            var unifyLegends = d3.select('#unifyLegends');
+            var brushButtonText = brushButton.select('text');
+            var colorButtonText = colorButton.select('text');
+            var legendText = unifyLegends.select('text');
+
+            
 
             return{
                 register: function(s){
@@ -851,14 +1308,14 @@
                      * Core call for drawing menu related screen elements
                      */
 
-                    selectedMetric = model.state["selectedMetric"];
                     brushOn = model.state["brushOn"];
                     curColor = model.state["colorScheme"];
                     colors = model.data["colors"];
                     curLegend = model.state["legend"];
                     legends = model.data["legends"];
 
-                    //Remove brush and reset if active
+                    var pruneEnabled = model.state["pruneEnabled"];
+
                     d3.selectAll('.brush').remove();
 
                     //updates
@@ -893,12 +1350,36 @@
                     colorButtonText
                     .text(function(){
                         return `Colors: ${colors[curColor]}`;
-                    })
+                    });
 
                     legendText
                     .text(function(){
                         return `Legends: ${legends[curLegend]}`;
-                    })
+                    });
+
+                    colorButton.attr('width', colorButtonText.node().getBBox().width + 10);
+                    unifyLegends.attr('width', legendText.node().getBBox().width + 10);
+                    
+                    sliderText
+                        .style('visibility', ()=>{
+                            if(pruneEnabled){
+                                return 'visible';
+                            }
+                            else{
+                                return 'hidden';
+                            }
+                        });
+
+                    d3.select(element).select('.slide-container')
+                        .style('display', () =>{
+                            if(pruneEnabled){
+                                return 'inline-block';
+                            }
+                            else{
+                                return 'none';
+                            }
+                        });
+
                 }
             }
         }
@@ -906,15 +1387,17 @@
         var createChartView = function(elem, model){
             let _observers = makeSignaller();
             var _colorManager = makeColorManager(model);
-            const metricColumns = model.data["metricColumns"];
-            const attributeColumns = model.data["attributeColumns"];
-            var forestData = model.data["forestData"];
-            var width = elem.clientWidth - globals.layout.margin.right - globals.layout.margin.left;
-            var height = globals.layout.margin.top + globals.layout.margin.bottom;
-            var _margin = globals.layout.margin;
-            var _nodeRadius = 30;
-            var treeLayoutHeights = [];
 
+            //layout variables
+            var _margin = globals.layout.margin;     
+            var width = element.clientWidth - _margin.right - _margin.left;
+            var height = _margin.top + _margin.bottom;
+            var _maxNodeRadius = 20;
+            var _treeLayoutHeights = [];
+            var legendOffset = 0;
+            var chartOffset = _margin.top;
+            var treeOffset = 0;
+            var _minmax = [];
 
             var svg = d3.select(elem)
                         .append('svg')
@@ -922,17 +1405,25 @@
                         .attr("width", width)
                         .attr("height", height);
 
-            //layout variables            
-            var spreadFactor = 0;
-            var legendOffset = 0;
-            var maxHeight = 0;
-            var chartOffset = 0;
-            var treeOffset = 0;
-            var minmax = [];
+            //scales
+            var _treeCanvasHeightScale = d3.scaleQuantize().range([250, 1000, 1250, 1500]).domain([1, 300]);
+            var _treeDepthScale = d3.scaleLinear().range([0, element.offsetWidth-200]).domain([0, model.data.maxHeight])
+            var _nodeScale = d3.scaleLinear().range([5, _maxNodeRadius]).domain([model.data.forestMinMax[model.state.secondaryMetric].min, model.data.forestMinMax[model.state.secondaryMetric].max]);
+            var _barScale = d3.scaleLinear().range([5, 25]).domain([model.data.forestMinMax[model.state.secondaryMetric].min, model.data.forestMinMax[model.state.secondaryMetric].max]);
 
+            //view specific data stores
+            var nodes = [];
+            var surrogates = [];
+            var aggregates = [];
+            var links = [];
+            const metricColumns = model.data["metricColumns"];
+            const attributeColumns = model.data["attributeColumns"];
 
-            
-            function diagonal(s, d) {
+            //-----------------------------------
+            // Function Definitions
+            //-----------------------------------
+
+            function diagonal(s, d, ti) {
                 /**
                  * Creates a curved diagonal path from parent to child nodes
                  * 
@@ -940,13 +1431,27 @@
                  * @param {Object} d - child node
                  * 
                  */
-
-                let path = `M ${s.y} ${s.x}
-                C ${(s.y + d.y) / 2} ${s.x},
-                ${(s.y + d.y) / 2} ${d.x},
-                ${d.y} ${d.x}`
+                var dy = _treeDepthScale(d.depth);
+                var sy = _treeDepthScale(s.depth);
+                var sx = _getLocalNodeX(s.x, ti);
+                var dx = _getLocalNodeX(d.x, ti);
+                let path = `M ${sy} ${sx}
+                C ${(sy + dy) / 2} ${sx},
+                ${(sy + dy) / 2} ${dx},
+                ${dy} ${dx}`
 
                 return path
+            }
+
+            function _getLocalNodeX(x, ti){
+                /**
+                 * Returns the local node x offset based on the current
+                 * tree layout.
+                 * 
+                 * @param {float} x - X offset of a node from d3.tree
+                 * @param {Number} ti - The current tree index
+                 */
+                return x + treeOffset - _minmax[ti].min;
             }
 
             function _getMinxMaxxFromTree(root){
@@ -984,45 +1489,91 @@
 
                 return max - min;
             }
-
-            // --------------------------------------------------------------
-            // Initialize layout before first render
-            // --------------------------------------------------------------
-
-            var mainG = svg.append("g")
-                            .attr('id', "mainG")
-                            .attr("transform", "translate(" + globals.layout.margin.left + "," + 0 + ")");
-
-            var tree = d3.tree().nodeSize([_nodeRadius, _nodeRadius]);
-
-            // Find the tallest tree for layout purposes (used to set a uniform spreadFactor)
-            for (var treeIndex = 0; treeIndex < forestData.length; treeIndex++) {
-                var currentTreeData = forestData[treeIndex];
-                var currentRoot = d3.hierarchy(currentTreeData, d => d.children);
-
-                currentRoot.x0 = height;
-                currentRoot.y0 = _margin.left;
-
-                var currentTree = tree(currentRoot);
-
-                if (currentTree.height > maxHeight) {
-                    maxHeight = currentTree.height;
+            
+            function _getSelectedNodes(selection){
+                /**
+                 * Function which calculates the collison of which nodes were brushed
+                 * 
+                 * @param {Array} selection - A 2d array containing the svg coordinates of the top left and bottom right
+                 *  points of a brushed bounding box
+                 */
+                let brushedNodes = [];
+                if (selection){
+                    for(var i = 0; i < model.data["numberOfTrees"]; i++){
+                        nodes[i].forEach(function(d){
+                            if(selection[0][0] <= d.yMainG && selection[1][0] >= d.yMainG 
+                                && selection[0][1] <= d.xMainG && selection[1][1] >= d.xMainG){
+                                brushedNodes.push(d);
+                            }
+                        })
+                    }
                 }
 
-                model.addTree(currentTree);
+                return brushedNodes;
 
-                treeLayoutHeights.push(_getHeightFromTree(currentRoot));
-                minmax.push(_getMinxMaxxFromTree(currentRoot))
+            }
+            function _calcNodePositions(nodes, treeIndex){
+                /**
+                 * Calculates the local and gloabal node positions for each tree in
+                 *  our forest.
+                 * 
+                 * @param {Array} nodes - An array of all nodes in a tree
+                 * @param {Number} treeIndex - An integer of the current tree index
+                 */
+                nodes.forEach(
+                    function (d) {
+                            d.x0 = _getLocalNodeX(d.x, treeIndex);
+                            d.y0 = _treeDepthScale(d.depth);
+                        
+                            // Store the overall position based on group
+                            d.xMainG = d.x0 + chartOffset;
+                            d.yMainG = d.y0 + _margin.left;
+                    }
+                );
             }
 
-            //layout variables            
-            spreadFactor = width / (maxHeight + 1);
+            //------------------------------
+            // Pre-Proecssing
+            //------------------------------
+            var mainG = svg.append("g")
+            .attr('id', "mainG")
+            .attr("transform", "translate(" + globals.layout.margin.left + "," + globals.layout.margin.top + ")");
+            
+            // .nodeSize([_maxNodeRadius, _maxNodeRadius]);
+            
+          
+            var zoom = d3.zoom()
+                .on("zoom", function (){
+                     let zoomObj = d3.select(this).selectAll(".chart");
+                     zoomObj.attr("transform", d3.event.transform);
+                 })
+                 .on("end", function(){
+                     let zoomObj = d3.select(this).selectAll(".chart");
+                     let index = zoomObj.attr("chart-id");
+                     let transformation = zoomObj.node().getCTM();
+     
+                     nodes[index].forEach(function(d) {
+                         /**
+                          * This function gets the absolute location for each point based on the relative
+                          * locations of the points based on transformations
+                          * the margins were being added into the .e and .f values so they have to be subtracted
+                          * Adapted from: https://stackoverflow.com/questions/18554224/getting-screen-positions-of-d3-nodes-after-transform
+                          * 
+                          */
+                         
+                         d.yMainG = transformation.e + d.y0*transformation.d + d.x0*transformation.c - globals.layout.margin.left;
+                         d.xMainG = transformation.f + d.y0*transformation.b + d.x0*transformation.a - globals.layout.margin.top;
+                     });
+                 });
 
-            // Add a group and tree for each tree in the current forest
-            for (var treeIndex = 0; treeIndex < forestData.length; treeIndex++) {
-                model.updateforestStats(treeIndex);
+
+            // Add a group and tree for each forestData[i]
+            for (var treeIndex = 0; treeIndex < model.data.numberOfTrees; treeIndex++) {
+                let tree = d3.tree().size([_treeCanvasHeightScale(model.data.hierarchy[treeIndex].size), width - _margin.left - 200]);
+                let currentRoot = tree(model.data.hierarchy[treeIndex]);
+                let currentLayoutHeight = _getHeightFromTree(currentRoot);
+                let currentMinMax = _getMinxMaxxFromTree(currentRoot);
                 
-                var currentTree = model.getTree(treeIndex);
                 var newg = mainG.append("g")
                         .attr('class', 'group-' + treeIndex + ' subchart')
                         .attr('tree_id', treeIndex)
@@ -1059,10 +1610,9 @@
 
                 legendOffset = legGroup.node().getBBox().height;
 
-
                 //make an invisible rectangle for zooming on
                 newg.append('rect')
-                    .attr('height', treeLayoutHeights[treeIndex])
+                    .attr('height', _treeLayoutHeights[treeIndex])
                     .attr('width', width)
                     .attr('fill', 'rgba(0,0,0,0)');
 
@@ -1074,52 +1624,51 @@
                     .attr('width', width)
                     .attr('fill', 'rgba(0,0,0,0)');
 
-                //Create d3 zoom element and affix to each tree individually
-                var zoom = d3.zoom().on("zoom", function (){
-                    let zoomObj = d3.select(this).selectAll(".chart");
+                treeOffset = 0 + legendOffset + _margin.top;
 
-                    zoomObj.attr("transform", d3.event.transform);
+                newg.style("display", "inline-block");
 
-                    //update for scale view
-                    _observers.notify({
-                        type: globals.signals.ZOOM,
-                        index: zoomObj.attr("chart-id"),
-                        transformation: zoomObj.node().getCTM()
-                    })
-                });
+                //store node and link layout data for use later
+                var treeLayout = tree(model.data.hierarchy[treeIndex]);
+                nodes.push(treeLayout.descendants());
+                surrogates.push([]);
+                aggregates.push([]);
+                links.push(treeLayout.descendants().slice(1));
+                
+                //storage
+                _treeLayoutHeights.push(currentLayoutHeight);
+                _minmax.push(currentMinMax);
+
+                //updates
+                // put this on the immutable tree
+                _calcNodePositions(nodes[treeIndex], treeIndex);
+
+                chartOffset = _treeLayoutHeights[treeIndex] + treeOffset + _margin.top;
+                height += chartOffset;
+
 
                 newg.call(zoom)
                     .on("dblclick.zoom", null);
-                
-                //X value where tree should start being drawn
-                treeOffset = 0 + legendOffset + _margin.top;
 
-                //Initialize nodes with x/y data based on their current location
-                model.updateNodes(treeIndex,
-                    function(n){
-                        // Normalize for fixed-depth.
-                        n.forEach(function (d) {
-                            d.x = d.x + treeOffset - minmax[treeIndex]["min"];
-                            d.y = (d.depth * spreadFactor);
+            }
+            
+            //Update the height
+            svg.attr("height", height);
 
-                            d.x0 = d.x;
-                            d.y0 = d.y;
-
-                            // Store the overall position based on group
-                            d.xMainG = d.x + chartOffset;
-                            d.yMainG = d.y + _margin.left;
-
-                            d.xMainG0 = d.xMainG;
-                            d.yMainG0 = d.yMainG;
-                        });
-                    }
-                );
-
-                newg.style("display", "inline-block");
-            } //end for-loop "add tree"
-
-
-
+            //setup Interactions
+            var brush = d3.brush()
+            .extent([[0, 0], [2 * width, 2 * (height + globals.layout.margin.top + globals.layout.margin.bottom)]])
+            .on('brush', function(){
+            })
+            .on('end', function(){
+                var selection = _getSelectedNodes(d3.event.selection);
+                _observers.notify({
+                    type: globals.signals.BRUSH,
+                    selection: selection
+                })
+            });
+            
+            //return object        
             return{
                 register: function(s){
                     _observers.add(s);
@@ -1134,33 +1683,98 @@
                     chartOffset = _margin.top;
                     height = _margin.top + _margin.bottom;
 
+                    //update scales
+                    _nodeScale.domain([0, model.data.forestMinMax[model.state.secondaryMetric].max]);
+                    _barScale.domain([model.data.aggregateMinMax[model.state.secondaryMetric].min, model.data.aggregateMinMax[model.state.secondaryMetric].max]);
+
+                     //add brush if there should be one
+                     if(model.state.brushOn > 0){
+                        d3.select("#mainG").append('g')
+                            .attr('class', 'brush')
+                            .call(brush);
+                    } 
+
                     //render for any number of trees
-                    for(var treeIndex = 0; treeIndex < model.data["numberOfTrees"]; treeIndex++){
+                    for(var treeIndex = 0; treeIndex < model.data.numberOfTrees; treeIndex++){
+                        //retrieve new data from model
+                        let lastClicked = model.state.lastClicked;
+                        var primaryMetric = model.state.primaryMetric;
+                        var secondaryMetric = model.state.secondaryMetric;
+                        var source = model.data.hierarchy[treeIndex];
 
-                        let lastClicked = model.state["lastClicked"];
+                        //will need to optimize this redrawing
+                        // by cacheing tree between calls
+                        if(model.state.hierarchyUpdated == true){
+                            let tree = d3.tree().size([_treeCanvasHeightScale(model.data.hierarchy[treeIndex].size), width - _margin.left - 200]);
+                            var treeLayout = tree(source);
+                            nodes[treeIndex] = treeLayout.descendants().filter(d=>{return !d.dummy});
+                            surrogates[treeIndex] = treeLayout.descendants().filter(d=>{return (d.dummy && !d.aggregate)});
+                            aggregates[treeIndex] = treeLayout.descendants().filter(d=>{return d.aggregate});
+                            links[treeIndex] = treeLayout.descendants().slice(1);
+                            
+                            _calcNodePositions(nodes[treeIndex], treeIndex);
 
-                        var source = d3.hierarchy(model.data["forestData"][treeIndex], d => d.children);
-                        var selectedMetric = model.state["selectedMetric"];
-                        var nodes = model.getNodesFromMap(treeIndex);
-                        var links = model.getLinksFromMap(treeIndex);
+                            //recalculate layouts
+                            _treeLayoutHeights[treeIndex] = _getHeightFromTree(treeLayout);
+                            _minmax[treeIndex] = _getMinxMaxxFromTree(treeLayout);
+
+                            //only update after last tree
+                            if(treeIndex == model.data.numberOfTrees - 1){
+                                model.state.hierarchyUpdated = false;
+                            }
+                        }
+
+                        
                         var chart = svg.selectAll('.group-' + treeIndex);
-                        var tree = chart.selectAll('.chart');
+                        var treeGroup = chart.selectAll('.chart');
+
+                        if(model.state.resetView == true){
+                            treeGroup.attr("transform", "");
+
+                            nodes[treeIndex].forEach(
+                                function (d) {
+                                        // Store the overall position based on group
+                                        d.xMainG = d.x0 + chartOffset;
+                                        d.yMainG = d.y0 + _margin.left;
+                                }
+                            );
+
+                            //only update after last tree
+                            if(treeIndex == model.data.numberOfTrees - 1){
+                                model.state.resetView = false;
+                            }
+                        }
 
                         // ---------------------------------------------
                         // ENTER 
                         // ---------------------------------------------
-                        // Update the nodes…
                         var i = 0;
-                        var node = tree.selectAll("g.node")
-                                .data(nodes, function (d) {
-                                    return d.id || (d.id = ++i);
+                        var node = treeGroup.selectAll("g.node")
+                                .data(nodes[treeIndex], function (d) {
+                                    return d.data.metrics._hatchet_nid || d.data.metrics.id;
                                 });
+                        
+                        var dummyNodes = treeGroup.selectAll("g.fakeNode")
+                            .data(surrogates[treeIndex], function (d) {
+                                return d.data.metrics._hatchet_nid || d.data.metrics.id;
+                            });
+
+                        var aggBars = treeGroup.selectAll("g.aggBar")
+                            .data(aggregates[treeIndex], function (d) {
+                                return d.data.metrics._hatchet_nid || d.data.metrics.id;
+                            });
                         
                         // Enter any new nodes at the parent's previous position.
                         var nodeEnter = node.enter().append('g')
                                 .attr('class', 'node')
-                                .attr("transform", () => {return "translate(" + lastClicked.y + "," + lastClicked.x + ")"})
+                                .attr("transform", function (d) {
+                                    if(!d.parent){
+                                        return "translate(0,0)"
+                                    }
+                                    return "translate(" + d.parent.y + "," + d.parent.x + ")";
+                                })
                                 .on("click", function(d){
+                                    console.log(d);
                                     _observers.notify({
                                         type: globals.signals.CLICK,
                                         node: d
@@ -1174,51 +1788,145 @@
                                     })
                                 });
 
-                        nodeEnter.append("circle")
-                            .attr('class', 'circleNode')
-                            .attr("r", 1e-6)
-                            .style("fill", function(d) {
-                                return _colorManager.calcColorScale(d.data, treeIndex);
+
+                        var dNodeEnter = dummyNodes.enter().append('g')
+                            .attr('class', 'fakeNode')
+                            .on("click", function(d){
+                                console.log(d);
+                                _observers.notify({
+                                    type: globals.signals.CLICK,
+                                    node: d
+                                })
                             })
-                            .style('stroke-width', '1px')
-                            .style('stroke', 'black');
+                            .on('dblclick', function (d) {
+                                _observers.notify({
+                                    type: globals.signals.DBLCLICK,
+                                    node: d
+                                })
+                            });
+                        
+                        var aggNodeEnter = aggBars.enter().append('g')
+                            .attr('class', 'aggBar')
+                            .attr("transform", function (d) {
+                                return `translate(${_treeDepthScale(d.depth)}, ${_getLocalNodeX(d.x, treeIndex)})`;
+                            })
+                            .on("click", function(d){
+                                console.log(d);
+                                _observers.notify({
+                                    type: globals.signals.CLICK,
+                                    node: d
+                                })
+                            })
+                            .on('dblclick', function (d) {
+                                _observers.notify({
+                                    type: globals.signals.DBLCLICK,
+                                    node: d
+                                })
+                            });
+                     
 
-                        //Append text to nodes
+                        nodeEnter.append("circle")
+                                .attr('class', 'circleNode')
+                                .attr("r", 1e-6)
+                                .style("fill", function (d) {
+                                    if(model.state["legend"] == globals.UNIFIED){
+                                        return _colorManager.calcColorScale(d.data, -1);
+                                    }
+                                    return _colorManager.calcColorScale(d.data, treeIndex);
+                                })
+                                .style('stroke-width', '1px')
+                                .style('stroke', 'black');
+            
+                        dNodeEnter.append("path")
+                                .attr('class', 'dummyNode')
+                                .attr("d", "M 6 2 C 6 2 5 2 5 3 S 6 4 6 4 S 7 4 7 3 S 6 2 6 2 Z M 6 3 S 6 3 6 3 Z M 8 0 C 8 0 7 0 7 1 C 7 1 7 2 8 2 C 8 2 9 2 9 1 C 9 0 8 0 8 0 M 9 5 C 9 4 8 4 8 4 S 7 4 7 5 S 8 6 8 6 S 9 6 9 5")
+                                .attr("fill", "rgba(0,0,0, .4)")
+                                .style("stroke-width", ".5px")
+                                .style("stroke", "rgba(100,100,100)");
+                        
+                        aggNodeEnter.append("rect")
+                                .attr('class', 'bar')
+                                .attr('height', (d) => {return _barScale(d.data.aggregateMetrics[secondaryMetric]);})
+                                .attr('width', 20)
+                                .attr("fill", "rgba(0,0,0)")
+                                .style("stroke-width", ".5px")
+                                .style("stroke", "rgba(100,100,100)");
+
+                                
+
+                        // commenting out text for now
                         nodeEnter.append("text")
-                        .attr("x", function (d) {
-                            return d.children || model.state['collapsedNodes'].includes(d) ? -13 : 13;
-                        })
-                        .attr("dy", ".75em")
-                        .attr("text-anchor", function (d) {
-                            return d.children || model.state['collapsedNodes'].includes(d) ? "end" : "start";
-                        })
-                        .text(function (d) {
-                            if(!d.children){
-                                return d.data.name;
-                            }
-                            else if(d.children.length == 1){
-                                return "";
-                            }
-                            else {
-                                return d.data.name.slice(0,5) + "...";
-                            }
-                        })
-                        .style("font", "12px monospace");
+                                .attr("x", function (d) {
+                                    return d.children || model.state['collapsedNodes'].includes(d) ? -13 : 13;
+                                })
+                                .attr("dy", ".75em")
+                                .attr("text-anchor", function (d) {
+                                    return d.children || model.state['collapsedNodes'].includes(d) ? "end" : "start";
+                                })
+                                .text(function (d) {
+                                    console.log(d.children, d.data.name);
+                                    if(!d.children){
+                                        console.log("HERE");
+                                        return d.data.name;
+                                    }
+                                    else if(d.children.length == 1){
+                                        return "";
+                                    }
+                                    return "";
+                                })
+                                .style("font", "12px monospace")
+                                .style('fill','rgba(0,0,0,.9)');
+        
+                        dNodeEnter.append("text")
+                            .attr("x", function (d) {
+                                return 30;
+                            })
+                            .attr("dy", "1em")
+                            .attr("text-anchor", function (d) {
+                                return "start";
+                            })
+                            .text(function (d) {
+                                if (d.elided.length > 1){
+                                    return `Children of: ${d.parent.data.name}` ;
+                                } 
+                                else{
+                                    return `${d.data.name} Subtree`;
+                                }
+                            })
+                            .style("font", "12px monospace")
+                            .style('fill','rgba(0,0,0,.9)');
 
+                        aggNodeEnter.append("text")
+                            .attr("x", function (d) {
+                                return 25;
+                            })
+                            .attr("dy", "1em")
+                            .attr("text-anchor", function (d) {
+                                return "start";
+                            })
+                            .text(function (d) {
+                                if (d.elided.length > 1){
+                                    return `Children of: ${d.parent.data.name}` ;
+                                } 
+                                else{
+                                    return `${d.data.name} Subtree`;
+                                }
+                            })
+                            .style("font", "12px monospace")
+                            .style('fill','rgba(0,0,0,.9)');
 
 
                         // links
-                        var link = tree.selectAll("path.link")
-                        .data(links, function (d) {
-                            return d.id;
+                        var link = treeGroup.selectAll("path.link")
+                        .data(links[treeIndex], function (d) {
+                            return d.data.metrics._hatchet_nid || d.data.metrics.id;
                         });
         
                         // Enter any new links at the parent's previous position.
                         var linkEnter = link.enter().insert("path", "g")
                                 .attr("class", "link")
                                 .attr("d", function (d) {
-                                    var o = {x: nodes[0].x, y: nodes[0].y};
-                                    return diagonal(o, o);
+                                    return diagonal(d.parent, d.parent, treeIndex);
                                 })
                                 .attr('fill', 'none')
                                 .attr('stroke', '#ccc')
@@ -1229,31 +1937,33 @@
                         // Updates 
                         // ---------------------------------------------
                         var nodeUpdate = nodeEnter.merge(node);
+                        var dNodeUpdate = dNodeEnter.merge(dummyNodes);
                         var linkUpdate = linkEnter.merge(link);
+                        var aggNodeUpdate = aggNodeEnter.merge(aggBars);
                 
                         // Chart updates
                         chart
-                        .transition()
-                        .duration(globals.duration)
-                        .attr("transform", function(){
-                            if(model.state["activeTree"].includes(model.data["rootNodeNames"][treeIndex+1])){
-                                return `translate(${_margin.left}, ${_margin.top})`;
-                            } 
-                            else {
-                                return `translate(${_margin.left}, ${chartOffset})`;
-                            }
-                        })    
-                        .style("display", function(){
-                            if(model.state["activeTree"].includes("Show all trees")){
-                                return "inline-block";
-                            } 
-                            else if(model.state["activeTree"].includes(model.data["rootNodeNames"][treeIndex+1])){
-                                return "inline-block";
-                            } 
-                            else {
-                                return "none";
-                            }
-                        });
+                            .transition()
+                            .duration(globals.duration)
+                            .attr("transform", function(){
+                                if(model.state["activeTree"].includes(model.data["rootNodeNames"][treeIndex+1])){
+                                    return `translate(${_margin.left}, ${_margin.top})`;
+                                } 
+                                else {
+                                    return `translate(${_margin.left}, ${chartOffset})`;
+                                }
+                            })    
+                            .style("display", function(){
+                                if(model.state["activeTree"].includes("Show all trees")){
+                                    return "inline-block";
+                                } 
+                                else if(model.state["activeTree"].includes(model.data["rootNodeNames"][treeIndex+1])){
+                                    return "inline-block";
+                                } 
+                                else {
+                                    return "none";
+                                }
+                            });
 
                         //legend updates
                         chart.selectAll(".legend rect")
@@ -1268,9 +1978,9 @@
                             .transition()
                             .duration(globals.duration)
                             .text((d, i) => {
-                                if (metricColumns.includes(model.state["selectedMetric"])) {
-                                    return _colorManager.getLegendDomains(treeIndex)[6 - d - 1] + ' - ' + _colorManager.getLegendDomains(treeIndex)[6 - d];
-                                } else if (attributeColumns.includes(model.state["selectedMetric"])) {
+                                if (metricColumns.includes(model.state["primaryMetric"])) {
+                                    return _colorManager.getLegendDomains(treeIndex)[6 - d - 1].toFixed(2) + ' - ' + _colorManager.getLegendDomains(treeIndex)[6 - d].toFixed(2);
+                                } else if (attributeColumns.includes(model.state["primaryMetric"])) {
                                     return _colorManager.getLegendDomains(treeIndex)[i];
                                 }
                             });
@@ -1280,71 +1990,122 @@
                         linkUpdate.transition()
                                 .duration(globals.duration)
                                 .attr("d", function (d) {
-                                    return diagonal(d, d.parent);
+                                    return diagonal(d, d.parent, treeIndex);
                                 });
 
             
-                        // Transition nodes to their new position.
-                        nodeUpdate.transition()
-                                .duration(globals.duration)
-                                .attr("transform", function (d) {
-                                    return `translate(${d.y}, ${d.x})`;
-                                });
+                        // Transition normal nodes to their new position.
+                        nodeUpdate
+                            .transition()
+                            .duration(globals.duration)
+                            .attr("transform", function (d) {
+                                return `translate(${_treeDepthScale(d.depth)}, ${_getLocalNodeX(d.x, treeIndex)})`;
+                            });
+                                
+                        //update other characteristics of nodes
+                        nodeUpdate
+                            .select('circle.circleNode')
+                            .style('stroke', function(d){
+                                if (model.state['collapsedNodes'].includes(d)){
+                                    return "#89c3e0";
+                                }
+                                else{
+                                    return 'black';
+                                }
+                            })
+                            .style("stroke-dasharray", function (d) {
+                                return model.state['collapsedNodes'].includes(d) ? '4' : '0';
+                            }) //lightblue
+                            .style('stroke-width', function(d){
+                                if (model.state['collapsedNodes'].includes(d)){
+                                    return '6px';
+                                } 
+                                else if (model.state['selectedNodes'].includes(d)){
+                                    return '4px';
+                                } 
+                                else {
+                                    return '1px';
+                                }
+                            })
+                            .attr('cursor', 'pointer')
+                            .transition()
+                            .duration(globals.duration)
+                            .attr("r", 
+                            function(d){
+                                if (model.state['selectedNodes'].includes(d)){
+                                    return _nodeScale(d.data.metrics[secondaryMetric]) + 2;
+                                }
+                                return _nodeScale(d.data.metrics[secondaryMetric]);
+                            })
+                            .style('fill', function (d) {
+                                if(model.state["legend"] == globals.UNIFIED){
+                                    return _colorManager.calcColorScale(d.data, -1);
+                                }
+                                return _colorManager.calcColorScale(d.data, treeIndex);
 
-                        nodeUpdate.select('circle.circleNode')
-                                .attr("r", 5)
-                                .style('stroke', function(d){
-                                    if (model.state['collapsedNodes'].includes(d)){
-                                        return "#89c3e0";
-                                    }
-                                    else{
-                                        return 'black';
-                                    }
-                                })
-                                .style("stroke-dasharray", function (d) {
-                                    return model.state['collapsedNodes'].includes(d) ? '4' : '0';
-                                }) //lightblue
-                                .style('stroke-width', function(d){
-                                    if (model.state['collapsedNodes'].includes(d)){
-                                        return '6px';
-                                    } 
-                                    else if (model.state['selectedNodes'].includes(d)){
-                                        return '4px';
-                                    } 
-                                    else {
-                                        return '1px';
-                                    }
-                                })
-                                .attr('cursor', 'pointer')
-                                .transition()
-                                .duration(globals.duration)
-                                .style('fill', function(d) {
-                                    return _colorManager.calcColorScale(d.data, treeIndex);
-                                })
+                            });
+                        
+                        nodeUpdate.select("text")
+                            .attr("x", function (d) {
+                                return d.children || model.state['collapsedNodes'].includes(d) ? -13 : _nodeScale(d.data.metrics[secondaryMetric]) + 5;
+                            })
+                            .attr("dy", ".5em")
+                            .attr("text-anchor", function (d) {
+                                return d.children || model.state['collapsedNodes'].includes(d) ? "end" : "start";
+                            })
+                            .text(function (d) {
+                                if(!d.children || d.children.length == 0){
+                                    return d.data.name;
+                                }
+                                return "";
+                            });
+                        
+                        dNodeUpdate
+                            .selectAll(".dummyNode")
+                            .attr("d", "M 6 2 C 6 2 5 2 5 3 S 6 4 6 4 S 7 4 7 3 S 6 2 6 2 Z M 6 3 S 6 3 6 3 Z M 8 0 C 8 0 7 0 7 1 C 7 1 7 2 8 2 C 8 2 9 2 9 1 C 9 0 8 0 8 0 M 9 5 C 9 4 8 4 8 4 S 7 4 7 5 S 8 6 8 6 S 9 6 9 5")
+                            .attr("fill", "rgba(180,180,180)")
+                            .style("stroke-width", ".5px")
+                            .style("stroke", "rgba(100,100,100)")
+                            .attr("transform", function (d) {
+                                let scale = 3;
+                                return `scale(${scale})`;
+                            });
+                        
+                        dNodeUpdate
+                            .transition()
+                            .duration(globals.duration)
+                            .attr("transform", function (d) {
+                                    let h = d3.select(this).select('path').node().getBBox().height;
+                                    return `translate(${_treeDepthScale(d.depth)-15}, ${_getLocalNodeX(d.x, treeIndex) - (h+1)/2})`;
+                            });
 
-                        nodeUpdate.select('text')
-                                .attr("x", function (d) {
-                                    return d.children || model.state['collapsedNodes'].includes(d) ? -13 : 13;
-                                })
-                                .attr("dy", ".75em")
-                                .attr("text-anchor", function (d) {
-                                    return d.children || model.state['collapsedNodes'].includes(d) ? "end" : "start";
-                                })
-                                .text(function (d) {
-                                    if(!d.children){
-                                        return d.data.name;
-                                    }
-                                    else if(d.children.length == 1){
-                                        return "";
-                                    }
-                                    else {
-                                        return d.data.name.slice(0,5) + "...";
-                                    }
-                                })
-                                .style("font", "12px monospace")
-                                .attr("fill", "black");
+                        aggNodeUpdate
+                            .select('rect')
+                            .attr('height', (d) => {return  _barScale(d.data.aggregateMetrics[secondaryMetric]);})
+                            .style('stroke-width', function(d){
+                                if (model.state['selectedNodes'].includes(d)){
+                                    return '3px';
+                                } 
+                                else {
+                                    return '1px';
+                                }
+                            })
+                            .style('fill', function (d) {
+                                if(model.state["legend"] == globals.UNIFIED){
+                                    return _colorManager.calcColorScale(d.data, -1);
+                                }
+                                return _colorManager.calcColorScale(d.data, treeIndex);
+                            });
 
-
+                        aggNodeUpdate
+                            .transition()
+                            .duration(globals.duration)
+                            .attr("transform", function (d) {
+                                    let h = d3.select(this).select('rect').node().getBBox().height;
+                                    let w = d3.select(this).select('rect').node().getBBox().width;
+                                    return `translate(${_treeDepthScale(d.depth)-w/3}, ${_getLocalNodeX(d.x, treeIndex) - h/2})`;
+                            });
+                        
                                 
                         // ---------------------------------------------
                         // Exit
@@ -1353,7 +2114,7 @@
                         var nodeExit = node.exit().transition()
                                 .duration(globals.duration)
                                 .attr("transform", function (d) {
-                                    return "translate(" + lastClicked.y + "," + lastClicked.x + ")";
+                                    return "translate(" + _treeDepthScale(d.parent.depth) + "," + _getLocalNodeX(d.parent.x, treeIndex) + ")";
                                 })
                                 .remove();
             
@@ -1361,18 +2122,25 @@
                                 .attr("r", 1e-6);
             
                         nodeExit.select("text")
-                                .style("fill-opacity", 1);
+                                .style("fill-opacity", 1)
+                                .remove();
+                        
+                        var dNodeExit = dummyNodes.exit()
+                                .remove();
+                        
+                        var dNodeExit = aggBars.exit()
+                            .remove();
             
                         // Transition exiting links to the parent's new position.
                         var linkExit = link.exit().transition()
                                 .duration(globals.duration)
                                 .attr("d", function (d) {
-                                    var o = {x: source.x, y: source.y};
-                                    return diagonal(o, o);
+                                    return diagonal(d.parent, d.parent, treeIndex);
                                 })
                                 .remove();
-
-                        chartOffset = treeLayoutHeights[treeIndex] + treeOffset + _margin.top;
+                        
+                        // make canvas always fit tree height
+                        chartOffset = _treeLayoutHeights[treeIndex] + treeOffset + _margin.top;
                         height += chartOffset;
                     }                    
 
@@ -1393,7 +2161,7 @@
             var _tooltip = d3.select(elem).append("div")
                     .attr('id', 'tooltip')
                     .style('position', 'absolute')
-                    .style('top', '5px')
+                    .style('top', '50px')
                     .style('right', '15px')
                     .style('padding', '5px')
                     .style('border-radius', '5px')
@@ -1426,20 +2194,19 @@
         var tooltip = createTooltipView(element, model);
         var chart = createChartView(element, model);
         
-        //render all views one time
-        menu.render();
-        tooltip.render();
-        chart.render();
-        
-        //register signallers with each class
-        // tooltip is not interactive so 
-        // it does not need a signaller yet
+        //register signallers 
         menu.register(controller.dispatch);
         chart.register(controller.dispatch);
 
         model.register(menu.render);
         model.register(chart.render);
         model.register(tooltip.render);
+
+
+        //render all views one time
+        menu.render();
+        tooltip.render();
+        chart.render();
 
     });
 
