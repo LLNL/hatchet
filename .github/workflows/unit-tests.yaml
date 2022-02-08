@@ -62,6 +62,11 @@ jobs:
         black --diff --check .
         flake8
 
+    - name: Update Coverage
+      if: ${{ matrix.python-version == 3.8 }}
+      run: |
+        pip install coverage==6.2
+
     - name: Basic Test with pytest
       run: |
         PYTHONPATH=. coverage run $(which pytest)
