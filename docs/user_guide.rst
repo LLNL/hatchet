@@ -68,7 +68,7 @@ HPCToolkit database directory that they want to analyze, they can use the
       gf = ht.GraphFrame.from_hpctoolkit(dirname)
 
 Similarly if the input file is a split-JSON output by Caliper, they can use
-the ``from_caliper_json`` method:
+the ``from_caliper`` method:
 
 .. code-block:: python
 
@@ -76,7 +76,7 @@ the ``from_caliper_json`` method:
 
   if __name__ == "__main__":
       filename = ("hatchet/tests/data/caliper-lulesh-json/lulesh-sample-annotation-profile.json")
-      gf = ht.GraphFrame.from_caliper_json(filename)
+      gf = ht.GraphFrame.from_caliper(filename)
 
 Examples of reading in other file formats can be found in
 :doc:`Analysis Examples <analysis_examples>`.

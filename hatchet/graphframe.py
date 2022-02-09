@@ -15,7 +15,7 @@ import multiprocess as mp
 from .node import Node
 from .graph import Graph
 from .frame import Frame
-from .query import AbstractQuery, QueryMatcher
+from .query import AbstractQuery, QueryMatcher, CypherQuery
 from .external.console import ConsoleRenderer
 from .util.dot import trees_to_dot
 from .util.deprecated import deprecated_params
@@ -52,14 +52,14 @@ class GraphFrame:
         exc_metrics=None,
         inc_metrics=None,
         default_metric="time",
+        metadata={},
     ):
         """Create a new GraphFrame from a graph and a dataframe.
 
         Likely, you do not want to use this function.
 
-        See ``from_hpctoolkit``, ``from_caliper``, ``from_caliper_json``,
-        ``from_gprof_dot``, and other reader methods for easier ways to
-        create a ``GraphFrame``.
+        See ``from_hpctoolkit``, ``from_caliper``, ``from_gprof_dot``, and
+        other reader methods for easier ways to create a ``GraphFrame``.
 
         Arguments:
              graph (Graph): Graph of nodes in this GraphFrame.
@@ -83,6 +83,7 @@ class GraphFrame:
         self.exc_metrics = [] if exc_metrics is None else exc_metrics
         self.inc_metrics = [] if inc_metrics is None else inc_metrics
         self.default_metric = default_metric
+        self.metadata = metadata
 
     @staticmethod
     def from_hpctoolkit(dirname):
@@ -101,30 +102,55 @@ class GraphFrame:
         return HPCToolkitReader(dirname).read()
 
     @staticmethod
-    def from_caliper(filename, query):
-        """Read in a Caliper `cali` file.
+    def from_caliper(filename_or_stream, query=None):
+        """Read in a Caliper .cali or .json file.
 
         Args:
-            filename (str): name of a Caliper output file in `.cali` format
+            filename_or_stream (str or file-like): name of a Caliper output
+                file in `.cali` or JSON-split format, or an open file object
+                to read one
             query (str): cali-query in CalQL format
         """
         # import this lazily to avoid circular dependencies
         from .readers.caliper_reader import CaliperReader
 
-        return CaliperReader(filename, query).read()
+        return CaliperReader(filename_or_stream, query).read()
 
     @staticmethod
-    def from_caliper_json(filename_or_stream):
-        """Read in a Caliper `cali-query` JSON-split file or an open file object.
+    def from_caliperreader(filename_or_caliperreader):
+        """Read in a native Caliper `cali' file using Caliper's python reader.
 
         Args:
-            filename_or_stream (str or file-like): name of a Caliper JSON-split
-                output file, or an open file object to read one
+            filename_or_caliperreader (str or CaliperReader): name of a Caliper
+                output file in `.cali` format, or a CaliperReader object
         """
         # import this lazily to avoid circular dependencies
-        from .readers.caliper_reader import CaliperReader
+        from .readers.caliper_native_reader import CaliperNativeReader
 
-        return CaliperReader(filename_or_stream).read()
+        return CaliperNativeReader(filename_or_caliperreader).read()
+
+    @staticmethod
+    def from_spotdb(db_key, list_of_ids=None):
+        """Read multiple graph frames from a SpotDB instance
+
+        Args:
+            db_key (str or SpotDB object): locator for SpotDB instance
+                This can be a SpotDB object directly, or a locator for a spot
+                database, which is a string with either
+                    * A directory for .cali files,
+                    * A .sqlite file name
+                    * A SQL database URL (e.g., "mysql://hostname/db")
+
+            list_of_ids: The list of run IDs to read from the database.
+                If this is None, returns all runs.
+
+        Returns:
+            A list of graphframes, one for each requested run that was found
+        """
+
+        from .readers.spotdb_reader import SpotDBReader
+
+        return SpotDBReader(db_key, list_of_ids).read()
 
     @staticmethod
     def from_gprof_dot(filename):
@@ -151,6 +177,14 @@ class GraphFrame:
         return PyinstrumentReader(filename).read()
 
     @staticmethod
+    def from_tau(dirname):
+        """Read in a profile generated using TAU."""
+        # import this lazily to avoid circular dependencies
+        from .readers.tau_reader import TAUReader
+
+        return TAUReader(dirname).read()
+
+    @staticmethod
     def from_timemory(input=None, select=None, **_kwargs):
         """Read in timemory data.
 
@@ -166,7 +200,8 @@ class GraphFrame:
                 2. Open file stream to one of these files
                 3. Dictionary from timemory JSON tree
 
-                    Currently, timemory supports two JSON layouts: flat and tree.
+
+                Currently, timemory supports two JSON layouts: flat and tree.
                 The former is a 1D-array representation of the hierarchy which
                 represents the hierarchy via indentation schemes in the labels
                 and is not compatible with hatchet. The latter is a hierarchical
@@ -174,40 +209,45 @@ class GraphFrame:
                 using hatchet. Timemory JSON tree files typically have the
                 extension ".tree.json".
 
-                If input is None, this assumes that timemory has been
-                recording data within the application that is using hatchet.
-                In this situation, this method will attempt to import the
-                data directly from timemory.
-                    At the time of this writing, the direct data import will:
+                If input is None, this assumes that timemory has been recording
+                data within the application that is using hatchet. In this
+                situation, this method will attempt to import the data directly
+                from timemory.
+
+                At the time of this writing, the direct data import will:
 
                 1. Stop any currently collecting components
                 2. Aggregate child thread data of the calling thread
                 3. Clear all data on the child threads
                 4. Aggregate the data from any MPI and/or UPC++ ranks.
 
+
                 Thus, if MPI or UPC++ is used, every rank must call this routine.
-                The zeroth rank will have the aggregation and all the other non-zero
-                ranks will only have the rank-specific data.
-                    Whether or not the per-thread and per-rank data itself is
-                combined is controlled by the `collapse_threads` and `collapse_processes`
-                attributes in the `timemory.settings` submodule.
-                    In the C++ API, it is possible for only #1 to be applied and data
-                can be obtained for an individual thread and/or rank without aggregation.
-                This is not currently available to Python, however, it can be made
-                available upon request via a GitHub Issue.
+                The zeroth rank will have the aggregation and all the other
+                non-zero ranks will only have the rank-specific data.
+
+                Whether or not the per-thread and per-rank data itself is
+                combined is controlled by the `collapse_threads` and
+                `collapse_processes` attributes in the `timemory.settings`
+                submodule.
+
+                In the C++ API, it is possible for only #1 to be applied and data
+                can be obtained for an individual thread and/or rank without
+                aggregation. This is not currently available to Python, however,
+                it can be made available upon request via a GitHub Issue.
 
             select (list of str):
                 A list of strings which match the component enumeration names, e.g. ["cpu_clock"].
 
             per_thread (boolean):
                 Ensures that when applying filters to the graphframe, frames with
-                identical name/file/line/etc. info but from different threads are not
-                combined
+                identical name/file/line/etc. info but from different threads are
+                not combined
 
             per_rank (boolean):
                 Ensures that when applying filters to the graphframe, frames with
-                identical name/file/line/etc. info but from different ranks are not
-                combined
+                identical name/file/line/etc. info but from different ranks are
+                not combined
 
         """
         from .readers.timemory_reader import TimemoryReader
@@ -373,14 +413,15 @@ class GraphFrame:
                 filtered_rows = dataframe_copy.apply(filter_obj, axis=1)
                 filtered_df = dataframe_copy[filtered_rows]
 
-        # elif isinstance(filter_obj, list) or isinstance(filter_obj, QueryMatcher):
-        elif isinstance(filter_obj, list) or issubclass(
+        elif isinstance(filter_obj, (list, str)) or issubclass(
             type(filter_obj), AbstractQuery
         ):
             # use a callpath query to apply the filter
             query = filter_obj
             if isinstance(filter_obj, list):
                 query = QueryMatcher(filter_obj)
+            elif isinstance(filter_obj, str):
+                query = CypherQuery(filter_obj)
             query_matches = query.apply(self)
             # match_set = list(set().union(*query_matches))
             # filtered_df = dataframe_copy.loc[dataframe_copy["node"].isin(match_set)]
@@ -537,10 +578,39 @@ class GraphFrame:
         # sum over the output columns
         for node in self.graph.traverse(order="post"):
             if node.children:
-                for col in out_columns:
-                    self.dataframe.loc[node, col] = function(
-                        self.dataframe.loc[[node] + node.children, col]
+                # TODO: need a better way of aggregating inclusive metrics when
+                # TODO: there is a multi-index
+                try:
+                    is_multi_index = isinstance(
+                        self.dataframe.index, pd.core.index.MultiIndex
                     )
+                except AttributeError:
+                    is_multi_index = isinstance(self.dataframe.index, pd.MultiIndex)
+
+                if is_multi_index:
+                    for rank_thread in self.dataframe.loc[
+                        (node), out_columns
+                    ].index.unique():
+                        # rank_thread is either rank or a tuple of (rank, thread).
+                        # We check if rank_thread is a tuple and if it is, we
+                        # create a tuple of (node, rank, thread). If not, we create
+                        # a tuple of (node, rank).
+                        if isinstance(rank_thread, tuple):
+                            df_index1 = (node,) + rank_thread
+                            df_index2 = ([node] + node.children,) + rank_thread
+                        else:
+                            df_index1 = (node, rank_thread)
+                            df_index2 = ([node] + node.children, rank_thread)
+
+                        for col in out_columns:
+                            self.dataframe.loc[df_index1, col] = function(
+                                self.dataframe.loc[df_index2, col]
+                            )
+                else:
+                    for col in out_columns:
+                        self.dataframe.loc[node, col] = function(
+                            self.dataframe.loc[[node] + node.children, col]
+                        )
 
     def subgraph_sum(
         self, columns, out_columns=None, function=lambda x: x.sum(min_count=1)
@@ -673,6 +743,7 @@ class GraphFrame:
         thread=0,
         depth=10000,
         highlight_name=False,
+        colormap="RdYlGn",
         invert_colormap=False,
     ):
         """Format this graphframe as a tree and return the resulting string."""
@@ -709,6 +780,7 @@ class GraphFrame:
             thread=thread,
             depth=depth,
             highlight_name=highlight_name,
+            colormap=colormap,
             invert_colormap=invert_colormap,
         )
 
@@ -734,8 +806,35 @@ class GraphFrame:
             for hnode in root.traverse():
                 callpath = hnode.path()
                 for i in range(0, len(callpath) - 1):
-                    folded_stack = folded_stack + callpath[i].attrs[name] + "; "
-                folded_stack = folded_stack + callpath[-1].attrs[name] + " "
+                    if (
+                        "rank" in self.dataframe.index.names
+                        and "thread" in self.dataframe.index.names
+                    ):
+                        df_index = (callpath[i], rank, thread)
+                    elif "rank" in self.dataframe.index.names:
+                        df_index = (callpath[i], rank)
+                    elif "thread" in self.dataframe.index.names:
+                        df_index = (callpath[i], thread)
+                    else:
+                        df_index = callpath[i]
+                    folded_stack = (
+                        folded_stack + str(self.dataframe.loc[df_index, "name"]) + "; "
+                    )
+
+                if (
+                    "rank" in self.dataframe.index.names
+                    and "thread" in self.dataframe.index.names
+                ):
+                    df_index = (callpath[-1], rank, thread)
+                elif "rank" in self.dataframe.index.names:
+                    df_index = (callpath[-1], rank)
+                elif "thread" in self.dataframe.index.names:
+                    df_index = (callpath[-1], thread)
+                else:
+                    df_index = callpath[-1]
+                folded_stack = (
+                    folded_stack + str(self.dataframe.loc[df_index, "name"]) + " "
+                )
 
                 # set dataframe index based on if rank and thread are part of the index
                 if (
@@ -756,14 +855,14 @@ class GraphFrame:
 
         return folded_stack
 
-    def to_literal(self, name="name", rank=0, thread=0):
+    def to_literal(self, name="name", rank=0, thread=0, cat_columns=[]):
         """Format this graph as a list of dictionaries for Roundtrip
         visualizations.
         """
         graph_literal = []
         visited = []
 
-        def metrics_to_dict(hnode):
+        def _get_df_index(hnode):
             if (
                 "rank" in self.dataframe.index.names
                 and "thread" in self.dataframe.index.names
@@ -776,6 +875,9 @@ class GraphFrame:
             else:
                 df_index = hnode
 
+            return df_index
+
+        def metrics_to_dict(df_index):
             metrics_dict = {}
             for m in sorted(self.inc_metrics + self.exc_metrics):
                 node_metric_val = self.dataframe.loc[df_index, m]
@@ -783,18 +885,20 @@ class GraphFrame:
 
             return metrics_dict
 
+        def attributes_to_dict(df_index):
+            valid_columns = [
+                col for col in cat_columns if col in self.dataframe.columns
+            ]
+
+            attributes_dict = {}
+            for m in sorted(valid_columns):
+                node_attr_val = self.dataframe.loc[df_index, m]
+                attributes_dict[m] = node_attr_val
+
+            return attributes_dict
+
         def add_nodes(hnode):
-            if (
-                "rank" in self.dataframe.index.names
-                and "thread" in self.dataframe.index.names
-            ):
-                df_index = (hnode, rank, thread)
-            elif "rank" in self.dataframe.index.names:
-                df_index = (hnode, rank)
-            elif "thread" in self.dataframe.index.names:
-                df_index = (hnode, thread)
-            else:
-                df_index = hnode
+            df_index = _get_df_index(hnode)
 
             node_dict = {}
 
@@ -802,8 +906,9 @@ class GraphFrame:
 
             node_dict["name"] = node_name
             node_dict["frame"] = hnode.frame.attrs
-            node_dict["metrics"] = metrics_to_dict(hnode)
+            node_dict["metrics"] = metrics_to_dict(df_index)
             node_dict["metrics"]["_hatchet_nid"] = hnode._hatchet_nid
+            node_dict["attributes"] = attributes_to_dict(df_index)
 
             if hnode.children and hnode not in visited:
                 visited.append(hnode)

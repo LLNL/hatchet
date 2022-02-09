@@ -166,6 +166,17 @@ def hatchet_pyinstrument_json(data_dir, tmpdir):
 
 
 @pytest.fixture
+def tau_profile_dir(data_dir, tmpdir):
+    """Builds a temporary directory containing the TAU profiles."""
+    tau_dir = os.path.join(data_dir, "tau-cpi-mpi")
+
+    for f in glob(tau_dir + "/*"):
+        shutil.copy(f, str(tmpdir))
+
+    return tau_dir
+
+
+@pytest.fixture
 def mock_graph_literal():
     """Creates a mock tree
 
@@ -174,7 +185,7 @@ def mock_graph_literal():
     graph_dict = [
         {
             "frame": {"name": "foo", "type": "function"},
-            "metrics": {"time (inc)": 130.0, "time": 0.0},
+            "metrics": {"time (inc)": 135.0, "time": 0.0},
             "children": [
                 {
                     "frame": {"name": "bar"},
@@ -253,11 +264,11 @@ def mock_graph_literal():
                 },
                 {
                     "frame": {"name": "waldo", "type": "function"},
-                    "metrics": {"time (inc)": 50.0, "time": 0.0},
+                    "metrics": {"time (inc)": 55.0, "time": 0.0},
                     "children": [
                         {
                             "frame": {"name": "fred", "type": "function"},
-                            "metrics": {"time (inc)": 35.0, "time": 5.0},
+                            "metrics": {"time (inc)": 40.0, "time": 5.0},
                             "children": [
                                 {
                                     "frame": {"name": "plugh", "type": "function"},
@@ -265,7 +276,7 @@ def mock_graph_literal():
                                 },
                                 {
                                     "frame": {"name": "xyzzy", "type": "function"},
-                                    "metrics": {"time (inc)": 25.0, "time": 5.0},
+                                    "metrics": {"time (inc)": 30.0, "time": 5.0},
                                     "children": [
                                         {
                                             "frame": {
@@ -342,19 +353,19 @@ def mock_dag_literal1():
     dag_ldict = [
         {
             "frame": {"name": "A", "type": "function"},
-            "metrics": {"time (inc)": 130.0, "time": 0.0},
+            "metrics": {"time (inc)": 30.0, "time": 0.0},
             "children": [
                 {
                     "frame": {"name": "B", "type": "function"},
-                    "metrics": {"time (inc)": 20.0, "time": 5.0},
+                    "metrics": {"time (inc)": 11.0, "time": 5.0},
                     "children": [
                         {
                             "frame": {"name": "C", "type": "function"},
-                            "metrics": {"time (inc)": 5.0, "time": 5.0},
+                            "metrics": {"time (inc)": 6.0, "time": 5.0},
                             "children": [
                                 {
                                     "frame": {"name": "D", "type": "function"},
-                                    "metrics": {"time (inc)": 8.0, "time": 1.0},
+                                    "metrics": {"time (inc)": 1.0, "time": 1.0},
                                 }
                             ],
                         }
@@ -362,11 +373,11 @@ def mock_dag_literal1():
                 },
                 {
                     "frame": {"name": "E", "type": "function"},
-                    "metrics": {"time (inc)": 55.0, "time": 10.0},
+                    "metrics": {"time (inc)": 19.0, "time": 10.0},
                     "children": [
                         {
                             "frame": {"name": "F", "type": "function"},
-                            "metrics": {"time (inc)": 1.0, "time": 9.0},
+                            "metrics": {"time (inc)": 9.0, "time": 9.0},
                         }
                     ],
                 },
@@ -383,19 +394,19 @@ def mock_dag_literal2():
     dag_ldict = [
         {
             "frame": {"name": "A", "type": "function"},
-            "metrics": {"time (inc)": 130.0, "time": 0.0},
+            "metrics": {"time (inc)": 30.0, "time": 0.0},
             "children": [
                 {
                     "frame": {"name": "B", "type": "function"},
-                    "metrics": {"time (inc)": 20.0, "time": 5.0},
+                    "metrics": {"time (inc)": 11.0, "time": 5.0},
                     "children": [
                         {
                             "frame": {"name": "C", "type": "function"},
-                            "metrics": {"time (inc)": 5.0, "time": 5.0},
+                            "metrics": {"time (inc)": 6.0, "time": 5.0},
                             "children": [
                                 {
                                     "frame": {"name": "D", "type": "function"},
-                                    "metrics": {"time (inc)": 8.0, "time": 1.0},
+                                    "metrics": {"time (inc)": 1.0, "time": 1.0},
                                 }
                             ],
                         }
@@ -403,11 +414,11 @@ def mock_dag_literal2():
                 },
                 {
                     "frame": {"name": "E", "type": "function"},
-                    "metrics": {"time (inc)": 55.0, "time": 10.0},
+                    "metrics": {"time (inc)": 19.0, "time": 10.0},
                     "children": [
                         {
                             "frame": {"name": "H", "type": "function"},
-                            "metrics": {"time (inc)": 1.0, "time": 9.0},
+                            "metrics": {"time (inc)": 9.0, "time": 9.0},
                         }
                     ],
                 },
@@ -423,11 +434,11 @@ def small_mock1():
     ldict = [
         {
             "frame": {"name": "A", "type": "function"},
-            "metrics": {"time (inc)": 130.0, "time": 0.0},
+            "metrics": {"time (inc)": 39.0, "time": 0.0},
             "children": [
                 {
                     "frame": {"name": "B", "type": "function"},
-                    "metrics": {"time (inc)": 20.0, "time": 5.0},
+                    "metrics": {"time (inc)": 10.0, "time": 5.0},
                     "children": [
                         {
                             "frame": {"name": "C", "type": "function"},
@@ -437,17 +448,17 @@ def small_mock1():
                 },
                 {
                     "frame": {"name": "E", "type": "function"},
-                    "metrics": {"time (inc)": 55.0, "time": 10.0},
+                    "metrics": {"time (inc)": 19.0, "time": 10.0},
                     "children": [
                         {
                             "frame": {"name": "F", "type": "function"},
-                            "metrics": {"time (inc)": 1.0, "time": 9.0},
+                            "metrics": {"time (inc)": 9.0, "time": 9.0},
                         }
                     ],
                 },
                 {
                     "frame": {"name": "H", "type": "function"},
-                    "metrics": {"time (inc)": 55.0, "time": 10.0},
+                    "metrics": {"time (inc)": 10.0, "time": 10.0},
                 },
             ],
         }
@@ -461,11 +472,11 @@ def small_mock2():
     ldict = [
         {
             "frame": {"name": "A", "type": "function"},
-            "metrics": {"time (inc)": 130.0, "time": 0.0},
+            "metrics": {"time (inc)": 38.0, "time": 0.0},
             "children": [
                 {
                     "frame": {"name": "B", "type": "function"},
-                    "metrics": {"time (inc)": 20.0, "time": 0.0},
+                    "metrics": {"time (inc)": 10.0, "time": 0.0},
                     "children": [
                         {
                             "frame": {"name": "C", "type": "function"},
@@ -479,15 +490,15 @@ def small_mock2():
                 },
                 {
                     "frame": {"name": "E", "type": "function"},
-                    "metrics": {"time (inc)": 55.0, "time": 10.0},
+                    "metrics": {"time (inc)": 28.0, "time": 10.0},
                     "children": [
                         {
                             "frame": {"name": "F", "type": "function"},
-                            "metrics": {"time (inc)": 1.0, "time": 9.0},
+                            "metrics": {"time (inc)": 9.0, "time": 9.0},
                         },
                         {
                             "frame": {"name": "G", "type": "function"},
-                            "metrics": {"time (inc)": 1.0, "time": 9.0},
+                            "metrics": {"time (inc)": 9.0, "time": 9.0},
                         },
                     ],
                 },
@@ -503,19 +514,19 @@ def small_mock3():
     ldict = [
         {
             "frame": {"name": "A", "type": "function"},
-            "metrics": {"time (inc)": 130.0, "time": 0.0},
+            "metrics": {"time (inc)": 24.0, "time": 0.0},
             "children": [
                 {
                     "frame": {"name": "B", "type": "function"},
-                    "metrics": {"time (inc)": 20.0, "time": 5.0},
+                    "metrics": {"time (inc)": 5.0, "time": 5.0},
                 },
                 {
                     "frame": {"name": "E", "type": "function"},
-                    "metrics": {"time (inc)": 55.0, "time": 10.0},
+                    "metrics": {"time (inc)": 19.0, "time": 10.0},
                     "children": [
                         {
                             "frame": {"name": "F", "type": "function"},
-                            "metrics": {"time (inc)": 1.0, "time": 9.0},
+                            "metrics": {"time (inc)": 9.0, "time": 9.0},
                         }
                     ],
                 },
@@ -532,11 +543,11 @@ def mock_dag_literal_module():
     dag_ldict = [
         {
             "frame": {"name": "A", "type": "function"},
-            "metrics": {"time (inc)": 130.0, "time": 0.0, "module": "main"},
+            "metrics": {"time (inc)": 29.0, "time": 0.0, "module": "main"},
             "children": [
                 {
                     "frame": {"name": "B", "type": "function"},
-                    "metrics": {"time (inc)": 20.0, "time": 5.0, "module": "foo"},
+                    "metrics": {"time (inc)": 10.0, "time": 5.0, "module": "foo"},
                     "children": [
                         {
                             "frame": {"name": "C", "type": "function"},
@@ -550,12 +561,12 @@ def mock_dag_literal_module():
                 },
                 {
                     "frame": {"name": "E", "type": "function"},
-                    "metrics": {"time (inc)": 55.0, "time": 10.0, "module": "bar"},
+                    "metrics": {"time (inc)": 19.0, "time": 10.0, "module": "bar"},
                     "children": [
                         {
                             "frame": {"name": "F", "type": "function"},
                             "metrics": {
-                                "time (inc)": 1.0,
+                                "time (inc)": 9.0,
                                 "time": 9.0,
                                 "module": "baz",
                             },
@@ -575,16 +586,16 @@ def mock_dag_literal_module_complex():
     dag_ldict = [
         {
             "frame": {"name": "A", "type": "function"},
-            "metrics": {"time (inc)": 130.0, "time": 1.0, "module": "main"},
+            "metrics": {"time (inc)": 5.0, "time": 1.0, "module": "main"},
             "children": [
                 {
                     "frame": {"name": "B", "type": "function"},
-                    "metrics": {"time (inc)": 20.0, "time": 1.0, "module": "foo"},
+                    "metrics": {"time (inc)": 3.0, "time": 1.0, "module": "foo"},
                     "children": [
                         {
                             "frame": {"name": "C", "type": "function"},
                             "metrics": {
-                                "time (inc)": 6.0,
+                                "time (inc)": 2.0,
                                 "time": 1.0,
                                 "module": "graz",
                             },
@@ -603,7 +614,7 @@ def mock_dag_literal_module_complex():
                 },
                 {
                     "frame": {"name": "E", "type": "function"},
-                    "metrics": {"time (inc)": 55.0, "time": 1, "module": "bar"},
+                    "metrics": {"time (inc)": 1.0, "time": 1.0, "module": "bar"},
                 },
             ],
         }
@@ -618,16 +629,16 @@ def mock_dag_literal_module_more_complex():
     dag_ldict = [
         {
             "frame": {"name": "A", "type": "function"},
-            "metrics": {"time (inc)": 130.0, "time": 0.0, "module": "main"},
+            "metrics": {"time (inc)": 22.0, "time": 0.0, "module": "main"},
             "children": [
                 {
                     "frame": {"name": "B", "type": "function"},
-                    "metrics": {"time (inc)": 20.0, "time": 5.0, "module": "foo"},
+                    "metrics": {"time (inc)": 11.0, "time": 5.0, "module": "foo"},
                     "children": [
                         {
                             "frame": {"name": "C", "type": "function"},
                             "metrics": {
-                                "time (inc)": 5.0,
+                                "time (inc)": 6.0,
                                 "time": 5.0,
                                 "module": "graz",
                             },
@@ -635,7 +646,7 @@ def mock_dag_literal_module_more_complex():
                                 {
                                     "frame": {"name": "D", "type": "function"},
                                     "metrics": {
-                                        "time (inc)": 8.0,
+                                        "time (inc)": 1.0,
                                         "time": 1.0,
                                         "module": "graz",
                                     },
@@ -646,7 +657,7 @@ def mock_dag_literal_module_more_complex():
                 },
                 {
                     "frame": {"name": "E", "type": "function"},
-                    "metrics": {"time (inc)": 55.0, "time": 10.0, "module": "bar"},
+                    "metrics": {"time (inc)": 11.0, "time": 10.0, "module": "bar"},
                     "children": [
                         {
                             "frame": {"name": "F", "type": "function"},
@@ -816,6 +827,7 @@ def timemory_json_data():
 
     # disable automatic output during finalization
     timemory.settings.auto_output = False
+
     # enable flat collection because of the coverage exe
     timemory.settings.flat_profile = True
 
@@ -829,6 +841,7 @@ def timemory_json_data():
 
         # restrict the scope of the profiler
         ProfilerConfig.only_filenames = ["timemory_func.py", "_methods.py"]
+        ProfilerConfig.include_line = False
         prof_func(profl_arr, tol)
 
         # restrict the scope of the tracer
@@ -874,3 +887,35 @@ def mock_graph_inc_metric_only():
     ]
 
     return ldict
+
+
+@pytest.fixture
+def spotdb_data(data_dir):
+    import spotdb
+
+    db = spotdb.connect(os.path.join(data_dir, "spotdb"))
+    return db
+
+
+@pytest.fixture
+def sw4_caliper_cuda_activity_profile_cali(data_dir, tmpdir):
+    cali_json_dir = os.path.join(data_dir, "caliper-sw4-cuda-activity-cali")
+    cali_json_file = os.path.join(cali_json_dir, "caliper_cuda_activity_profile.cali")
+
+    shutil.copy(cali_json_file, str(tmpdir))
+    tmpfile = os.path.join(str(tmpdir), "caliper_cuda_activity_profile.cali")
+
+    return tmpfile
+
+
+@pytest.fixture
+def sw4_caliper_cuda_activity_profile_summary_cali(data_dir, tmpdir):
+    cali_json_dir = os.path.join(data_dir, "caliper-sw4-cuda-activity-profile-cali")
+    cali_json_file = os.path.join(
+        cali_json_dir, "caliper_cuda_activity_profile_summary_v2.cali"
+    )
+
+    shutil.copy(cali_json_file, str(tmpdir))
+    tmpfile = os.path.join(str(tmpdir), "caliper_cuda_activity_profile_summary_v2.cali")
+
+    return tmpfile

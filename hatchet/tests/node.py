@@ -67,16 +67,12 @@ def test_path():
     node = Node.from_lists(["a", ["b", d]])
 
     assert d.path() == (
-        Frame(name="a"),
-        Frame(name="b"),
-        Frame(name="d", type="function"),
+        Node(Frame(name="a")),
+        Node(Frame(name="b")),
+        Node(Frame(name="d", type="function")),
     )
-    assert d.parents[0].path() == (Frame(name="a"), Frame(name="b"))
-    assert node.path() == (Frame(name="a"),)
-
-    assert d.path(attrs="name") == ("a", "b", "d")
-    assert d.parents[0].path(attrs="name") == ("a", "b")
-    assert node.path(attrs="name") == ("a",)
+    assert d.parents[0].path() == (Node(Frame(name="a")), Node(Frame(name="b")))
+    assert node.path() == (Node(Frame(name="a")),)
 
 
 def test_paths():
@@ -86,11 +82,9 @@ def test_paths():
         d.path()
 
     assert d.paths() == [
-        (Frame(name="a"), Frame(name="b"), Frame(name="d")),
-        (Frame(name="a"), Frame(name="c"), Frame(name="d")),
+        (Node(Frame(name="a")), Node(Frame(name="b")), Node(Frame(name="d"))),
+        (Node(Frame(name="a")), Node(Frame(name="c")), Node(Frame(name="d"))),
     ]
-
-    assert d.paths(attrs="name") == [("a", "b", "d"), ("a", "c", "d")]
 
 
 def test_traverse_paths():

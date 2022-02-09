@@ -70,6 +70,8 @@ class GprofDotReader:
                         )
                         self.name_to_hnode[node_name] = hnode
 
+                    if node.obj_dict["attributes"].get("label") is None:
+                        continue
                     node_label = node.obj_dict["attributes"].get("label").strip('"')
 
                     module, _, inc, exc, _ = node_label.split(r"\n")

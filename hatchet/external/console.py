@@ -34,13 +34,13 @@ from ..version import __version__
 import pandas as pd
 import numpy as np
 import warnings
+from ..util.colormaps import ColorMaps
 
 
 class ConsoleRenderer:
     def __init__(self, unicode=False, color=False):
         self.unicode = unicode
         self.color = color
-        self.colors = self.colors_enabled if color else self.colors_disabled
         self.visited = []
 
     def render(self, roots, dataframe, **kwargs):
@@ -59,7 +59,17 @@ class ConsoleRenderer:
         self.thread = kwargs["thread"]
         self.depth = kwargs["depth"]
         self.highlight = kwargs["highlight_name"]
+        self.colormap = kwargs["colormap"]
         self.invert_colormap = kwargs["invert_colormap"]
+
+        if self.color:
+            self.colors = self.colors_enabled
+            # set the colormap based on user input
+            self.colors.colormap = ColorMaps().get_colors(
+                self.colormap, self.invert_colormap
+            )
+        else:
+            self.colors = self.colors_disabled
 
         if isinstance(self.metric_columns, str):
             self.primary_metric = self.metric_columns
@@ -95,9 +105,6 @@ class ConsoleRenderer:
                 )
             )
 
-        if self.invert_colormap:
-            self.colors.colormap.reverse()
-
         # grab the min and max value for the primary metric, ignoring inf and
         # nan values
 
@@ -123,9 +130,6 @@ class ConsoleRenderer:
 
         if self.color is True:
             result += self.render_legend()
-
-        if self.invert_colormap:
-            self.colors.colormap.reverse()
 
         if self.unicode:
             return result
@@ -213,8 +217,9 @@ class ConsoleRenderer:
             )
 
             if self.second_metric is not None:
-                metric_str += u" {c.faint}{second_metric}{c.end}".format(
+                metric_str += u" {c.faint}{second_metric:.{precision}f}{c.end}".format(
                     second_metric=dataframe.loc[df_index, self.second_metric],
+                    precision=self.precision,
                     c=self.colors,
                 )
 
@@ -316,15 +321,7 @@ class ConsoleRenderer:
             return self.colors.bg_white_255 + self.colors.dark_gray_255
 
     class colors_enabled:
-        # red-green color map
-        colormap = [
-            "\033[38;5;196m",  # red
-            "\033[38;5;208m",  # orange
-            "\033[38;5;220m",  # yellow-ish
-            "\033[38;5;46m",  # neon green
-            "\033[38;5;34m",  # light green
-            "\033[38;5;22m",  # dark green
-        ]
+        colormap = []
 
         blue = "\033[34m"
         cyan = "\033[36m"

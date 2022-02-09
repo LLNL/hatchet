@@ -22,5 +22,6 @@ Posters
 Tutorials
 =========
 
+- Automated Performance Analysis with Caliper, SPOT, and Hatchet, ECP Annual Meeting, April 12, 2021. :download:`pdf <slides/2021-ECPAM-hatchet-tutorial.pdf>` | `YouTube <https://www.youtube.com/watch?v=p8gjA6rbpvo>`_
+
 - Performance Analysis using Hatchet, LLNL, July 29/31, 2020.
-- Automated Performance Analysis with Caliper, SPOT, and Hatchet, ECP Annual Meeting, April 12, 2021. :download:`pdf <slides/2021-ECPAM-hatchet-tutorial.pdf>`

@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "hatchet"
+name = "llnl-hatchet"
 version = "1.3.1a0"
 description = "A Python library for analyzing hierarchical performance data."
 authors = [
