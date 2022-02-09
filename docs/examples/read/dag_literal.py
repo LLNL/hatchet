@@ -10,7 +10,7 @@ if __name__ == "__main__":
         [
             {
                 "frame": {"name": "foo"},
-                "metrics": {"time (inc)": 130.0, "time": 0.0},
+                "metrics": {"time (inc)": 135.0, "time": 0.0},
                 "children": [
                     {
                         "frame": {"name": "bar"},
@@ -83,11 +83,11 @@ if __name__ == "__main__":
                     },
                     {
                         "frame": {"name": "waldo"},
-                        "metrics": {"time (inc)": 50.0, "time": 0.0},
+                        "metrics": {"time (inc)": 55.0, "time": 0.0},
                         "children": [
                             {
                                 "frame": {"name": "fred"},
-                                "metrics": {"time (inc)": 35.0, "time": 5.0},
+                                "metrics": {"time (inc)": 40.0, "time": 5.0},
                                 "children": [
                                     {
                                         "frame": {"name": "plugh"},
@@ -95,7 +95,7 @@ if __name__ == "__main__":
                                     },
                                     {
                                         "frame": {"name": "xyzzy"},
-                                        "metrics": {"time (inc)": 25.0, "time": 5.0},
+                                        "metrics": {"time (inc)": 30.0, "time": 5.0},
                                         "children": [
                                             {
                                                 "frame": {"name": "thud"},

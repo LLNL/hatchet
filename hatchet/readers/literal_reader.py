@@ -23,19 +23,19 @@ class LiteralReader:
         dag_ldict = [
             {
                 "frame": {"name": "A", "type": "function"},
-                "metrics": {"time (inc)": 130.0, "time": 0.0},
+                "metrics": {"time (inc)": 30.0, "time": 0.0},
                 "children": [
                     {
                         "frame": {"name": "B",  "type": "function"},
-                        "metrics": {"time (inc)": 20.0, "time": 5.0},
+                        "metrics": {"time (inc)": 11.0, "time": 5.0},
                         "children": [
                             {
                                 "frame": {"name": "C", "type": "function"},
-                                "metrics": {"time (inc)": 5.0, "time": 5.0},
+                                "metrics": {"time (inc)": 6.0, "time": 5.0},
                                 "children": [
                                     {
                                         "frame": {"name": "D", "type": "function"},
-                                        "metrics": {"time (inc)": 8.0, "time": 1.0},
+                                        "metrics": {"time (inc)": 1.0, "time": 1.0},
                                     }
                                 ],
                             }
@@ -43,11 +43,11 @@ class LiteralReader:
                     },
                     {
                         "frame": {"name": "E", "type": "function"},
-                        "metrics": {"time (inc)": 55.0, "time": 10.0},
+                        "metrics": {"time (inc)": 19.0, "time": 10.0},
                         "children": [
                             {
                                 "frame": {"name": "H", "type": "function"},
-                                "metrics": {"time (inc)": 1.0, "time": 9.0}
+                                "metrics": {"time (inc)": 9.0, "time": 9.0}
                             }
                         ],
                     },

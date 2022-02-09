@@ -9,3 +9,5 @@ numpy
 PyYAML
 cython
 multiprocess
+textX
+caliper-reader

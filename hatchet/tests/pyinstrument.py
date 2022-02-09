@@ -89,6 +89,7 @@ def test_tree(hatchet_pyinstrument_json):
         thread=0,
         depth=10000,
         highlight_name=False,
+        colormap="RdYlGn",
         invert_colormap=False,
     )
     assert "0.000 <module> examples.py" in output
@@ -106,6 +107,7 @@ def test_tree(hatchet_pyinstrument_json):
         thread=0,
         depth=10000,
         highlight_name=False,
+        colormap="RdYlGn",
         invert_colormap=False,
     )
     assert "0.478 <module> examples.py" in output

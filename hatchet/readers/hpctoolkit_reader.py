@@ -50,7 +50,14 @@ def init_shared_array(buf_):
 
 def read_metricdb_file(args):
     """Read a single metricdb file into a 1D array."""
-    filename, num_nodes, num_threads_per_rank, num_metrics, shape = args
+    (
+        filename,
+        num_nodes,
+        num_threads_per_rank,
+        num_cpu_threads_per_rank,
+        num_metrics,
+        shape,
+    ) = args
     rank = int(
         re.search(r"\-(\d+)\-(\d+)\-([\w\d]+)\-(\d+)\-\d.metric-db$", filename).group(1)
     )
@@ -67,7 +74,13 @@ def read_metricdb_file(args):
     arr = np.frombuffer(shared_metrics).reshape(shape)
 
     # copy the data in the right place in the larger 2D array of metrics
-    rank_offset = (rank * num_threads_per_rank + thread) * num_nodes
+    if thread < 500:
+        rank_offset = (rank * num_threads_per_rank + thread) * num_nodes
+    else:
+        # GPU streams in hpctoolkit 2021.05.15 start at thread id 500
+        rank_offset = (
+            rank * num_threads_per_rank + num_cpu_threads_per_rank + (thread - 500)
+        ) * num_nodes
 
     arr[rank_offset : rank_offset + num_nodes, :num_metrics].flat = arr1d.flat
     arr[rank_offset : rank_offset + num_nodes, num_metrics] = range(1, num_nodes + 1)
@@ -105,6 +118,8 @@ class HPCToolkitReader:
         self.num_threads_per_rank = int(
             self.num_metricdb_files / len(metricdb_numranks_files)
         )
+
+        self.num_cpu_threads_per_rank = self.count_cpu_threads_per_rank()
 
         # Read one metric-db file to extract the number of nodes in the CCT
         # and the number of metrics
@@ -180,6 +195,7 @@ class HPCToolkitReader:
                 filename,
                 self.num_nodes,
                 self.num_threads_per_rank,
+                self.num_cpu_threads_per_rank,
                 self.num_metrics,
                 shape,
             )
@@ -411,3 +427,18 @@ class HPCToolkitReader:
         }
 
         return node_dict
+
+    def count_cpu_threads_per_rank(self):
+        metricdb_files = glob.glob(self.dir_name + "/*.metric-db")
+        cpu_thread_ids = set()
+
+        for filename in metricdb_files:
+            thread = int(
+                re.search(
+                    r"\-(\d+)\-(\d+)\-([\w\d]+)\-(\d+)\-\d.metric-db$", filename
+                ).group(2)
+            )
+            if thread < 500:
+                cpu_thread_ids.add(thread)
+
+        return len(cpu_thread_ids)

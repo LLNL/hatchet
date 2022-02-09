@@ -20,7 +20,7 @@ You can install hatchet using pip:
 
 .. code-block:: console
 
-  $ pip install hatchet
+  $ pip install llnl-hatchet
 
 After installing hatchet, you can import hatchet when running the Python
 interpreter in interactive mode:
@@ -46,11 +46,11 @@ You are good to go!
 The Hatchet repository includes stand-alone Python-based Jupyter notebook examples based on this
 tutorial.
 You can find them in the hatchet `GitHub repository
-<https://github.com/hatchet/hatchet/tree/develop/docs/examples>`_. You can get a local copy of the repository using ``git``:
+<https://github.com/llnl/hatchet/tree/develop/docs/examples>`_. You can get a local copy of the repository using ``git``:
 
 .. code-block:: console
 
-  $ git clone https://github.com/hatchet/hatchet.git
+  $ git clone https://github.com/llnl/hatchet.git
 
 You will find the tutorial notebooks in your local hatchet repository under
 ``docs/examples/tutorial/``.
@@ -66,7 +66,7 @@ follows:
 
   >>> import hatchet as ht
   >>> caliper_file = 'lulesh-annotation-profile-1core.json'
-  >>> gf = ht.GraphFrame.from_caliper_json(caliper_file)
+  >>> gf = ht.GraphFrame.from_caliper(caliper_file)
   >>>
 
 At this point, your input file (profile) has been loaded into Hatchet's data
@@ -322,8 +322,8 @@ two trees are initialized with a value of nan, and are colored in blue.
 
   >>> caliper_file_1core = 'lulesh-annotation-profile-1core.json'
   >>> caliper_file_64cores = 'lulesh-annotation-profile-64cores.json'
-  >>> gf = ht.GraphFrame.from_caliper_json(caliper_file_1core)
-  >>> gf2 = ht.GraphFrame.from_caliper_json(caliper_file_64cores)
+  >>> gf = ht.GraphFrame.from_caliper(caliper_file_1core)
+  >>> gf2 = ht.GraphFrame.from_caliper(caliper_file_64cores)
   >>> gf.drop_index_levels()
   >>> gf2.drop_index_levels()
   >>> gf3 = gf/gf2

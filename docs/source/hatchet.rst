@@ -47,10 +47,10 @@ hatchet.node module
    :undoc-members:
    :show-inheritance:
 
-hatchet.query\_matcher module
+hatchet.query module
 -----------------------------
 
-.. automodule:: hatchet.query_matcher
+.. automodule:: hatchet.query
    :members:
    :undoc-members:
    :show-inheritance:

@@ -24,9 +24,9 @@ if __name__ == "__main__":
         [cali_query, "-q", query, cali_file], stdout=subprocess.PIPE
     )
 
-    # Use hatchet's ``from_caliper_json`` API with the resulting json-split.
+    # Use hatchet's ``from_caliper`` API with the resulting json-split.
     # The result is stored into Hatchet's GraphFrame.
-    gf = ht.GraphFrame.from_caliper_json(cali_json.stdout)
+    gf = ht.GraphFrame.from_caliper(cali_json.stdout)
 
     # Printout the DataFrame component of the GraphFrame.
     print(gf.dataframe)

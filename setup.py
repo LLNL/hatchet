@@ -22,12 +22,12 @@ with open("./hatchet/version.py") as fp:
 
 
 setup(
-    name="hatchet",
+    name="llnl-hatchet",
     version=version["__version__"],
     description="A Python library for analyzing hierarchical performance data",
-    url="https://github.com/hatchet/hatchet",
-    author="Abhinav Bhatele",
-    author_email="bhatele@cs.umd.edu",
+    url="https://github.com/llnl/hatchet",
+    author="Stephanie Brink",
+    author_email="brink2@llnl.gov",
     license="MIT",
     classifiers=[
         "Development Status :: 5 - Production/Stable",
@@ -42,7 +42,16 @@ setup(
         "hatchet.tests",
         "hatchet.cython_modules.libs",
     ],
-    install_requires=["pydot", "PyYAML", "matplotlib", "numpy", "pandas"],
+    install_requires=[
+        "pydot",
+        "PyYAML",
+        "matplotlib",
+        "numpy",
+        "pandas",
+        "textX",
+        "multiprocess",
+        "caliper-reader",
+    ],
     ext_modules=[
         Extension(
             "hatchet.cython_modules.libs.reader_modules",
