@@ -24,9 +24,50 @@ class Forest{
         this.stats = new Stats();
         this.zeroes = false;
 
+        this.subtreeMap = {};
+
         //setup functions
         this.instantiateTrees(cct_forest_def);
         this.organizeMetrics(cct_forest_def);
+    }
+
+    hashNode(n){
+        return n._hatchet_nid;
+    }
+
+    postOrderCheck(t){
+        let str = "";
+        
+        if(t == null)
+            return ""
+        
+        if(t.children !== undefined){
+            for(let child of t.children){
+                str += this.postOrderCheck(child);
+            }
+        }
+
+        str += t.data.metrics["time"];
+        str += t.data.metrics["time (inc)"];
+        str += t.data.metrics["name"];
+
+        if(this.subtreeMap[str] === undefined){
+            this.subtreeMap[str] = 0;
+        }
+
+        if(this.subtreeMap[str] > 0){
+            console.log("Duplicate:", t, this.subtreeMap[str], t.data.metrics._hatchet_nid);
+        }
+
+        this.subtreeMap[str] += 1;
+
+        return str;
+    }
+
+    findDuplicateSubtrees(){
+        for(let t of this.immutableTrees){
+            this.postOrderCheck(t);    
+        }
     }
 
     instantiateTrees(forestData){
@@ -56,6 +97,7 @@ class Forest{
         //sort in descending order
         this.immutableTrees.sort((a,b) => b.size - a.size);
         this.mutableTrees.sort((a,b) => b.size - a.size);
+
     }
 
     initializePrunedTrees(primaryMetric){
@@ -105,7 +147,7 @@ class Forest{
             }
             else{
                 //setup aggregrate min max for metric
-                this.aggregateMinMax[metricName] = {min: Number.MAX_VALUE, max: Number.MIN_VALUE};
+                this.aggregateMinMax[metricName] = {min: Number.MAX_SAFE_INTEGER, max: Number.MIN_SAFE_INTEGER};
             }
         }
 
@@ -121,13 +163,13 @@ class Forest{
 
             for (var j = 0; j < mc.length; j++) {
                 thisTreeMetrics[mc[j]] = {};
-                thisTreeMetrics[mc[j]]["min"] = Number.MAX_VALUE;
+                thisTreeMetrics[mc[j]]["min"] = Number.MAX_SAFE_INTEGER;
                 thisTreeMetrics[mc[j]]["max"] = Number.MIN_SAFE_INTEGER;
 
                 //only one run time
                 if(index == 0){
                     _forestMinMax[mc[j]] = {};
-                    _forestMinMax[mc[j]]["min"] = Number.MAX_VALUE;
+                    _forestMinMax[mc[j]]["min"] = Number.MAX_SAFE_INTEGER;
                     _forestMinMax[mc[j]]["max"] = Number.MIN_SAFE_INTEGER;
                 }
             }
@@ -173,29 +215,32 @@ class Forest{
                 // Aggregation Options: Average vs. Sim
                 case globals.AVG:
                     if(!metric.includes("(inc)")){
-                        h.sum(d=>{
-                            if(d.aggregateMetrics){
-                                return d.aggregateMetrics[metric];
-                            } else{
+                        if(h.aggregateMetrics){
+                            return h.aggregateMetrics[metric];
+                        }
+                        else{
+                            h.sum(d=>{
                                 return d.metrics[metric];
-                            }
-                        });
-
-                        agg[metric] = h.value/h.copy().count().value;
+                            });
+                        }
                     }
                     else{
                         agg[metric] = h.data.metrics[metric];
                     }
+
+
+                    agg[metric] = h.value/h.copy().count().value;
                     break;
                 case globals.SUM:
                     if(!metric.includes("(inc)")){
-                        h.sum(d=>{    
-                            if(d.aggregateMetrics){
-                                return d.aggregateMetrics[metric];
-                            } else{
-                                return d.metrics[metric];
-                            }
-                        });
+                        if(d.aggregateMetrics){
+                            return d.aggregateMetrics[metric];
+                        }
+                        else{
+                            h.sum(d=>{
+                                    return d.metrics[metric];
+                            });
+                        }
                         agg[metric] = h.value;
                     }
                     else{
@@ -269,7 +314,7 @@ class Forest{
         for(let elided of dummyHolder.elided){
             var aggMetsForChild = this._getAggregateMetrics(elided, globals.AVG);
             var descriptionOfChild = this._getSubTreeDescription(elided);
-            
+
             for(let metric of this.metricColumns){
                 aggregateMetrics[metric] += aggMetsForChild[metric];
             }
@@ -283,7 +328,10 @@ class Forest{
             if(descriptionOfChild.height < description.minHeight){
                 description.minHeight = descriptionOfChild.height;
             }
+        }
 
+        for(let metric of this.metricColumns){
+            aggregateMetrics[metric] = aggregateMetrics[metric]/elided.length;
         }
 
         description.elidedSubtrees = elided.length;
@@ -298,7 +346,6 @@ class Forest{
                 this.aggregateMinMax[metric].min = aggregateMetrics[metric];
             }
         }
-
         dummyHolder.data.aggregateMetrics = aggregateMetrics;
         dummyHolder.data.description = description;
 
@@ -331,7 +378,7 @@ class Forest{
                 let child = root.children[childNdx];
                 //clear dummy node codition so it
                 // doesnt carry on between re-draws
-                child.data.dummy = false;
+                child.dummy = false;
 
                 //condition where we remove child
                 if(child.value < condition){
@@ -345,14 +392,14 @@ class Forest{
                 }
             } 
             
-            
-            if (root._children && root._children.length > 0){
-                dummyHolder = this._buildDummyHolder(elided[0], root, elided);
-                root.children.push(dummyHolder);
-            }
 
             for(let child of root.children){
                 this._pruningVisitor(child, condition, metric);
+            }
+
+            if (root._children && root._children.length > 0){
+                dummyHolder = this._buildDummyHolder(elided[0], root, elided);
+                root.children.push(dummyHolder);
             }
 
             if(root.children.length == 0){
@@ -366,12 +413,14 @@ class Forest{
     }
 
     pruneTree(t, primaryMetric, conditionCallback){
+
         this._setDisplayFlags(t, primaryMetric, conditionCallback);
 
         //The sum ensures that we do not prune 
         //away parent nodes of identified outliers.
         t.sum(d => d.show);
         this._pruningVisitor(t, 1, primaryMetric);
+
 
         //update size of subtrees on the nodes
         t.size = t.descendants().length;

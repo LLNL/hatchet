@@ -49,21 +49,24 @@ class ColorManager{
         this.single_color_scale = d3.scaleQuantize()
                                     .domain([this._forestStats[this.treeIndex][this._state.primaryMetric].min, this._forestStats[this.treeIndex][this._state.primaryMetric].max])
                                     .range(this._regularColors[this._state.colorScheme][this.treeIndex]);
+
         this.agg_color_scale = d3.scaleQuantize()
-                                .domain([this._aggregateMinMax.min, this._aggregateMinMax.max])
+                                .domain([this._aggregateMinMax[this._state.primaryMetric].min, this._aggregateMinMax[this._state.primaryMetric].max])
                                 .range(this._allTreesColors[this._state.colorScheme]);
 
     }
 
     _updateScales(){
+
+        const a_dom = this._aggregateMinMax[this._state.primaryMetric];
+        this.agg_color_scale.domain([a_dom.min,a_dom.max]);
+
         if(this._state.primaryMetric != this.cachedPrimaryMetric){
             const u_dom = this._forestMinMax[this._state.primaryMetric];
             const s_dom = this._forestStats[this.treeIndex][this._state.primaryMetric];
-            const a_dom = this._aggregateMinMax;
 
             this.universal_color_scale.domain([u_dom.min,u_dom.max]);
             this.single_color_scale.domain([s_dom.min,s_dom.max]);
-            this.agg_color_scale.domain([a_dom.min,a_dom.max]);
             this.cachedPrimaryMetric = this._state.primaryMetric;
         }
         if(this._state.colorScheme != this.cachedColorScheme){
@@ -74,11 +77,19 @@ class ColorManager{
         }
     }
 
+    /**
+     * FUTURE CONNOR: MAKE SURE RANGE INCLUDES AGGREGATE HIGH AND LOW . . . 
+     * AND CHANGE SIG FIGURES
+     */
     _getDomainFromScale(scale){
         let ranges = []
         for(let col of scale.range()){
             ranges.push(scale.invertExtent(col));
         }
+
+        ranges[0][0] = Math.min(ranges[0][0], this._aggregateMinMax[this._state.primaryMetric].min);
+        ranges[ranges.length-1][1] = Math.max(ranges[ranges.length-1][1], this._aggregateMinMax[this._state.primaryMetric].max);
+
         return ranges;
     }
 
@@ -110,6 +121,12 @@ class ColorManager{
     calcColorScale(nodeData){
         this._updateScales();
         const nodeMetric = nodeData.metrics[this._state.primaryMetric];
+        return this._getCorrectScale()(nodeMetric);
+    }
+
+    calcAggColorScale(nodeData){
+        this._updateScales();
+        const nodeMetric = nodeData.aggregateMetrics[this._state.primaryMetric];
         return this._getCorrectScale()(nodeMetric);
     }
 

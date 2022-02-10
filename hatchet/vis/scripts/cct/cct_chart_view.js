@@ -11,18 +11,17 @@ class Legend extends View{
         this.attributeColumns = model.forest.attributeColumns;
         this.tree_index = tree_index;
         this.secondaryMinMax = this.model.forest.forestMinMax;
-
         this.type = encoding_type;
         this.agg = false;
 
         this.leg_grp = elem
                     .append('g')
                     .attr('class', 'legend-grp');
-        
+
         this.quantNodeScale = d3.scaleQuantize().range([0,1,2,3,4,5]).domain([this.secondaryMinMax[this.model.state.secondaryMetric].min, this.secondaryMinMax[this.model.state.secondaryMetric].max]);
+        this.digitAbbrevScale = d3.scaleOrdinal().range(["K", "K", "K", "M", "M", "M", "B", "B", "B", "T", "T", "T",]).domain(new Array(12).fill(0).map((_,i)=>i+4));
 
         this.preRender();
-
     }
 
     setAgg(){
@@ -39,6 +38,23 @@ class Legend extends View{
 
     getLegendHeight(){
         return this.leg_grp.node().getBBox().height;
+    }
+
+    getSigFigString(num){
+        if(num.toFixed(2).length <= 5){
+            return num.toFixed(2);
+        }
+        else{
+            let numdig = parseInt(num).toString().length;
+            for(let i = 4; i <= numdig; i +=3){
+                num = (parseInt(num)/1000);
+            }
+            let numstr = num.toFixed(2).toString();
+
+            let abbrev = this.digitAbbrevScale(numdig);
+
+            return numstr + abbrev;
+        }
     }
 
     preRender(){
@@ -150,9 +166,9 @@ class Legend extends View{
             .duration(globals.duration)
             .text((_, i) => {
                 if(this.type == "color"){
-
+                    this.getSigFigString(leg_dom[5-i][0]);
                     if (this.metricColumns.includes(this.model.state["primaryMetric"])) {
-                        return leg_dom[5 - i][0].toFixed(2) + ' - ' + leg_dom[5 - i][1].toFixed(2);
+                        return this.getSigFigString(leg_dom[5-i][0]) + ' - ' + this.getSigFigString(leg_dom[5-i][1]);
                     } 
                     else if (this.attributeColumns.includes(this.model.state["primaryMetric"])) {
                         return leg_dom[i];
@@ -160,7 +176,7 @@ class Legend extends View{
                 }
                 else if(this.type == "radius"){
                     let range = this.quantNodeScale.invertExtent(5-i);
-                    return `${range[0].toFixed(2)} - ${range[1].toFixed(2)}`;
+                    return `${this.getSigFigString(range[0])} - ${this.getSigFigString(range[1])}`;
                 } 
             });
 
@@ -197,7 +213,7 @@ class ChartView extends View{
         this._treeCanvasHeightScale = d3.scaleQuantize().range([250, 1000, 1250, 1500]).domain([1, 300]);
         this._treeDepthScale = d3.scaleLinear().range([0, element.offsetWidth-200]).domain([0, fMaxHeight])
         this._nodeScale = d3.scaleLinear().range([4, this._maxNodeRadius]).domain([secondaryMinMax.min, secondaryMinMax.max]);
-        this._barScale = d3.scaleLinear().range([5, 25]).domain([secondaryMinMax.min, secondaryMinMax.max]);
+        this._aggNodeScale = d3.scaleLinear().range([4, this._maxNodeRadius]).domain([secondaryMinMax.min, secondaryMinMax.max]);
 
         //view specific data stores
         this.nodes = [];
@@ -213,6 +229,7 @@ class ChartView extends View{
 
         this._preRender();
     }
+
 
 
     diagonal(s, d, ti) {
@@ -322,6 +339,8 @@ class ChartView extends View{
                     d.xMainG = d.x0 + this.chartOffset;
                     d.yMainG = d.y0 + this._margin.left;
             }
+
+            
         );
     }
 
@@ -385,7 +404,7 @@ class ChartView extends View{
             this.primary_legends.push(primary_legend);
             this.secondary_legends.push(secondary_legend);
 
-            this.legendOffset = this.primary_legends[treeIndex].getLegendHeight();
+            this.legendOffset = Math.max(this.primary_legends[treeIndex].getLegendHeight(), this.secondary_legends[treeIndex].getLegendHeight());
 
             //make an invisible rectangle for zooming on
             newg.append('rect')
@@ -424,7 +443,6 @@ class ChartView extends View{
             this.chartOffset = this._treeLayoutHeights[treeIndex] + this.treeOffset + this._margin.top;
             this._height += this.chartOffset;
 
-
             newg.call(zoom)
                 .on("dblclick.zoom", null);
 
@@ -461,7 +479,7 @@ class ChartView extends View{
 
         //update scales
         this._nodeScale.domain([0, this.model.forest.forestMinMax[this.model.state.secondaryMetric].max]);
-        this._barScale.domain([this.model.forest.aggregateMinMax[this.model.state.secondaryMetric].min, this.model.forest.aggregateMinMax[this.model.state.secondaryMetric].max]);
+        this._aggNodeScale.domain([this.model.forest.aggregateMinMax[this.model.state.secondaryMetric].min, this.model.forest.aggregateMinMax[this.model.state.secondaryMetric].max]);
 
         //add brush if there should be one
         if(this.model.state.brushOn > 0){
@@ -536,7 +554,7 @@ class ChartView extends View{
                     return d.data.metrics._hatchet_nid || d.data.id;
                 });
 
-            var aggBars = treeGroup.selectAll("g.aggBar")
+            var aggNodes = treeGroup.selectAll("g.aggNode")
                 .data(this.aggregates[treeIndex], (d) =>  {
                     return d.data.metrics._hatchet_nid || d.data.id;
                 });
@@ -581,12 +599,13 @@ class ChartView extends View{
                     })
                 });
             
-            var aggNodeEnter = aggBars.enter().append('g')
-                .attr('class', 'aggBar')
+            var aggNodeEnter = aggNodes.enter().append('g')
+                .attr('class', 'aggNode')
                 .attr("transform", (d) =>  {
                     return `translate(${this._treeDepthScale(d.depth)}, ${this._getLocalNodeX(d.x, treeIndex)})`;
                 })
                 .on("click", (d) => {
+                    console.log(d);
                     this.observers.notify({
                         type: globals.signals.CLICK,
                         node: d
@@ -616,14 +635,35 @@ class ChartView extends View{
                     .style("stroke-width", ".5px")
                     .style("stroke", "rgba(100,100,100)");
             
-            aggNodeEnter.append("rect")
-                    .attr('class', 'bar')
-                    .attr('height', (d) => {return this._barScale(d.data.aggregateMetrics[secondaryMetric]);})
-                    .attr('width', 20)
+            aggNodeEnter.append("circle")
+                    .attr('class', 'aggNodeCircle')
+                    .attr('r', (d) => {return this._aggNodeScale(d.data.aggregateMetrics[secondaryMetric]);})
                     .attr("fill", "rgba(0,0,0)")
                     .style("stroke-width", ".5px")
-                    .style("stroke", "rgba(100,100,100)");
+                    .style("stroke", "rgba(100,100,100)")
+                    .attr("transform", function (d) {
+                        let r = self._aggNodeScale(d.data.aggregateMetrics[secondaryMetric]);
+                        return `translate(${r/2}, ${r/2})`;
+                    });
 
+            let arrows = aggNodeEnter.append('path')
+                        .attr('class', 'aggNodeArrow')
+                        .attr('fill', '#000')
+                        .attr('stroke', '#000')
+                        .attr('d', (d)=>{
+                                        let rad = self._aggNodeScale(d.data.aggregateMetrics[secondaryMetric]);
+
+                                        return `m 0,0 
+                                        l 0,${rad*2} 
+                                        l ${rad}, ${-rad}, 
+                                        l ${-rad},0 
+                                        z`
+                                    });
+            
+            arrows.attr('transform', function(d){
+                let rad = self._aggNodeScale(d.data.aggregateMetrics[secondaryMetric]);
+                return `translate(${rad*2},${(rad/4)})`
+            })
                     
 
             // commenting out text for now
@@ -721,7 +761,7 @@ class ChartView extends View{
             var nodeUpdate = nodeEnter.merge(node);
             var dNodeUpdate = dNodeEnter.merge(dummyNodes);
             var linkUpdate = linkEnter.merge(link);
-            var aggNodeUpdate = aggNodeEnter.merge(aggBars);
+            var aggNodeUpdate = aggNodeEnter.merge(aggNodes);
             
             // Chart updates
             chart
@@ -845,9 +885,18 @@ class ChartView extends View{
                         return `translate(${self._treeDepthScale(d.depth)-15}, ${self._getLocalNodeX(d.x, treeIndex) - (h+1)/2})`;
                 });
 
+            
             aggNodeUpdate
-                .select('rect')
-                .attr('height', (d) => {return  this._barScale(d.data.aggregateMetrics[secondaryMetric]);})
+                .transition()
+                .duration(globals.duration)
+                .attr("transform", function (d) {
+                        return `translate(${self._treeDepthScale(d.depth)}, ${self._getLocalNodeX(d.x, treeIndex)})`;
+                });
+
+
+            aggNodeUpdate
+                .select('.aggNodeCircle')
+                .attr('r', (d) => {return  this._aggNodeScale(d.data.aggregateMetrics[secondaryMetric]);})
                 .style('stroke-width', (d) => {
                     if (this.model.state['selectedNodes'].includes(d)){
                         return '3px';
@@ -857,17 +906,30 @@ class ChartView extends View{
                     }
                 })
                 .style('fill', (d) =>  {
-                    return this.color_managers[treeIndex].calcColorScale(d.data);
-                });
-
-            aggNodeUpdate
+                    return this.color_managers[treeIndex].calcAggColorScale(d.data);
+                })
                 .transition()
                 .duration(globals.duration)
                 .attr("transform", function (d) {
-                        let h = d3.select(this).select('rect').node().getBBox().height;
-                        let w = d3.select(this).select('rect').node().getBBox().width;
-                        return `translate(${self._treeDepthScale(d.depth)-w/3}, ${self._getLocalNodeX(d.x, treeIndex) - h/2})`;
+                    let r = self._aggNodeScale(d.data.aggregateMetrics[secondaryMetric]);
+                    return `translate(${r/2}, ${r/2})`;
                 });
+            aggNodeUpdate
+                .select('.aggNodeArrow')
+                .attr('d', (d)=>{
+                    let rad = self._aggNodeScale(d.data.aggregateMetrics[secondaryMetric])-1;
+
+                    return `m 0,0 
+                    l 0,${rad*2} 
+                    l ${rad}, ${-rad}, 
+                    l ${-rad},0 
+                    z`
+                })
+                .attr('transform', function(d){
+                    let rad = self._aggNodeScale(d.data.aggregateMetrics[secondaryMetric]);
+                    return `translate(${rad*2},${-rad/4})`
+                });
+
             
                     
             // ---------------------------------------------
@@ -891,7 +953,7 @@ class ChartView extends View{
             dummyNodes.exit()
                 .remove();
             
-            aggBars.exit()
+            aggNodes.exit()
                 .remove();
 
             // Transition exiting links to the parent's new position.

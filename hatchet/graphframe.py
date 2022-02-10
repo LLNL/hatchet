@@ -881,6 +881,7 @@ class GraphFrame:
 
             node_name = self.dataframe.loc[df_index, name]
 
+
             node_dict["name"] = node_name
             node_dict["frame"] = hnode.frame.attrs
             node_dict["metrics"] = metrics_to_dict(df_index)

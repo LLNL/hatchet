@@ -14,8 +14,6 @@ class ScentedSliderPopup extends View{
             'top_padding': 30
         }
         this.full_hist_height = this.popup_dims.height*.6;
-        this.hist_height = this.full_hist_height*.7;
-        this.icycle_height = this.full_hist_height-this.hist_height;
         this.num_bins = 25;
         this.slider_width = 10;
         this.slider_height = 20;
@@ -35,6 +33,15 @@ class ScentedSliderPopup extends View{
         this.zero_bins = model.data.distCounts["internalzero"]
         this.zero_cnt = this.zero_bins[0].length;
         this.update_bin_count_ranges();
+
+        if(this.zero_cnt > 0){
+            this.hist_height = this.full_hist_height*.7;
+            this.icycle_height = this.full_hist_height-this.hist_height;
+        }
+        else{
+            this.hist_height = this.full_hist_height;
+            this.icycle_height = 0;
+        }
 
         this.slider_range = model.forest.forestMetrics[model.state.primaryMetric];
         this.h_x_scale = d3.scaleLinear().domain([0,this.bins.length]).range([0, this.popup_dims['width']-this.popup_dims.left_padding-this.popup_dims.right_padding]);
@@ -110,6 +117,25 @@ class ScentedSliderPopup extends View{
     pre_render(){
         const self = this;
 
+        var start_x = 0;
+        var start_y = 0;
+
+        let windowDragHandler = d3.drag()
+                            .on("end", function(){
+                                d3.select(this)
+                                    .attr('cursor','grab');
+                            })
+                            .on("drag", function(){
+                                d3.select(this).attr('cursor','grabbing');
+                                self._svg.style('left', parseInt(self._svg.style('left').slice(0,-2)) + d3.event.x-start_x + 'px');
+                                self._svg.style('top', parseInt(self._svg.style('top').slice(0,-2)) + d3.event.y-start_y + 'px');
+                            })
+                            .on("start", function(){
+                                start_x = d3.event.x;
+                                start_y = d3.event.y;
+                            });
+
+
         //render histogram
         this._svg.append('rect')
                     .attr('height', this.popup_dims['height'])
@@ -118,12 +144,28 @@ class ScentedSliderPopup extends View{
                     .attr('stroke', 'rgba(0,0,0,1)')
                     .attr('stroke-width', 2);
         
+        let topBar = this._svg.append('rect')
+                    .attr('height', '2em')
+                    .attr('width', this.popup_dims['width'])
+                    .attr('fill', 'rgba(255,255,255,0)')
+                    .attr('stroke', 'rgba(0,0,0,1)')
+                    .attr('stroke-width', 1)
+                    .attr('cursor', 'grab');
+
+        windowDragHandler(topBar);
+
         this._svg.append('text')
                     .text('Move Sliders to Set Prune Range')
                     .attr('fill', 'rgba(0,0,0,1)')
                     .attr('y', 20)
-                    .attr('x', 20);
-                    
+                    .attr('x', 5);
+        
+        this._svg.append('text')
+                    .text('i')
+                    .attr('fill', 'rgba(0,0,0,1)')
+                    .attr('y', 20)
+                    .attr('x', this.popup_dims['width']-10);
+                
         this._svg.append('g')
                     .attr('class', 'hist-grp')
                     .attr('height', this.hist_height)

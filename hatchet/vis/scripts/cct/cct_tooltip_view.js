@@ -22,6 +22,9 @@ class TooltipView extends View {
             .style('color', 'black')
             .style('font-size', '14px')
             .style('font-family', 'monospace')
+            .style('max-width','400px')
+            .style('max-height', '200px')
+            .style('overflow', 'scroll')
             .html('<p>Click a node or "Select nodes" to see more info</p>');
 
     }

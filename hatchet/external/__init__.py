@@ -2,7 +2,8 @@
 # Hatchet Project Developers. See the top-level LICENSE file for details.
 #
 # SPDX-License-Identifier: MIT
-
-from .roundtrip.roundtrip.manager import Roundtrip
-
-Roundtrip
+try:
+    from .roundtrip.roundtrip.manager import Roundtrip
+    Roundtrip
+except ImportError:
+    pass

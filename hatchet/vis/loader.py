@@ -10,13 +10,21 @@ vis_dir = dirname(path.abspath(__file__))
 
 def _gf_to_json(data):
     import json
+    from pandas import Series
+
+    def serialize(obj):
+        if isinstance(obj, Series):
+            return obj.to_json
+        return obj.__dict__
 
     try:
-        if type(data) is type(GraphFrame):
-            return json.dumps(data.to_literal())
+        if isinstance(data, GraphFrame):
+            return json.dumps(data.to_literal(), default=serialize)
         else:
-            return json.dumps(data)
-    except TypeError:
+            with open('check', 'w') as f:
+                f.write(json.dumps(data, default=serialize))
+            return json.dumps(data, default=serialize)
+    except ValueError:
         raise "Input data is not of type graphframe or json serializable."
 
 
