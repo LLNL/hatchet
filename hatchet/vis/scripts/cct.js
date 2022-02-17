@@ -31,9 +31,9 @@ chart.register(cont.dispatcher());
 popup.register(cont.dispatcher());
 
 model.register(menu.renderer());
-model.register(chart.renderer());
 model.register(tooltip.renderer());
 model.register(popup.renderer());
+model.register(chart.renderer());
 
 //render all views one time
 menu.render();

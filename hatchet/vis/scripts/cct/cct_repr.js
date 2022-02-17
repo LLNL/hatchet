@@ -296,13 +296,14 @@ class Forest{
         dummyHolder.depth = protoype.depth;
         dummyHolder.height = protoype.height;
         dummyHolder.children = null;
-
-        //need a better way to make elided happen
-        // pass in as arg makes sense
-        dummyHolder.elided = elided;
-        dummyHolder.dummy = true;
-        dummyHolder.aggregate = false;
         dummyHolder.parent = parent;
+
+        dummyHolder.data = {};
+        dummyHolder.data.metrics = {};
+        dummyHolder.data.metrics._hatchet_nid = protoype.data.metrics._hatchet_nid;
+        dummyHolder.data.prototype = protoype;
+        dummyHolder.data.elided = elided;
+        dummyHolder.data.aggregate = true;
         dummyHolder.outlier = 0;
         
 
@@ -311,7 +312,7 @@ class Forest{
             aggregateMetrics[metric] = 0;
         }
 
-        for(let elided of dummyHolder.elided){
+        for(let elided of dummyHolder.data.elided){
             var aggMetsForChild = this._getAggregateMetrics(elided, globals.AVG);
             var descriptionOfChild = this._getSubTreeDescription(elided);
 
@@ -321,7 +322,7 @@ class Forest{
 
             description.size += descriptionOfChild.size;
 
-            if(descriptionOfChild.height > description.maxHeight){0.0, "FlagZeros"
+            if(descriptionOfChild.height > description.maxHeight){
                 description.maxHeight = descriptionOfChild.height;
             }
 
@@ -349,9 +350,6 @@ class Forest{
         dummyHolder.data.aggregateMetrics = aggregateMetrics;
         dummyHolder.data.description = description;
 
-        //more than sum 0 nodes were aggregrated
-        // together
-        dummyHolder.aggregate = true;
 
         return dummyHolder;
     }
@@ -378,7 +376,7 @@ class Forest{
                 let child = root.children[childNdx];
                 //clear dummy node codition so it
                 // doesnt carry on between re-draws
-                child.dummy = false;
+                child.aggregate = false;
 
                 //condition where we remove child
                 if(child.value < condition){
@@ -436,7 +434,7 @@ class Forest{
          * overwrites the current tree in the view.
          */
         let newTrees;
-        if(this.zeros == true){
+        if(this.zeros){
             newTrees = this.getFreshTrees();
         }else{
             newTrees = this.getPrePrunedTrees();
@@ -476,11 +474,28 @@ class Forest{
     }
 
     getPrePrunedTrees(){
+        console.log("GET NEW PRE PRUNED TREES");
         let mutableTrees = [];
 
+
         for(let tree of this.prePrunedTrees){
+            /**
+             * We lose elided and dummy here when we copy.
+             */
             let t = tree.copy();
             t.size = t.descendants().length;
+
+            let t_nodes = t.descendants();
+            let tree_nodes = tree.descendants();
+            for(let i in tree_nodes){
+                if(tree_nodes[i].aggregate){
+                    t_nodes[i].aggregate = true;
+                    t_nodes[i].elided = tree_nodes[i].elided;
+                    console.log(tree_nodes[i].data.name, t_nodes[i].data.name, tree_nodes[i].aggregate, t_nodes[i].aggregate, tree_nodes[i].data.aggregateMetrics, t_nodes[i].data.aggregateMetrics);
+                }
+                
+            }
+
             mutableTrees.push(t);
         }
 

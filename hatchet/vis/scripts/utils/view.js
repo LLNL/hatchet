@@ -8,7 +8,7 @@ class View{
     }
 
     register(s){
-        this.observers.add(s);
+        this.observers.add(s, this.constructor.name);
     }
 
     renderer(){

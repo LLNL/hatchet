@@ -1,4 +1,4 @@
-import { globals } from "./cct_globals";
+import { globals} from "./cct_globals";
 
 class Controller{
     /**
@@ -11,6 +11,7 @@ class Controller{
 
     dispatcher(){
         return (evt) => {
+
             // All types of events run through a central dispatch
             // function. The dispatch function decides what to do.
             switch(evt.type) {

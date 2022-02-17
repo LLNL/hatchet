@@ -31,10 +31,11 @@ class ScentedSliderPopup extends View{
         model.updateBins(this.num_bins);
         this.bins = model.data.distCounts["nonzero"];
         this.zero_bins = model.data.distCounts["internalzero"]
-        this.zero_cnt = this.zero_bins[0].length;
+        this.max_zero_cnt = 0;
+        this.zero_bins.forEach((b)=>{this.max_zero_cnt = Math.max(b.length, this.max_zero_cnt)});
         this.update_bin_count_ranges();
 
-        if(this.zero_cnt > 0){
+        if(this.max_zero_cnt > 0){
             this.hist_height = this.full_hist_height*.7;
             this.icycle_height = this.full_hist_height-this.hist_height;
         }
@@ -47,7 +48,10 @@ class ScentedSliderPopup extends View{
         this.h_x_scale = d3.scaleLinear().domain([0,this.bins.length]).range([0, this.popup_dims['width']-this.popup_dims.left_padding-this.popup_dims.right_padding]);
         this.h_y_scale = d3.scaleLinear().domain(this.bin_count_range).range([4, this.hist_height]);
         this.invert_y_scale = d3.scaleLinear().domain(this.bin_count_range).range([this.hist_height, 0]);
-        this.i_y_scale = d3.scaleLinear().domain([0, this.zero_cnt]).range([0, this.icycle_height]);
+        this.i_y_scale = d3.scaleLinear().domain([0, this.max_zero_cnt]).range([0, this.icycle_height]);
+
+        //for communicating that sliding is over
+        this.update = false;
 
         this.pre_render();
         this.render();
@@ -64,7 +68,7 @@ class ScentedSliderPopup extends View{
 
     manage_slider_update(slider, x_pos){
         const self = this;
-        let bin_num = parseInt(self.h_x_scale.invert(x_pos));
+        let bin_num = parseInt(self.h_x_scale.invert(x_pos+this.slider_width/2));
         let range_val = 0;
         let step_loc = 0;
         let update = false;
@@ -86,15 +90,13 @@ class ScentedSliderPopup extends View{
             }
         }
 
-        if(update == true){
-            slider.attr('transform', `translate(${step_loc-(this.slider_width/2)},0)`);
+
+        if(update){
+            self.update = true;
+            slider.attr('transform', `translate(${step_loc-self.slider_width/2},0)`);
+            // slider.select('text').text(`${range_val}`);
             slider.select('text').text(`${range_val}`);
             slider.select('text').attr('x', function(){return -(this.getBBox().width/2) + self.slider_width/2});
-            this.observers.notify({
-                type: globals.signals.PRUNERANGEUPDATE,
-                low: self.bins[this.current_l_bin].x0,
-                high: self.bins[this.current_r_bin].x1
-            })
         }
     }
 
@@ -131,6 +133,7 @@ class ScentedSliderPopup extends View{
                                 self._svg.style('top', parseInt(self._svg.style('top').slice(0,-2)) + d3.event.y-start_y + 'px');
                             })
                             .on("start", function(){
+                                self.update = false;
                                 start_x = d3.event.x;
                                 start_y = d3.event.y;
                             });
@@ -197,11 +200,22 @@ class ScentedSliderPopup extends View{
 
         let dragHandler = d3.drag()
                             .on("end", function(){
+                                if(self.update){
+                                    self.observers.notify({
+                                        type: globals.signals.PRUNERANGEUPDATE,
+                                        low: self.bins[self.current_l_bin].x0,
+                                        high: self.bins[self.current_r_bin].x1
+                                    });
+                                    self.update = false;
+                                }
                                 d3.select(this)
                                     .attr('cursor','grab');
                             })
                             .on("drag", function(){
                                 self.handle_range_drag(this);
+                            })
+                            .on("start", function(){
+                                self.update = false;
                             });
 
         let l_slider = this.hist_grp.append('g')

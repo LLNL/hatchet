@@ -1,5 +1,4 @@
-import { makeSignaller, RT, d3, globals} from "./cct_globals";
-import { hierarchy as d3v7_hierarchy } from 'd3-hierarchy';
+import { makeSignaller, RT} from "./cct_globals";
 import { bin } from 'd3-array';
 import Forest  from './cct_repr';
 
@@ -85,11 +84,11 @@ class Model{
             nodeStr += "<tr>"
             for (var j = 0; j < metricColumns.length; j++) {
                 if (j == 0) {
-                    if(nodeList[i].elided !== undefined){
-                        if (nodeList[i].elided.length == 1){
-                            nodeStr += `<td>${nodeList[i].data.name} Subtree </td>`
+                    if(nodeList[i].data.aggregate){
+                        if (nodeList[i].data.elided.length == 1){
+                            nodeStr += `<td>${nodeList[i].data.prototype.data.name} Subtree </td>`
                         }
-                        else if(nodeList[i].elided.length > 1){
+                        else if(nodeList[i].data.elided.length > 1){
                             nodeStr += `<td>Children of: ${nodeList[i].parent.data.name} </td>`
                         }
                     }
@@ -139,17 +138,20 @@ class Model{
         //do some evaluation for other subtrees
         // we could generate python code that does this
         var queryStr = ['<no query generated>'];
-        if ((nodeList.length > 1) && (selectionIsAChain)) {
-            // This query is for chains
-            queryStr = [{name: leftMostNode.data.frame.name }, '*', {name: rightMostNode.data.frame.name }];
-        }
-        else if (nodeList.length > 1) {
-            // This query is for subtrees
-            queryStr = [{name: leftMostNode.data.frame.name }, '*', {depth: '<=' + rightMostNode.depth}];
-        }
-        else {
-            //Single node query
-            queryStr = [{name: leftMostNode.data.frame.name}];
+        if(!leftMostNode.data.aggregate && !rightMostNode.data.aggregate){
+            if ((nodeList.length > 1) && (selectionIsAChain)) {
+                // This query is for chains
+                queryStr = [{name: leftMostNode.data.frame.name }, '*', {name: rightMostNode.data.frame.name }];
+            }
+            else if (nodeList.length > 1) {
+                // This query is for subtrees
+                queryStr = [{name: leftMostNode.data.frame.name }, '*', {depth: '<=' + rightMostNode.depth}];
+            }
+            else {
+                //Single node query
+                queryStr = [{name: leftMostNode.data.frame.name}];
+            }
+
         }
 
         return queryStr;
@@ -161,7 +163,7 @@ class Model{
          * 
          * @param {Function} s - (a callback function) to be run with _observers.notify()
          */
-        this._observers.add(s);
+        this._observers.add(s, "model");
     }
 
     updateBins(numBins){
@@ -169,11 +171,11 @@ class Model{
         this.state.numBins = numBins;
         if(this.data.distCounts.length != numBins){
             for(let t of this.forest.getTrees()){
-                nodes = nodes.concat(t.descendants()); 
+                nodes = nodes.concat(t.descendants().filter(x=>{return x.data.metrics != undefined})); 
             }
         }
 
-        let bins = bin().value(d=>d.data.metrics[this.state.primaryMetric]).thresholds(numBins);
+        let bins = bin().value(d=>d.data.metrics[this.state.primaryMetric]).thresholds(numBins); 
         let bin_dist = bins(nodes);
         let zero_cnts = new Array(bin_dist.length).fill().map(d=>([]));
         let b = 0;
@@ -333,7 +335,7 @@ class Model{
         } else {
             RT['jsNodeSelected'] = JSON.stringify(["*"]);
         }
-        
+
         this._observers.notify();
     }
 
@@ -346,7 +348,7 @@ class Model{
          *      Can be a surrogate or real node.
          */
         //hiding a subtree
-        if(!d.dummy){
+        if(!d.data.aggregate){
             if(d.parent){
                 //main manipulation is in parent scope
                 let children = d.parent.children;
@@ -366,16 +368,14 @@ class Model{
         // Replaces a node if one was elided
         // Appends if multiple were elided
         else{
-            
-            if(d.elided.length == 1){
+            console.log("IN EXPAND:", d);
+            if(d.data.elided.length == 1){
                 // patch that clears aggregate metrics upon doubleclick
-                delete d.elided[0].data.aggregateMetrics;
-
                 let insIndex = d.parent.children.indexOf(d);
-                d.parent.children[insIndex] = d.elided[0];
+                d.parent.children[insIndex] = d.data.prototype;
             }
             else{
-                for(let elided of d.elided){
+                for(let elided of d.data.elided){
                     delete elided.data.aggregateMetrics;
                     let delIndex = d.parent._children.indexOf(elided);
                     d.parent._children.splice(delIndex, 1);
@@ -387,6 +387,8 @@ class Model{
         }
 
         this.state["lastClicked"] = d;
+
+        console.log("POST EXPAND:", d.parent.children);
 
         this.state.hierarchyUpdated = true;
         this._observers.notify();
@@ -429,10 +431,13 @@ class Model{
         if(nodes.length > 0 && nodes[0]){
             var longestName = 0;
             nodes.forEach(function (d) {
-                var nodeData = d.data.frame.name + ': ' + d.data.metrics.time + 's (' + d.data.metrics["time (inc)"] + 's inc)';
-                if (nodeData.length > longestName) {
-                    longestName = nodeData.length;
+                if(!d.data.aggregate){
+                    var nodeData = d.data.frame.name + ': ' + d.data.metrics.time + 's (' + d.data.metrics["time (inc)"] + 's inc)';
                 }
+                else{
+                    var nodeData = d.data.prototype.data.frame.name + ': ' + d.data.aggregateMetrics.time + 's (' + d.data.aggregateMetrics["time (inc)"] + 's inc)';
+                }
+                longestName = Math.max(nodeData.length, longestName);
             });
             this.data["tipText"] = this._printNodeData(nodes);
         } 

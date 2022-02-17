@@ -1,6 +1,5 @@
 import * as d3 from 'd3v4';
 
-
 const globals = Object.freeze({
     UNIFIED: 0,
     DEFAULT: 0,
@@ -40,7 +39,11 @@ var makeSignaller = function() {
         // arguments
         notify: function(args) {
             for (var i = 0; i < _subscribers.length; i++) {
-                _subscribers[i](args);
+                try{
+                    _subscribers[i](args);
+                } catch(error){
+                    console.error(error);
+                }
             }
         }
     };

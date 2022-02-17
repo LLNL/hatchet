@@ -179,8 +179,9 @@ class Legend extends View{
                     return `${this.getSigFigString(range[0])} - ${this.getSigFigString(range[1])}`;
                 } 
             });
-
     }
+
+    
 }
 
 
@@ -210,7 +211,7 @@ class ChartView extends View{
         const secondaryMinMax = model.forest.forestMinMax[model.state.secondaryMetric];
 
         //scales
-        this._treeCanvasHeightScale = d3.scaleQuantize().range([250, 1000, 1250, 1500]).domain([1, 300]);
+        this._treeCanvasHeightScale = d3.scaleQuantize().range([450, 1250, 1500, 1750]).domain([1, 300]);
         this._treeDepthScale = d3.scaleLinear().range([0, element.offsetWidth-200]).domain([0, fMaxHeight])
         this._nodeScale = d3.scaleLinear().range([4, this._maxNodeRadius]).domain([secondaryMinMax.min, secondaryMinMax.max]);
         this._aggNodeScale = d3.scaleLinear().range([4, this._maxNodeRadius]).domain([secondaryMinMax.min, secondaryMinMax.max]);
@@ -227,9 +228,179 @@ class ChartView extends View{
         this.secondary_legends = [];
         this.color_managers = [];
 
+        this.newDataFlag = 1;
+
         this._preRender();
     }
 
+
+    checkCollison(box1, box2){
+        if(box1.x < box2.x + box2.width &&
+           box1.x + box1.width > box2.x &&
+           box1.y < box2.y + box2.height &&
+           box1.y + box1.height > box2.y){
+               return true;
+           }
+           return false;
+    }
+
+
+    manageLabelCollisions(nodes, entrflg){
+        if(!this.newDataFlag){
+            return;
+        }
+
+
+        let self = this;
+        let remove = [];
+
+
+        let potential_col = 0;
+        let inner = 0;
+
+        let testBBs = [];
+        //load bounding boxes 
+        nodes.each(function(d){
+            if(d.children != undefined && d.children.length > 0){
+                inner++;
+                return;
+            }
+
+            let currentBox = {};
+            currentBox.y = d.xMainG;
+            currentBox.x = d.yMainG;
+            currentBox.height = this.getBBox().height;
+            currentBox.width = this.getBBox().width;
+            currentBox.dat = d;
+
+            testBBs.push(currentBox);
+        });
+
+        // testBBs.sort((bb1, bb2) => bb1.y - bb2.y);
+
+        let currentBox = null;
+        let compareBox = null;
+        let curr_d = null;
+        let nd = null;
+        for(let i = 0; i < testBBs.length; i ++){
+            for(let j = i+1; j < testBBs.length; j ++){
+                currentBox = testBBs[i];
+                compareBox = testBBs[j];
+                
+                if(compareBox.y < currentBox.y + 20 && compareBox.y > currentBox.y - 20){
+                    // console.log(currentBox);
+                    ++potential_col;
+                    if(self.checkCollison(currentBox, compareBox)){
+                         //collision resolution conditionals
+                        let rmv = null;
+                        curr_d = currentBox.dat;
+                        nd = compareBox.dat;
+
+                        delete curr_d.data.text;
+
+                        //comparing nodes of different depths
+                        if(curr_d.depth > nd.depth){
+                            rmv = nd;
+                        }
+                        else if(curr_d.depth < nd.depth){
+                            rmv = curr_d;
+                        }
+                        else{
+                            //comparing siblings
+                            if(nd.data.metrics[self.model.state.primaryMetric] > curr_d.data.metrics[self.model.state.primaryMetric]){
+                                rmv = curr_d;
+                            }
+                            else{
+                                rmv = nd;
+                            }
+                        }
+
+                        rmv.data.text = false;
+                    }
+                }
+            }
+        }
+
+
+
+        // nodes.each(function(curr_d, i){
+        //     if(curr_d.children != undefined && curr_d.children.length > 0){
+        //         inner++;
+        //         return;
+        //     }
+        //     if(remove.includes(curr_d.data.metrics._hatchet_nid) || remove.includes(curr_d.data.id)){
+        //         return;
+        //     }
+
+        //     let currentBox = {};
+        //     let currentNode = this;
+        //     currentBox.y = curr_d.xMainG;
+        //     currentBox.x = curr_d.yMainG;
+        //     currentBox.height = this.getBBox().height;
+        //     currentBox.width = this.getBBox().width;
+
+        //     nodes.each(function(nd){
+        //         if(remove.includes(nd.data.metrics._hatchet_nid) || remove.includes(nd.data.id)){
+        //             return;
+        //         }
+
+        //         let compareBox = {};
+        //         let rmv = null;
+        //         compareBox.y = nd.xMainG;
+        //         compareBox.x = nd.yMainG;
+        //         compareBox.height = this.getBBox().height;
+        //         compareBox.width = this.getBBox().width;
+                
+        //         // if(curr_d.data.metrics._hatchet_nid == 26){
+        //         //     console.log(this, currentNode, self.checkCollison(currentBox, compareBox), compareBox.y, compareBox.height, currentBox.y, currentBox.height, currentNode.getBBox());
+        //         // }     
+        //         if(currentNode !== this && compareBox.y < currentBox.y + 20 && compareBox.y > currentBox.y - 5){
+        //             rmv = null;
+        //             ++potential_col;
+        //             if(self.checkCollison(currentBox, compareBox)){
+        //                 //collision resolution conditionals
+        //                 if(curr_d.depth > nd.depth){
+        //                     rmv = nd;
+        //                 }
+        //                 else if(curr_d.depth < nd.depth){
+        //                     rmv = curr_d;
+        //                 }
+        //                 else{
+        //                     if(nd.data.metrics[self.model.state.primaryMetric] > curr_d.data.metrics[self.model.state.primaryMetric]){
+        //                         rmv = nd;
+        //                     }
+        //                     else{
+        //                         rmv = curr_d;
+        //                     }
+        //                 }
+
+        //                 remove.push(rmv.data.metrics._hatchet_nid);
+        //                 // d3.select(rmv).select('text').text("");
+        //                 // d3.select(currentNode.parentNode).append('rect').attr('height',currentBox.height).attr('width', currentBox.width).attr('stroke', 'green').attr('stroke-width', '1px').attr('x', 13);
+        //             }
+        //         } 
+        //     })
+        // })
+
+           
+        nodes.select("text")
+        .text((d) => {
+            if((d.data.text === undefined) && (!d.children || d.children.length == 0)){
+                let n = d.data.name;
+                if (n.includes("<unknown file>")){
+                    n = n.replace('<unknown file>', '');
+                }
+                return n;
+            }
+            return "";
+        });
+
+
+        console.log("NUMBER OF POTENTIAL CONFLICTS: ", nodes.size()-inner);
+        
+        this.newDataFlag = 0;
+        console.log("COLLISION CHECKS:", potential_col);
+    }
 
 
     diagonal(s, d, ti) {
@@ -274,6 +445,7 @@ class ChartView extends View{
         var obj = {}
         var min = Infinity;
         var max = -Infinity;
+
         root.descendants().forEach((d) => {
             max = Math.max(d.x, max);
             min = Math.min(d.x, min);
@@ -339,8 +511,6 @@ class ChartView extends View{
                     d.xMainG = d.x0 + this.chartOffset;
                     d.yMainG = d.y0 + this._margin.left;
             }
-
-            
         );
     }
 
@@ -348,6 +518,7 @@ class ChartView extends View{
         //For calls which need the context of
         // the d3 callback and class
         const self = this;
+        const secondaryMetric = this.model.state.secondaryMetric;
 
         var mainG = this.svg.append("g")
             .attr('id', "mainG")
@@ -383,8 +554,10 @@ class ChartView extends View{
 
         // Add a group and tree for each forestData[i]
         for (var treeIndex = 0; treeIndex < this.model.forest.numberOfTrees; treeIndex++) {
-            let tree = d3.tree().size([this._treeCanvasHeightScale(this.model.forest.getCurrentTree(treeIndex).size), this._width - this._margin.left - 200]);
-            let currentRoot = tree(this.model.forest.getCurrentTree(treeIndex));
+            let layout = d3.tree().nodeSize([this._maxNodeRadius+4, this._maxNodeRadius+4]);
+            // .size([this._treeCanvasHeightScale(this.model.forest.getCurrentTree(treeIndex).size), this._width - this._margin.left - 200]);
+            const tree = this.model.forest.getCurrentTree(treeIndex);
+            let currentRoot = layout(tree);
             let currentLayoutHeight = this._getHeightFromTree(currentRoot);
             let currentMinMax = this._getMinxMaxxFromTree(currentRoot);
             
@@ -425,7 +598,7 @@ class ChartView extends View{
             newg.style("display", "inline-block");
 
             //store node and link layout data for use later
-            var treeLayout = tree(this.model.forest.getCurrentTree(treeIndex));
+            var treeLayout = layout(this.model.forest.getCurrentTree(treeIndex));
             this.nodes.push(treeLayout.descendants());
 
             this.surrogates.push([]);
@@ -490,21 +663,25 @@ class ChartView extends View{
 
         //render for any number of trees
         for(var treeIndex = 0; treeIndex < this.model.forest.numberOfTrees; treeIndex++){
+
+            console.log(`============Tree ${treeIndex}================`);
+
             //retrieve new data from model
             var secondaryMetric = this.model.state.secondaryMetric;
             var source = this.model.forest.getCurrentTree(treeIndex);
 
+
             //will need to optimize this redrawing
             // by cacheing tree between calls
             if(this.model.state.hierarchyUpdated == true){
-                let tree = d3.tree().size([this._treeCanvasHeightScale(this.model.forest.getCurrentTree(treeIndex).size), this._width - this._margin.left - 200]);
-                var treeLayout = tree(source);
-                this.nodes[treeIndex] = treeLayout.descendants().filter(d=>{return !d.dummy});
-                this.surrogates[treeIndex] = treeLayout.descendants().filter(d=>{return (d.dummy && !d.aggregate)});
-                this.aggregates[treeIndex] = treeLayout.descendants().filter(d=>{return d.aggregate});
+                // let layout = d3.tree().size([this._treeCanvasHeightScale(source.size), this._width - this._margin.left - 200]);
+                let layout = d3.tree().nodeSize([this._maxNodeRadius+4, this._maxNodeRadius+4]);
+                var treeLayout = layout(source);
+                this.nodes[treeIndex] = treeLayout.descendants().filter(d=>{return !d.data.aggregate});
+                this.aggregates[treeIndex] = treeLayout.descendants().filter(d=>{return d.data.aggregate});
                 this.links[treeIndex] = treeLayout.descendants().slice(1);
                 
-                this._calcNodePositions(this.nodes[treeIndex], treeIndex);
+                this._calcNodePositions(treeLayout.descendants(), treeIndex);
 
                 //recalculate layouts
                 this._treeLayoutHeights[treeIndex] = this._getHeightFromTree(treeLayout);
@@ -515,6 +692,7 @@ class ChartView extends View{
                     this.model.state.hierarchyUpdated = false;
                 }
 
+                this.newDataFlag = 1;
             }
 
             
@@ -544,29 +722,43 @@ class ChartView extends View{
             // ---------------------------------------------
             // ENTER 
             // ---------------------------------------------
-            var node = treeGroup.selectAll("g.node")
+
+
+            var standardNodes = treeGroup.selectAll(".node")
                     .data(this.nodes[treeIndex], (d) =>  {
                         return d.data.metrics._hatchet_nid || d.data.id;
                     });
-            
-            var dummyNodes = treeGroup.selectAll("g.fakeNode")
-                .data(this.surrogates[treeIndex], (d) =>  {
-                    return d.data.metrics._hatchet_nid || d.data.id;
-                });
 
-            var aggNodes = treeGroup.selectAll("g.aggNode")
-                .data(this.aggregates[treeIndex], (d) =>  {
-                    return d.data.metrics._hatchet_nid || d.data.id;
-                });
-            
+            var aggNodes = treeGroup.selectAll(".aggNode")
+                    .data(this.aggregates[treeIndex], (d) =>  {
+                        return d.data.metrics._hatchet_nid || d.data.id;
+                    });
+
+            // links
+            var links = treeGroup.selectAll("path.link")
+                    .data(this.links[treeIndex], (d) =>  {
+                        return d.data.metrics._hatchet_nid || d.data.id;
+                    });
+                
+
+            // Enter any new links at the parent's previous position.
+            links.enter()
+                .append("path")
+                .attr("class", "link")
+                .attr("d", (d) =>  {
+                    return this.diagonal(d, d.parent, treeIndex);
+                })
+                .attr('fill', 'none')
+                .attr('stroke', '#ccc')
+                .attr('stroke-width', '2px');
+
+
             // Enter any new nodes at the parent's previous position.
-            var nodeEnter = node.enter().append('g')
+            var nodeEnter = standardNodes.enter()
+                    .append('g')
                     .attr('class', 'node')
-                    .attr("transform", (d) =>  {
-                        if(!d.parent){
-                            return "translate(0,0)"
-                        }
-                        return "translate(" + d.parent.y + "," + d.parent.x + ")";
+                    .attr("transform", (d) => {
+                        return `translate(${this._treeDepthScale(d.depth)}, ${this._getLocalNodeX(d.x, treeIndex)})`;
                     })
                     .on("click", (d) => {
                         console.log(d);
@@ -583,22 +775,50 @@ class ChartView extends View{
                         })
                     });
 
+            nodeEnter.append("circle")
+                    .attr('class', 'circleNode')
+                    .style("fill", (d) => {
+                        return this.color_managers[treeIndex].calcColorScale(d.data);
+                    })
+                    .attr('cursor', 'pointer')
+                    .style('stroke-width', '1px')
+                    .style('stroke', 'black')
+                    .attr("r", (d, i) => {
+                        return this._nodeScale(d.data.metrics[secondaryMetric]);
+                    });
 
-            var dNodeEnter = dummyNodes.enter().append('g')
-                .attr('class', 'fakeNode')
-                .on("click", (d) => {
-                    this.observers.notify({
-                        type: globals.signals.CLICK,
-                        node: d
-                    })
-                })
-                .on('dblclick', (d) =>  {
-                    this.observers.notify({
-                        type: globals.signals.DBLCLICK,
-                        node: d
-                    })
-                });
+
+            nodeEnter.append("text")
+                        .attr("x", (d) => {
+                            return d.children || this.model.state['collapsedNodes'].includes(d) ? -13 : this._nodeScale(d.data.metrics[secondaryMetric]) + 5;
+                        })
+                        .attr("dy", ".5em")
+                        .attr("text-anchor", (d) => {
+                            return d.children || this.model.state['collapsedNodes'].includes(d) ? "end" : "start";
+                        })
+                        .text((d) => {
+                            if(!d.children || d.children.length == 0){
+                            let n = d.data.name;
+                                if (n.includes("<unknown file>")){
+                                    n = n.replace('<unknown file>', '');
+                                }
+                                return n;
+                            }
+                            return "";
+                        })
+                        .style("font", "12px monospace")
+                        .style('fill','rgba(0,0,0,.9)');
+
+            // dNodeEnter.append("path")
+            //         .attr('class', 'dummyNode')
+            //         .attr("d", "M 6 2 C 6 2 5 2 5 3 S 6 4 6 4 S 7 4 7 3 S 6 2 6 2 Z M 6 3 S 6 3 6 3 Z M 8 0 C 8 0 7 0 7 1 C 7 1 7 2 8 2 C 8 2 9 2 9 1 C 9 0 8 0 8 0 M 9 5 C 9 4 8 4 8 4 S 7 4 7 5 S 8 6 8 6 S 9 6 9 5")
+            //         .attr("fill", "rgba(0,0,0, .4)")
+            //         .style("stroke-width", ".5px")
+            //         .style("stroke", "rgba(100,100,100)");
             
+
+
+                        
             var aggNodeEnter = aggNodes.enter().append('g')
                 .attr('class', 'aggNode')
                 .attr("transform", (d) =>  {
@@ -617,33 +837,18 @@ class ChartView extends View{
                         node: d
                     })
                 });
-            
 
-            nodeEnter.append("circle")
-                    .attr('class', 'circleNode')
-                    .attr("r", 1e-6)
-                    .style("fill", (d) => {
-                        return this.color_managers[treeIndex].calcColorScale(d.data);
-                    })
-                    .style('stroke-width', '1px')
-                    .style('stroke', 'black');
-
-            dNodeEnter.append("path")
-                    .attr('class', 'dummyNode')
-                    .attr("d", "M 6 2 C 6 2 5 2 5 3 S 6 4 6 4 S 7 4 7 3 S 6 2 6 2 Z M 6 3 S 6 3 6 3 Z M 8 0 C 8 0 7 0 7 1 C 7 1 7 2 8 2 C 8 2 9 2 9 1 C 9 0 8 0 8 0 M 9 5 C 9 4 8 4 8 4 S 7 4 7 5 S 8 6 8 6 S 9 6 9 5")
-                    .attr("fill", "rgba(0,0,0, .4)")
-                    .style("stroke-width", ".5px")
-                    .style("stroke", "rgba(100,100,100)");
-            
             aggNodeEnter.append("circle")
                     .attr('class', 'aggNodeCircle')
                     .attr('r', (d) => {return this._aggNodeScale(d.data.aggregateMetrics[secondaryMetric]);})
-                    .attr("fill", "rgba(0,0,0)")
-                    .style("stroke-width", ".5px")
-                    .style("stroke", "rgba(100,100,100)")
-                    .attr("transform", function (d) {
+                    .attr("fill", (d) =>  {
+                        return this.color_managers[treeIndex].calcAggColorScale(d.data);
+                    })
+                    .style("stroke-width", "1px")
+                    .style("stroke", "black")
+                    .attr('transform', function (d) {
                         let r = self._aggNodeScale(d.data.aggregateMetrics[secondaryMetric]);
-                        return `translate(${r/2}, ${r/2})`;
+                        return `translate(0, ${r/2})`;
                     });
 
             let arrows = aggNodeEnter.append('path')
@@ -662,106 +867,41 @@ class ChartView extends View{
             
             arrows.attr('transform', function(d){
                 let rad = self._aggNodeScale(d.data.aggregateMetrics[secondaryMetric]);
-                return `translate(${rad*2},${(rad/4)})`
-            })
-                    
-
-            // commenting out text for now
-            nodeEnter.append("text")
-                    .attr("x", (d) => {
-                        return d.children || this.model.state['collapsedNodes'].includes(d) ? -13 : 13;
-                    })
-                    .attr("dy", ".75em")
-                    .attr("text-anchor", (d) => {
-                        return d.children || this.model.state['collapsedNodes'].includes(d) ? "end" : "start";
-                    })
-                    .text((d) => {
-                        if(!d.children){
-                            let n = d.data.name;
-                            if (n.includes("<unknown file>")){
-                                n = n.replace('<unknown file>', '');
-                            }
-                            return n;
-                        }
-                        else if(d.children.length == 1){
-                            return "";
-                        }
-                        return "";
-                    })
-                    .style("font", "12px monospace")
-                    .style('fill','rgba(0,0,0,.9)');
-
-            dNodeEnter.append("text")
-                .attr("x", function () {
-                    return 30;
-                })
-                .attr("dy", "1em")
-                .attr("text-anchor", function () {
-                    return "start";
-                })
-                .text((d) =>  {
-                    if (d.elided.length > 1){
-                        return `Children of: ${d.parent.data.name}` ;
-                    } 
-                    else{
-                        return `${d.data.name} Subtree`;
-                    }
-                })
-                .style("font", "12px monospace")
-                .style('fill','rgba(0,0,0,.9)');
-
-            aggNodeEnter.append("text")
-                .attr("x", function () {
-                    return 25;
-                })
-                .attr("dy", "1em")
-                .attr("text-anchor", function () {
-                    return "start";
-                })
-                .text((d) =>  {
-                    if (d.elided.length > 1){
-                        let n = d.parent.data.name;
-                        if (n.includes("<unknown file>")){
-                            n = n.replace('<unknown file>', '');
-                        }
-                        return `Children of: ${n}` ;
-                    } 
-                    else{
-                        let n = d.data.name;
-                        if (n.includes("<unknown file>")){
-                            n = n.replace('<unknown file>', '');
-                        }
-                        return `${n} Subtree`;
-                    }
-                })
-                .style("font", "12px monospace")
-                .style('fill','rgba(0,0,0,.9)');
-
-
-            // links
-            var link = treeGroup.selectAll("path.link")
-            .data(this.links[treeIndex], (d) =>  {
-                return d.data.metrics._hatchet_nid || d.data.id;
+                return `translate(${rad*2},${(-rad/2)})`
             });
-
-            // Enter any new links at the parent's previous position.
-            var linkEnter = link.enter().insert("path", "g")
-                    .attr("class", "link")
-                    .attr("d", (d) =>  {
-                        return this.diagonal(d.parent, d.parent, treeIndex);
-                    })
-                    .attr('fill', 'none')
-                    .attr('stroke', '#ccc')
-                    .attr('stroke-width', '2px');
+            
+            // aggNodeEnter.append("text")
+            //     .attr("x", function () {
+            //         return 25;
+            //     })
+            //     .attr("dy", ".5em")
+            //     .attr("text-anchor", function () {
+            //         return "start";
+            //     })
+            //     .text((d) =>  {
+            //         if (d.elided.length > 1){
+            //             let n = d.parent.data.name;
+            //             if (n.includes("<unknown file>")){
+            //                 n = n.replace('<unknown file>', '');
+            //             }
+            //             return `Children of: ${n}` ;
+            //         } 
+            //         else{
+            //             let n = d.data.name;
+            //             if (n.includes("<unknown file>")){
+            //                 n = n.replace('<unknown file>', '');
+            //             }
+            //             return `${n} Subtree`;
+            //         }
+            //     })
+            //     .style("font", "12px monospace")
+            //     .style('fill','rgba(0,0,0,.9)');
+            
 
 
             // ---------------------------------------------
             // Updates 
             // ---------------------------------------------
-            var nodeUpdate = nodeEnter.merge(node);
-            var dNodeUpdate = dNodeEnter.merge(dummyNodes);
-            var linkUpdate = linkEnter.merge(link);
-            var aggNodeUpdate = aggNodeEnter.merge(aggNodes);
             
             // Chart updates
             chart
@@ -791,42 +931,27 @@ class ChartView extends View{
             this.primary_legends[treeIndex].render();
             this.secondary_legends[treeIndex].render();
 
-
-
             // Transition links to their new position.
-            linkUpdate.transition()
+            links.transition()
                     .duration(globals.duration)
                     .attr("d", (d) => {
                         return this.diagonal(d, d.parent, treeIndex);
                     });
 
             // Transition normal nodes to their new position.
-            nodeUpdate
-                .transition()
+            standardNodes.transition()
                 .duration(globals.duration)
                 .attr("transform", (d) => {
                     return `translate(${this._treeDepthScale(d.depth)}, ${this._getLocalNodeX(d.x, treeIndex)})`;
                 });
                     
             //update other characteristics of nodes
-            nodeUpdate
-                .select('circle.circleNode')
+            standardNodes.select('circle.circleNode')
                 .style('stroke', (d) => {
-                    if (this.model.state['collapsedNodes'].includes(d)){
-                        return "#89c3e0";
-                    }
-                    else{
                         return 'black';
-                    }
                 })
-                .style("stroke-dasharray", (d) => {
-                    return this.model.state['collapsedNodes'].includes(d) ? '4' : '0';
-                }) //lightblue
                 .style('stroke-width', (d) => {
-                    if (this.model.state['collapsedNodes'].includes(d)){
-                        return '6px';
-                    } 
-                    else if (this.model.state['selectedNodes'].some(n=>n.data.id == d.data.id)){
+                    if (this.model.state['selectedNodes'].some(n=>n.data.id == d.data.id)){
                         return '4px';
                     } 
                     else {
@@ -837,9 +962,6 @@ class ChartView extends View{
                 .transition()
                 .duration(globals.duration)
                 .attr("r", (d, i) => {
-                    if (this.model.state['selectedNodes'].some(n=>n.data.id == d.data.id)){
-                        return this._nodeScale(d.data.metrics[secondaryMetric]) + 2;
-                    }
                     return this._nodeScale(d.data.metrics[secondaryMetric]);
                 })
                 .style('fill', (d) => {
@@ -847,46 +969,29 @@ class ChartView extends View{
 
                 });
             
-            nodeUpdate.select("text")
-                .attr("x", (d) => {
-                    return d.children || this.model.state['collapsedNodes'].includes(d) ? -13 : this._nodeScale(d.data.metrics[secondaryMetric]) + 5;
-                })
-                .attr("dy", ".5em")
-                .attr("text-anchor", (d) => {
-                    return d.children || this.model.state['collapsedNodes'].includes(d) ? "end" : "start";
-                })
-                .text((d) => {
-                    if(!d.children || d.children.length == 0){
-                    let n = d.data.name;
-                        if (n.includes("<unknown file>")){
-                            n = n.replace('<unknown file>', '');
+            if(this.newDataFlag){
+                standardNodes.select("text")
+                    .attr("x", (d) => {
+                        return d.children || this.model.state['collapsedNodes'].includes(d) ? -13 : this._nodeScale(d.data.metrics[secondaryMetric]) + 5;
+                    })
+                    .attr("dy", ".5em")
+                    .attr("text-anchor", (d) => {
+                        return d.children || this.model.state['collapsedNodes'].includes(d) ? "end" : "start";
+                    })
+                    .text((d) => {
+                        if((d.data.text === undefined) && (!d.children || d.children.length == 0)){
+                            let n = d.data.name;
+                            if (n.includes("<unknown file>")){
+                                n = n.replace('<unknown file>', '');
+                            }
+                            return n;
                         }
-                        return n;
-                    }
-                    return "";
-                });
-            
-            dNodeUpdate
-                .selectAll(".dummyNode")
-                .attr("d", "M 6 2 C 6 2 5 2 5 3 S 6 4 6 4 S 7 4 7 3 S 6 2 6 2 Z M 6 3 S 6 3 6 3 Z M 8 0 C 8 0 7 0 7 1 C 7 1 7 2 8 2 C 8 2 9 2 9 1 C 9 0 8 0 8 0 M 9 5 C 9 4 8 4 8 4 S 7 4 7 5 S 8 6 8 6 S 9 6 9 5")
-                .attr("fill", "rgba(180,180,180)")
-                .style("stroke-width", ".5px")
-                .style("stroke", "rgba(100,100,100)")
-                .attr("transform", function () {
-                    let scale = 3;
-                    return `scale(${scale})`;
-                });
-            
-            dNodeUpdate
-                .transition()
-                .duration(globals.duration)
-                .attr("transform", function (d)  {
-                        let h = d3.select(this).select('path').node().getBBox().height;
-                        return `translate(${self._treeDepthScale(d.depth)-15}, ${self._getLocalNodeX(d.x, treeIndex) - (h+1)/2})`;
-                });
+                        return "";
+                    });
+            }
 
             
-            aggNodeUpdate
+            aggNodes
                 .transition()
                 .duration(globals.duration)
                 .attr("transform", function (d) {
@@ -894,7 +999,7 @@ class ChartView extends View{
                 });
 
 
-            aggNodeUpdate
+            aggNodes
                 .select('.aggNodeCircle')
                 .attr('r', (d) => {return  this._aggNodeScale(d.data.aggregateMetrics[secondaryMetric]);})
                 .style('stroke-width', (d) => {
@@ -908,13 +1013,12 @@ class ChartView extends View{
                 .style('fill', (d) =>  {
                     return this.color_managers[treeIndex].calcAggColorScale(d.data);
                 })
-                .transition()
-                .duration(globals.duration)
-                .attr("transform", function (d) {
+                .attr('transform', function (d) {
                     let r = self._aggNodeScale(d.data.aggregateMetrics[secondaryMetric]);
-                    return `translate(${r/2}, ${r/2})`;
+                    return `translate(0, ${r/2})`;
                 });
-            aggNodeUpdate
+
+            aggNodes
                 .select('.aggNodeArrow')
                 .attr('d', (d)=>{
                     let rad = self._aggNodeScale(d.data.aggregateMetrics[secondaryMetric])-1;
@@ -927,7 +1031,7 @@ class ChartView extends View{
                 })
                 .attr('transform', function(d){
                     let rad = self._aggNodeScale(d.data.aggregateMetrics[secondaryMetric]);
-                    return `translate(${rad*2},${-rad/4})`
+                    return `translate(${rad*2},${(-rad/2)})`
                 });
 
             
@@ -936,37 +1040,40 @@ class ChartView extends View{
             // Exit
             // ---------------------------------------------
             // Transition exiting nodes to the parent's new position.
-            var nodeExit = node.exit().transition()
+            var nodeExit = standardNodes.exit()
+                .transition()
                 .duration(globals.duration)
                 .attr("transform", (d) =>  {
+                    console.log(d.data.name, d.parent.data.name, d.xMainG, d.yMainG, this._treeDepthScale(d.depth), this._getLocalNodeX(d.x, treeIndex), "translate(" + this._treeDepthScale(d.parent.depth) + "," + this._getLocalNodeX(d.parent.x, treeIndex) + ")");
                     return "translate(" + this._treeDepthScale(d.parent.depth) + "," + this._getLocalNodeX(d.parent.x, treeIndex) + ")";
                 })
                 .remove();
 
-            nodeExit.select("circle")
-                .attr("r", 1e-6);
-
-            nodeExit.select("text")
-                .style("fill-opacity", 1)
-                .remove();
-            
-            dummyNodes.exit()
-                .remove();
+            console.log("EXITED:", nodeExit.size());
+            console.log("Remaining:", standardNodes.size());
+            console.log("Entered:", nodeEnter.size());
             
             aggNodes.exit()
                 .remove();
 
             // Transition exiting links to the parent's new position.
-        link.exit().transition()
+            links.exit().transition()
                 .duration(globals.duration)
                 .attr("d", (d) =>  {
                     return this.diagonal(d.parent, d.parent, treeIndex);
                 })
                 .remove();
-            
+
             // make canvas always fit tree height
             this.chartOffset = this._treeLayoutHeights[treeIndex] + this.treeOffset + this._margin.top;
             this._height += this.chartOffset;
+            
+            if(standardNodes.size() > nodeEnter.size()){
+                this.manageLabelCollisions(standardNodes);
+            }
+            else{
+                this.manageLabelCollisions(nodeEnter);
+            }
         }                    
 
         this.svg.attr("height", this._height);
