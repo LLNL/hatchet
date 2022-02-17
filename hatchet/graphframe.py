@@ -703,7 +703,7 @@ class GraphFrame:
                 continue
             # Assume that metrics ending in "(inc)" are generated
             if inc.endswith("(inc)"):
-                possible_exc = inc[:-len("(inc)")].strip()
+                possible_exc = inc[: -len("(inc)")].strip()
                 if possible_exc not in self.exc_metrics:
                     generation_pairs.append((possible_exc, inc))
             else:
@@ -713,11 +713,18 @@ class GraphFrame:
                 new_data = {}
                 for node in self.graph.traverse():
                     for non_node_idx in self.dataframe.loc[(node)].index.unique():
-                        assert isinstance(non_node_idx, tuple) or isinstance(non_node_idx, list), "MultiIndex iteration is not producing the expected type"
-                        full_idx = (node, *non_node_idx)
+                        assert isinstance(non_node_idx, tuple) or isinstance(
+                            non_node_idx, list
+                        ), "MultiIndex iteration is not producing the expected type"
+                        # TODO: Replace the full_idx assignment with the following when 2.7 support
+                        # is dropped:
+                        # full_idx = (node, *non_node_idx)
+                        full_idx = (node) + tuple(non_node_idx)
                         inc_sum = 0
                         for child in node.children:
-                            inc_sum += self.dataframe.loc[(child, *non_node_idx), inc]
+                            # TODO: See note about full_idx above
+                            child_idx = (child) + tuple(non_node_idx)
+                            inc_sum += self.dataframe.loc[child_idx, inc]
                         new_data[full_idx] = self.dataframe.loc[full_idx, inc] - inc_sum
                 self.dataframe[exc] = pd.Series(data=new_data)
             else:
@@ -745,7 +752,7 @@ class GraphFrame:
         new_inc_metrics = []
         for exc in self.exc_metrics:
             if exc.endswith("(exc)"):
-                new_inc_metrics.append(exc[:-len("(exc)")].strip())
+                new_inc_metrics.append(exc[: -len("(exc)")].strip())
             else:
                 new_inc_metrics.append("%s (inc)" % exc)
         self.inc_metrics = new_inc_metrics
