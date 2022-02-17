@@ -3,6 +3,7 @@ from hatchet import GraphFrame
 from itertools import groupby
 import pandas as pd
 
+
 def unify_ensemble(gf_list):
 
     # Taken from the Python Itertools Recipes page:
@@ -13,7 +14,7 @@ def unify_ensemble(gf_list):
         return next(g, True) and not next(g, False)
 
     if not all_equal([gf.graph for gf in gf_list]):
-        raise ValueError("\"unify_ensemble\" requires all graphs to be equal")
+        raise ValueError('"unify_ensemble" requires all graphs to be equal')
     unify_df = pd.DataFrame()
     for i, gf in enumerate(gf_list):
         curr_df = gf.dataframe.copy()
