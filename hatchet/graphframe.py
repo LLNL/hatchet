@@ -32,6 +32,17 @@ except ImportError:
     raise
 
 
+def graphframe_reader(func):
+
+    def dataset_assign(first_arg, *args, **kwargs):
+        gf = dataset_assign(first_arg, *args, **kwargs)
+        if gf.dataset is None and isinstance(first_arg, str):
+            gf.dataset = first_arg
+        return gf
+
+    return dataset_assign
+
+
 def parallel_apply(filter_function, dataframe, queue):
     """A function called in parallel, which does a pandas apply on part of a
     dataframe and returns the results via multiprocessing queue function."""
@@ -52,6 +63,7 @@ class GraphFrame:
         exc_metrics=None,
         inc_metrics=None,
         default_metric="time",
+        dataset=None,
         metadata={},
     ):
         """Create a new GraphFrame from a graph and a dataframe.
@@ -84,7 +96,9 @@ class GraphFrame:
         self.inc_metrics = [] if inc_metrics is None else inc_metrics
         self.default_metric = default_metric
         self.metadata = metadata
+        self.dataset = dataset
 
+    @graphframe_reader
     @staticmethod
     def from_hpctoolkit(dirname):
         """Read an HPCToolkit database directory into a new GraphFrame.
@@ -101,6 +115,7 @@ class GraphFrame:
 
         return HPCToolkitReader(dirname).read()
 
+    @graphframe_reader
     @staticmethod
     def from_caliper(filename_or_stream, query=None):
         """Read in a Caliper .cali or .json file.
@@ -116,6 +131,7 @@ class GraphFrame:
 
         return CaliperReader(filename_or_stream, query).read()
 
+    @graphframe_reader
     @staticmethod
     def from_caliperreader(filename_or_caliperreader):
         """Read in a native Caliper `cali' file using Caliper's python reader.
@@ -129,6 +145,7 @@ class GraphFrame:
 
         return CaliperNativeReader(filename_or_caliperreader).read()
 
+    @graphframe_reader
     @staticmethod
     def from_spotdb(db_key, list_of_ids=None):
         """Read multiple graph frames from a SpotDB instance
@@ -160,6 +177,7 @@ class GraphFrame:
 
         return GprofDotReader(filename).read()
 
+    @graphframe_reader
     @staticmethod
     def from_cprofile(filename):
         """Read in a pstats/prof file generated using python's cProfile."""
@@ -168,6 +186,7 @@ class GraphFrame:
 
         return CProfileReader(filename).read()
 
+    @graphframe_reader
     @staticmethod
     def from_pyinstrument(filename):
         """Read in a JSON file generated using Pyinstrument."""
@@ -176,6 +195,7 @@ class GraphFrame:
 
         return PyinstrumentReader(filename).read()
 
+    @graphframe_reader
     @staticmethod
     def from_tau(dirname):
         """Read in a profile generated using TAU."""
@@ -184,6 +204,7 @@ class GraphFrame:
 
         return TAUReader(dirname).read()
 
+    @graphframe_reader
     @staticmethod
     def from_timemory(input=None, select=None, **_kwargs):
         """Read in timemory data.
@@ -268,6 +289,7 @@ class GraphFrame:
                 )
                 raise
 
+    @graphframe_reader
     @staticmethod
     def from_literal(graph_dict):
         """Create a GraphFrame from a list of dictionaries."""
@@ -276,6 +298,7 @@ class GraphFrame:
 
         return LiteralReader(graph_dict).read()
 
+    @graphframe_reader
     @staticmethod
     def from_lists(*lists):
         """Make a simple GraphFrame from lists.
@@ -298,6 +321,7 @@ class GraphFrame:
         gf.update_inclusive_columns()
         return gf
 
+    @graphframe_reader
     @staticmethod
     def from_hdf(filename, **kwargs):
         # import this lazily to avoid circular dependencies
