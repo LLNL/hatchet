@@ -7,7 +7,8 @@ const globals = Object.freeze({
     AVG: "avg",
     signals: {
         CLICK: "CLICK",
-        DBLCLICK: "DBLCLICK",
+        COLLAPSESUBTREE: "COLLAPSESUBTREE",
+        COMPOSEINTERNAL: "COMPOSEINTERNAL",
         BRUSH: "BRUSH",
         TOGGLEBRUSH: "TOGGLEBRUSH",
         COLLAPSE: "COLLAPSE",
@@ -19,7 +20,8 @@ const globals = Object.freeze({
         REQUESTMASSPRUNE: "REQUESTMASSPRUNE",
         RESETVIEW: "RESET",
         PRUNERANGEUPDATE: "PRUNERANGEUPDATE",
-        UPDATESELECTED: "UPDATESELECTED"
+        UPDATESELECTED: "UPDATESELECTED",
+        SNAPSHOT: "SNAPSHOT"
     },
     layout: {
         margin: {top: 20, right: 20, bottom: 20, left: 20},

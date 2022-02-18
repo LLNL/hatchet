@@ -21,8 +21,11 @@ class Controller{
                 case (globals.signals.CLICK):
                     this.model.updateSelected([evt.node]);
                     break;
-                case (globals.signals.DBLCLICK):
+                case (globals.signals.COLLAPSESUBTREE):
                     this.model.handleDoubleClick(evt.node);
+                    break;
+                case(globals.signals.COMPOSEINTERNAL):
+                    this.model.handleNodeComposition(evt.node);
                     break;
                 case(globals.signals.TOGGLEBRUSH):
                     this.model.toggleBrush();
@@ -53,6 +56,9 @@ class Controller{
                     break;
                 case(globals.signals.PRUNERANGEUPDATE):
                     this.model.updatePruneRange(evt.low, evt.high);
+                    break;
+                case(globals.signals.SNAPSHOT):
+                    this.model.storeSnapshotQuery();
                     break;
                 default:
                     console.warn('Unknown event type', evt.type);

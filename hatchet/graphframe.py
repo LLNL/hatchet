@@ -885,7 +885,7 @@ class GraphFrame:
             node_dict["name"] = node_name
             node_dict["frame"] = hnode.frame.attrs
             node_dict["metrics"] = metrics_to_dict(df_index)
-            node_dict["metrics"]["_hatchet_nid"] = hnode._hatchet_nid
+            node_dict["metrics"]["_hatchet_nid"] = int(self.dataframe["nid"][df_index])
             node_dict["attributes"] = attributes_to_dict(df_index)
 
             if hnode.children and hnode not in visited:

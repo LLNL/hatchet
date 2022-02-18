@@ -556,7 +556,7 @@ class ChartView extends View{
         for (var treeIndex = 0; treeIndex < this.model.forest.numberOfTrees; treeIndex++) {
             let layout = d3.tree().nodeSize([this._maxNodeRadius+4, this._maxNodeRadius+4]);
             // .size([this._treeCanvasHeightScale(this.model.forest.getCurrentTree(treeIndex).size), this._width - this._margin.left - 200]);
-            const tree = this.model.forest.getCurrentTree(treeIndex);
+            let tree = this.model.forest.getCurrentTree(treeIndex);
             let currentRoot = layout(tree);
             let currentLayoutHeight = this._getHeightFromTree(currentRoot);
             let currentMinMax = this._getMinxMaxxFromTree(currentRoot);
@@ -768,11 +768,18 @@ class ChartView extends View{
                         })
                     })
                     .on('dblclick', (d) =>  {
-                        this.observers.notify({
-                            type: globals.signals.DBLCLICK,
-                            node: d,
-                            tree: treeIndex
-                        })
+                        if(d3.event.ctrlKey){
+                            this.observers.notify({
+                                type: globals.signals.COMPOSEINTERNAL,
+                                node: d
+                            });
+                        }
+                        else{
+                            this.observers.notify({
+                                type: globals.signals.COLLAPSESUBTREE,
+                                node: d
+                            });
+                        }
                     });
 
             nodeEnter.append("circle")
@@ -833,7 +840,7 @@ class ChartView extends View{
                 })
                 .on('dblclick', (d) =>  {
                     this.observers.notify({
-                        type: globals.signals.DBLCLICK,
+                        type: globals.signals.COLLAPSESUBTREE,
                         node: d
                     })
                 });
@@ -1044,14 +1051,14 @@ class ChartView extends View{
                 .transition()
                 .duration(globals.duration)
                 .attr("transform", (d) =>  {
-                    console.log(d.data.name, d.parent.data.name, d.xMainG, d.yMainG, this._treeDepthScale(d.depth), this._getLocalNodeX(d.x, treeIndex), "translate(" + this._treeDepthScale(d.parent.depth) + "," + this._getLocalNodeX(d.parent.x, treeIndex) + ")");
+                    // console.log(d.data.name, d.parent.data.name, d.xMainG, d.yMainG, this._treeDepthScale(d.depth), this._getLocalNodeX(d.x, treeIndex), "translate(" + this._treeDepthScale(d.parent.depth) + "," + this._getLocalNodeX(d.parent.x, treeIndex) + ")");
                     return "translate(" + this._treeDepthScale(d.parent.depth) + "," + this._getLocalNodeX(d.parent.x, treeIndex) + ")";
                 })
                 .remove();
 
-            console.log("EXITED:", nodeExit.size());
-            console.log("Remaining:", standardNodes.size());
-            console.log("Entered:", nodeEnter.size());
+            // console.log("EXITED:", nodeExit.size());
+            // console.log("Remaining:", standardNodes.size());
+            // console.log("Entered:", nodeEnter.size());
             
             aggNodes.exit()
                 .remove();

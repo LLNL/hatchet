@@ -2,7 +2,6 @@ import { makeSignaller, RT} from "./cct_globals";
 import { bin } from 'd3-array';
 import Forest  from './cct_repr';
 
-
 class Model{
     constructor(){
         this._observers = makeSignaller();
@@ -16,7 +15,8 @@ class Model{
                         "rootNodeNames": ["Show all trees"],
                         "currentStrictness": 1.5,
                         "distCounts":[],
-                        "maxHeight": 0
+                        "maxHeight": 0,
+                        "removedNodes": []
                     };
 
         this.state = {
@@ -110,7 +110,8 @@ class Model{
         return nodeStr;
     }
 
-    _printQuery(nodeList) {
+
+    _printQuery(nodeList, exclude) {
         /**
              * Prints out user selected nodes as a query string which can be used in the GraphFrame.filter() function.
              * 
@@ -135,9 +136,19 @@ class Model{
             }
         }
 
-        //do some evaluation for other subtrees
+        // do some evaluation for other subtrees
         // we could generate python code that does this
-        var queryStr = ['<no query generated>'];
+        var queryStr = '<no query generated>';
+
+
+        // let conditions = ''
+
+
+        // let queryStr = `MATCH (n)
+        //             WHERE ${conditions}`;
+
+        
+
         if(!leftMostNode.data.aggregate && !rightMostNode.data.aggregate){
             if ((nodeList.length > 1) && (selectionIsAChain)) {
                 // This query is for chains
@@ -156,6 +167,8 @@ class Model{
 
         return queryStr;
     }
+
+
 
     register(s){
         /**
@@ -368,7 +381,7 @@ class Model{
         // Replaces a node if one was elided
         // Appends if multiple were elided
         else{
-            console.log("IN EXPAND:", d);
+            // console.log("IN EXPAND:", d);
             if(d.data.elided.length == 1){
                 // patch that clears aggregate metrics upon doubleclick
                 let insIndex = d.parent.children.indexOf(d);
@@ -388,11 +401,37 @@ class Model{
 
         this.state["lastClicked"] = d;
 
-        console.log("POST EXPAND:", d.parent.children);
+        // console.log("POST EXPAND:", d.parent.children);
 
         this.state.hierarchyUpdated = true;
         this._observers.notify();
     }
+
+    handleNodeComposition(node){
+        let children = node.children
+        let parent = node.parent
+        
+
+        let index = parent.children.indexOf(node);
+        parent.children.splice(index, 1);
+
+        if(children != undefined && children.length > 0){
+            for(let child of children){
+                child.each(n=>{
+                    n.depth--;
+                    n.height++;
+                })
+                child.parent = parent;
+            }
+            parent.children = parent.children.concat(children);
+        }
+
+        this.data.removedNodes.push(node);
+
+        this.state.hierarchyUpdated = true;
+        this._observers.notify();
+    }
+    
 
     toggleBrush(){
         /**
@@ -539,6 +578,86 @@ class Model{
          */
         this.state.resetView = true;
         this._observers.notify();
+    }
+
+
+
+    storeSnapshotQuery(){
+        let leaves = []
+        for(let tree of this.forest.getTrees()){
+            leaves = leaves.concat(tree.leaves()); 
+        }
+
+        let aggs = leaves.filter((n)=>{return n.data.aggregate})
+
+
+        let partial_query = `[`
+
+        for(const node of this.data.removedNodes){
+            partial_query += `${node.data.metrics._hatchet_nid},`;
+        }
+
+        for(const node of aggs){
+            for(const child of node.data.elided){
+                child.each((ch)=>{
+                    partial_query += `${ch.data.metrics._hatchet_nid},`;
+                })
+            }
+            // node.
+        }
+
+        partial_query = partial_query.slice(0,-1) + `]`;
+
+
+
+
+        // let node_query = `MATCH ('*')->(n)\n`;
+        // let initial_flag = true;
+        // for(const leaf of norms){
+        //     if(initial_flag){
+        //         node_query += `WHERE n."node_id" = ${leaf.data.metrics._hatchet_nid}\n`;
+        //         initial_flag = false;
+        //     }
+        //     else{
+        //         node_query += `OR n."node_id" = ${leaf.data.metrics._hatchet_nid}\n`;
+        //     }
+        // }
+
+        let outerfunct = `def fil_generator():
+    return lambda n: n.nid not in ${partial_query}`
+        
+        //will likely just return a list of nodes
+
+        RT['jsNodeSelected'] = partial_query;
+
+        
+        // console.log(leaves);
+        // console.log(aggs);
+        // console.log(norms);
+
+        // for(const node of this.data.removedNodes){
+        //     if(initial_flag){
+        //         partial_query += `WHERE NOT n."node_id" = ${node.data.metrics._hatchet_nid}\n`;
+        //         initial_flag = false;
+        //     }
+        //     else{
+        //         partial_query += `AND NOT n."node_id" = ${node.data.metrics._hatchet_nid}\n`;
+        //     }
+        // }
+
+
+
+        // for(const leaf of aggs){
+        //     if(initial_flag){
+        //         partial_query += `WHERE NOT n."node_id" >= ${leaf.data.metrics._hatchet_nid}\n`;
+        //         initial_flag = false;
+        //     }
+        //     else{
+        //         partial_query += `AND NOT n."node_id" >= ${leaf.data.metrics._hatchet_nid}\n`;
+        //     }
+        // }
+
+        
     }
 
 }
