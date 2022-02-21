@@ -1176,3 +1176,18 @@ def test_hdf_load_store(mock_graph_literal):
 
     if os.path.exists("test_gframe.hdf"):
         os.remove("test_gframe.hdf")
+
+
+def test_preserve_inc_metrics(mock_graph_literal_inc_time_as_foo):
+    gf = GraphFrame.from_literal(mock_graph_literal_inc_time_as_foo)
+    if "foo" in gf.exc_metrics:
+        gf.exc_metrics.remove("foo")
+    if "foo" not in gf.inc_metrics:
+        gf.inc_metrics.append("foo")
+
+    assert sorted(gf.exc_metrics) == ["time"]
+    assert sorted(gf.inc_metrics) == ["foo"]
+
+    gf.update_inclusive_columns()
+    assert sorted(gf.inc_metrics) == sorted(["time (inc)", "foo"])
+    assert gf.dataframe["time (inc)"].equals(gf.dataframe["foo"])

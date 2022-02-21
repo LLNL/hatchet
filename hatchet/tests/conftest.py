@@ -348,6 +348,176 @@ def mock_graph_literal():
 
 
 @pytest.fixture
+def mock_graph_literal_inc_time_as_foo():
+    """Same as mock_graph_literal, but the "time (inc)"
+    metric is renamed to "foo"
+    """
+    graph_dict = [
+        {
+            "frame": {"name": "foo", "type": "function"},
+            "metrics": {"foo": 135.0, "time": 0.0},
+            "children": [
+                {
+                    "frame": {"name": "bar"},
+                    "metrics": {"foo": 20.0, "time": 5.0},
+                    "children": [
+                        {
+                            "frame": {"name": "baz", "type": "function"},
+                            "metrics": {"foo": 5.0, "time": 5.0},
+                        },
+                        {
+                            "frame": {"name": "grault"},
+                            "metrics": {"foo": 10.0, "time": 10.0},
+                        },
+                    ],
+                },
+                {
+                    "frame": {"name": "qux", "type": "function"},
+                    "metrics": {"foo": 60.0, "time": 0.0},
+                    "children": [
+                        {
+                            "frame": {"name": "quux"},
+                            "metrics": {"foo": 60.0, "time": 5.0},
+                            "children": [
+                                {
+                                    "frame": {"name": "corge", "type": "function"},
+                                    "metrics": {"foo": 55.0, "time": 10.0},
+                                    "children": [
+                                        {
+                                            "frame": {"name": "bar"},
+                                            "metrics": {
+                                                "foo": 20.0,
+                                                "time": 5.0,
+                                            },
+                                            "children": [
+                                                {
+                                                    "frame": {
+                                                        "name": "baz",
+                                                        "type": "function",
+                                                    },
+                                                    "metrics": {
+                                                        "foo": 5.0,
+                                                        "time": 5.0,
+                                                    },
+                                                },
+                                                {
+                                                    "frame": {"name": "grault"},
+                                                    "metrics": {
+                                                        "foo": 10.0,
+                                                        "time": 10.0,
+                                                    },
+                                                },
+                                            ],
+                                        },
+                                        {
+                                            "frame": {"name": "grault"},
+                                            "metrics": {
+                                                "foo": 10.0,
+                                                "time": 10.0,
+                                            },
+                                        },
+                                        {
+                                            "frame": {
+                                                "name": "garply",
+                                                "type": "function",
+                                            },
+                                            "metrics": {
+                                                "foo": 15.0,
+                                                "time": 15.0,
+                                            },
+                                        },
+                                    ],
+                                }
+                            ],
+                        }
+                    ],
+                },
+                {
+                    "frame": {"name": "waldo", "type": "function"},
+                    "metrics": {"foo": 55.0, "time": 0.0},
+                    "children": [
+                        {
+                            "frame": {"name": "fred", "type": "function"},
+                            "metrics": {"foo": 40.0, "time": 5.0},
+                            "children": [
+                                {
+                                    "frame": {"name": "plugh", "type": "function"},
+                                    "metrics": {"foo": 5.0, "time": 5.0},
+                                },
+                                {
+                                    "frame": {"name": "xyzzy", "type": "function"},
+                                    "metrics": {"foo": 30.0, "time": 5.0},
+                                    "children": [
+                                        {
+                                            "frame": {
+                                                "name": "thud",
+                                                "type": "function",
+                                            },
+                                            "metrics": {
+                                                "foo": 25.0,
+                                                "time": 5.0,
+                                            },
+                                            "children": [
+                                                {
+                                                    "frame": {
+                                                        "name": "baz",
+                                                        "type": "function",
+                                                    },
+                                                    "metrics": {
+                                                        "foo": 5.0,
+                                                        "time": 5.0,
+                                                    },
+                                                },
+                                                {
+                                                    "frame": {
+                                                        "name": "garply",
+                                                        "type": "function",
+                                                    },
+                                                    "metrics": {
+                                                        "foo": 15.0,
+                                                        "time": 15.0,
+                                                    },
+                                                },
+                                            ],
+                                        }
+                                    ],
+                                },
+                            ],
+                        },
+                        {
+                            "frame": {"name": "garply", "type": "function"},
+                            "metrics": {"foo": 15.0, "time": 15.0},
+                        },
+                    ],
+                },
+            ],
+        },
+        {
+            "frame": {"name": "waldo", "type": "function"},
+            "metrics": {"foo": 30.0, "time": 10.0},
+            "children": [
+                {
+                    "frame": {"name": "bar"},
+                    "metrics": {"foo": 20.0, "time": 5.0},
+                    "children": [
+                        {
+                            "frame": {"name": "baz", "type": "function"},
+                            "metrics": {"foo": 5.0, "time": 5.0},
+                        },
+                        {
+                            "frame": {"name": "grault"},
+                            "metrics": {"foo": 10.0, "time": 10.0},
+                        },
+                    ],
+                }
+            ],
+        },
+    ]
+
+    return graph_dict
+
+
+@pytest.fixture
 def mock_dag_literal1():
     """Creates a mock DAG."""
     dag_ldict = [
