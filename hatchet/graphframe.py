@@ -15,7 +15,7 @@ import multiprocess as mp
 from .node import Node
 from .graph import Graph
 from .frame import Frame
-from .query import AbstractQuery, QueryMatcher, CypherQuery
+from .query import AbstractQuery, QueryMatcher, parse_cypher_query
 from .external.console import ConsoleRenderer
 from .util.dot import trees_to_dot
 from .util.deprecated import deprecated_params
@@ -421,7 +421,7 @@ class GraphFrame:
             if isinstance(filter_obj, list):
                 query = QueryMatcher(filter_obj)
             elif isinstance(filter_obj, str):
-                query = CypherQuery(filter_obj)
+                query = parse_cypher_query(filter_obj)
             query_matches = query.apply(self)
             # match_set = list(set().union(*query_matches))
             # filtered_df = dataframe_copy.loc[dataframe_copy["node"].isin(match_set)]
