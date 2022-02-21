@@ -704,7 +704,7 @@ class QueryMatcher(AbstractQuery):
             self._apply_impl(gf, child, visited, matches)
 
 
-GRAMMAR = u"""
+CYPHER_GRAMMAR = u"""
 FullQuery: path_expr=MatchExpr(cond_expr=WhereExpr)?;
 MatchExpr: 'MATCH' path=PathQuery;
 PathQuery: '(' nodes=NodeExpr ')'('->' '(' nodes=NodeExpr ')')*;
@@ -738,7 +738,7 @@ NumInf: name=ID '.' prop=STRING 'IS INF';
 NumNotInf: name=ID '.' prop=STRING 'IS NOT INF';
 """
 
-mm = metamodel_from_str(GRAMMAR)
+cypher_query_mm = metamodel_from_str(CYPHER_GRAMMAR)
 
 
 def cname(obj):
@@ -763,7 +763,7 @@ class CypherQuery(QueryMatcher):
             super().__init__()
         model = None
         try:
-            model = mm.model_from_str(cypher_query)
+            model = cypher_query_mm.model_from_str(cypher_query)
         except TextXError as e:
             # TODO Change to a "raise-from" expression when Python 2.7 support is dropped
             raise InvalidQueryPath(
@@ -1245,6 +1245,92 @@ class CypherQuery(QueryMatcher):
             'not np.isinf(df_row["{}"])'.format(obj.prop),
             "isinstance(df_row['{}'], Real)".format(obj.prop),
         ]
+
+
+def parse_cypher_query(query_str):
+    # TODO Check if there's a way to prevent curly braces in a string
+    #      from being captured
+    query_str = query_str.strip()
+    curly_brace_elems = re.findall("\{(.*?)\}", query_str)
+    num_curly_brace_elems = len(curly_brace_elems)
+    if num_curly_brace_elems == 0:
+        return CypherQuery(query_str)
+    curly_brace_iter = re.finditer("\{(.*?)\}", query_str)
+    condition_list = None
+    query_list = None
+    query_idxes = None
+    compound_ops = []
+    for i, match in enumerate(curly_brace_iter):
+        substr = query_str[match.start():match.end()]
+        substr = substr.strip()
+        if substr.startswith("MATCH"):
+            if query_list is None:
+                query_list = []
+            if query_idxes is None:
+                query_idxes = []
+            query_list.append(substr)
+            query_idxes.append((match.start(), match.end()))
+        elif re.match("[a-zA-Z0-9_]+\..*", substr) is not None:
+            is_encapsulated_region = False
+            if query_idxes is not None:
+                for s, e in query_idxes:
+                    if match.start() >= s or match.end() <= e:
+                        is_encapsulated_region = True
+                        break
+            if is_encapsulated_region:
+                continue
+            if condition_list is None:
+                condition_list = []
+            condition_list.append(substr)
+        else:
+            raise ValueError("Invalid grouping (with curly braces) within the query")
+        if i+1 >= num_curly_brace_elems:
+            rest_substr = query_str[match.end():]
+            rest_substr = rest_substr.strip()
+            if rest_substr.startswith("AND"):
+                compound_ops.append("AND")
+            elif rest_substr.startswith("OR"):
+                compound_ops.append("OR")
+            elif rest_substr.startswith("XOR"):
+                compound_ops.append("XOR")
+            else:
+                raise ValueError("Invalid compound operator type found!")
+    if condition_list is not None and query_list is not None:
+        raise ValueError("Curly braces must be around either a full mid-level query or a set of conditions in a single mid-level query")
+    if condition_list is not None:
+        if len(condition_list) != len(compound_ops) + 1:
+            raise ValueError("Incompatible number of curly brace elements and compound operators")
+        match_comp_obj = re.search("MATCH\s+(?P<match_field>.*)\s+WHERE", query_str)
+        match_comp = match_comp_obj.group("match_field")
+        full_query = None
+        for i, op in enumerate(compound_ops):
+            if i == 0:
+                query1 = "MATCH {} WHERE {}".format(match_comp, condition_list[i])
+                full_query = CypherQuery(query1)
+            next_query = "MATCH {} WHERE {}".format(match_comp, condition_list[i+1])
+            next_query = CypherQuery(next_query)
+            if op == "AND":
+                full_query = full_query & query2
+            elif op == "OR":
+                full_query = full_query | query2
+            else:
+                full_query = full_query ^ query2
+        return full_query
+    else:
+        if len(query_list) != len(compound_ops) + 1:
+            raise ValueError("Incompatible number of curly brace elements and compound operators")
+        full_query = None
+        for i, op in enumerate(compound_ops):
+            if i == 0:
+                full_query = parse_cypher_query(query_list[i])
+            next_query = parse_cypher_query(query_list[i+1])
+            if op == "AND":
+                full_query = full_query & query2
+            elif op == "OR":
+                full_query = full_query | query2
+            else:
+                full_query = full_query ^ query2
+        return full_query
 
 
 class AndQuery(NaryQuery):
