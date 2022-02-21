@@ -1184,7 +1184,7 @@ def test_unify_ensemble(lulesh_caliper_json):
     real_dset_names = []
     num_nodes_per_gf = {}
     for i in range(10):
-        gf = GraphFrame.from_caliper_json(str(lulesh_caliper_json))
+        gf = GraphFrame.from_caliper(str(lulesh_caliper_json))
         dset_name = "dset{}".format(i)
         num_nodes_per_gf[dset_name] = len(gf.dataframe.groupby("name"))
         gf.dataset = dset_name
