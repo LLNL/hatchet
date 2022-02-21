@@ -1262,14 +1262,14 @@ def parse_cypher_query(query_str):
 
     # Find the number of curly brace-delimited regions in the query
     query_str = query_str.strip()
-    curly_brace_elems = re.findall("\{(.*?)\}", query_str)
+    curly_brace_elems = re.findall(r"\{(.*?)\}", query_str)
     num_curly_brace_elems = len(curly_brace_elems)
     # If there are no curly brace-delimited regions, just pass the query
     # off to the CypherQuery constructor
     if num_curly_brace_elems == 0:
         return CypherQuery(query_str)
     # Create an iterator over the curly brace-delimited regions
-    curly_brace_iter = re.finditer("\{(.*?)\}", query_str)
+    curly_brace_iter = re.finditer(r"\{(.*?)\}", query_str)
     # Will store curly brace-delimited regions in the WHERE clause
     condition_list = None
     # Will store curly brace-delimited regions that contain entire
@@ -1299,7 +1299,7 @@ def parse_cypher_query(query_str):
         # WHERE clause, first, check if the region is within another
         # curly brace delimited region. If it is, do nothing (it will
         # be handled later). Otherwise, add the region to "condition_list"
-        elif re.match("[a-zA-Z0-9_]+\..*", substr) is not None:
+        elif re.match(r"[a-zA-Z0-9_]+\..*", substr) is not None:
             is_encapsulated_region = False
             if query_idxes is not None:
                 for s, e in query_idxes:
@@ -1344,7 +1344,7 @@ def parse_cypher_query(query_str):
                 "Incompatible number of curly brace elements and compound operators"
             )
         # Get the MATCH clause that will be shared across the subqueries
-        match_comp_obj = re.search("MATCH\s+(?P<match_field>.*)\s+WHERE", query_str)
+        match_comp_obj = re.search(r"MATCH\s+(?P<match_field>.*)\s+WHERE", query_str)
         match_comp = match_comp_obj.group("match_field")
         # Iterate over the compound operators
         full_query = None
@@ -1363,11 +1363,11 @@ def parse_cypher_query(query_str):
             # Add the next query to the full query using the compound operator
             # currently being considered
             if op == "AND":
-                full_query = full_query & query2
+                full_query = full_query & next_query
             elif op == "OR":
-                full_query = full_query | query2
+                full_query = full_query | next_query
             else:
-                full_query = full_query ^ query2
+                full_query = full_query ^ next_query
         return full_query
     # This branch is for the full query version
     else:
@@ -1390,11 +1390,11 @@ def parse_cypher_query(query_str):
             # Add the next query to the full query using the compound operator
             # currently being considered
             if op == "AND":
-                full_query = full_query & query2
+                full_query = full_query & next_query
             elif op == "OR":
-                full_query = full_query | query2
+                full_query = full_query | next_query
             else:
-                full_query = full_query ^ query2
+                full_query = full_query ^ next_query
         return full_query
 
 
