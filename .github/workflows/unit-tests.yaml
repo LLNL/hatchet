@@ -53,13 +53,19 @@ jobs:
     - name: Update Black
       if: ${{ matrix.python-version == 3.7 }}
       run: |
-        pip install --upgrade black
+        pip install flake8-pytest-importorskip
+        pip install black==21.12b0
 
     - name: Lint and Format Check with Flake8 and Black
       if: ${{ matrix.python-version == 3.7 }}
       run: |
         black --diff --check .
         flake8
+
+    - name: Update Coverage
+      if: ${{ matrix.python-version == 3.8 }}
+      run: |
+        pip install coverage==6.2
 
     - name: Basic Test with pytest
       run: |

@@ -20,7 +20,7 @@ You can install hatchet using pip:
 
 .. code-block:: console
 
-  $ pip install hatchet
+  $ pip install llnl-hatchet
 
 After installing hatchet, you can import hatchet when running the Python
 interpreter in interactive mode:
@@ -46,11 +46,11 @@ You are good to go!
 The Hatchet repository includes stand-alone Python-based Jupyter notebook examples based on this
 tutorial.
 You can find them in the hatchet `GitHub repository
-<https://github.com/hatchet/hatchet/tree/develop/docs/examples>`_. You can get a local copy of the repository using ``git``:
+<https://github.com/llnl/hatchet/tree/develop/docs/examples>`_. You can get a local copy of the repository using ``git``:
 
 .. code-block:: console
 
-  $ git clone https://github.com/hatchet/hatchet.git
+  $ git clone https://github.com/llnl/hatchet.git
 
 You will find the tutorial notebooks in your local hatchet repository under
 ``docs/examples/tutorial/``.

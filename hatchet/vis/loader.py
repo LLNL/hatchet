@@ -45,7 +45,6 @@ class CCT(Magics):
         args = line.split(" ")
 
         RT.load_webpack(path.join(self.vis_dist, "cct_bundle.html"), cache=False)
-
         RT.var_to_js(
             args[0], "hatchet_tree_def", watch=False, to_js_converter=_gf_to_json
         )

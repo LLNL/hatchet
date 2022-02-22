@@ -15,7 +15,7 @@ import multiprocess as mp
 from .node import Node
 from .graph import Graph
 from .frame import Frame
-from .query import AbstractQuery, QueryMatcher, CypherQuery
+from .query import AbstractQuery, QueryMatcher, parse_cypher_query
 from .external.console import ConsoleRenderer
 from .util.dot import trees_to_dot
 from .util.deprecated import deprecated_params
@@ -128,6 +128,29 @@ class GraphFrame:
         from .readers.caliper_native_reader import CaliperNativeReader
 
         return CaliperNativeReader(filename_or_caliperreader).read()
+
+    @staticmethod
+    def from_spotdb(db_key, list_of_ids=None):
+        """Read multiple graph frames from a SpotDB instance
+
+        Args:
+            db_key (str or SpotDB object): locator for SpotDB instance
+                This can be a SpotDB object directly, or a locator for a spot
+                database, which is a string with either
+                    * A directory for .cali files,
+                    * A .sqlite file name
+                    * A SQL database URL (e.g., "mysql://hostname/db")
+
+            list_of_ids: The list of run IDs to read from the database.
+                If this is None, returns all runs.
+
+        Returns:
+            A list of graphframes, one for each requested run that was found
+        """
+
+        from .readers.spotdb_reader import SpotDBReader
+
+        return SpotDBReader(db_key, list_of_ids).read()
 
     @staticmethod
     def from_gprof_dot(filename):
@@ -398,7 +421,7 @@ class GraphFrame:
             if isinstance(filter_obj, list):
                 query = QueryMatcher(filter_obj)
             elif isinstance(filter_obj, str):
-                query = CypherQuery(filter_obj)
+                query = parse_cypher_query(filter_obj)
             query_matches = query.apply(self)
             # match_set = list(set().union(*query_matches))
             # filtered_df = dataframe_copy.loc[dataframe_copy["node"].isin(match_set)]

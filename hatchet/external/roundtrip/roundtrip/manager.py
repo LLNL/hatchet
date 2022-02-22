@@ -1,3 +1,7 @@
+<<<<<<< HEAD
+=======
+from sqlite3 import DataError
+>>>>>>> COMPOUNDQUERIES
 from IPython.display import Javascript, HTML, display
 from IPython import get_ipython
 from bs4 import BeautifulSoup
@@ -6,8 +10,12 @@ import io
 import tokenize
 import json
 import inspect
+<<<<<<< HEAD
 import os
 import sys
+=======
+import pathlib
+>>>>>>> COMPOUNDQUERIES
 
 
 def _default_converter(data):
@@ -29,7 +37,10 @@ def _default_converter(data):
         return json.dumps(data)
     elif "DataFrame" in str(type(data)) or "Series" in str(type(data)):
         return data.to_json()
+<<<<<<< HEAD
 
+=======
+>>>>>>> COMPOUNDQUERIES
     return data
 
 
@@ -59,7 +70,11 @@ class RoundTrip:
     to the roundtrip object in roundtrip.js.
     """
 
+<<<<<<< HEAD
     def __init__(self, ipy_shell=get_ipython(), test=False):
+=======
+    def __init__(self, ipy_shell=get_ipython()):
+>>>>>>> COMPOUNDQUERIES
         """
         Initialize our singelton roundtrip instance.
 
@@ -67,6 +82,7 @@ class RoundTrip:
 
         TODO: Throw an error if attempting to run outside of a Jupyter notebook.
         """
+<<<<<<< HEAD
 
         if sys.version_info[0] < 3:
             print(
@@ -75,6 +91,8 @@ class RoundTrip:
                 )
             )
 
+=======
+>>>>>>> COMPOUNDQUERIES
         self.shell = ipy_shell
         self.tags = {
             "script": "<script src='{src}'></script>",
@@ -86,6 +104,7 @@ class RoundTrip:
         self.watched = {}
         self.scrid = 0
         self.relative_html_caches = {}
+<<<<<<< HEAD
         self.istest = test
 
         js_directory = os.path.dirname(os.path.realpath(__file__))
@@ -99,6 +118,16 @@ class RoundTrip:
         else:
             self.rt_js = Javascript(script)
             display(self.rt_js)
+=======
+
+        js_directory = pathlib.Path(__file__).parent.resolve()
+
+        # Load the javascript roundtrip object upon creation of the python object
+        with open(js_directory.joinpath("roundtrip.js"), "r") as f:
+            script = f.read()
+
+        display(Javascript(script))
+>>>>>>> COMPOUNDQUERIES
 
     script_map = {"csv": "text/csv", "json": "text/json"}
 
@@ -162,7 +191,11 @@ class RoundTrip:
         )
         output_html = scope_var + output_html
 
+<<<<<<< HEAD
         bdg = Bridge(output_html, ipy_shell=self.shell, test=self.istest)
+=======
+        bdg = Bridge(output_html, ipy_shell=self.shell)
+>>>>>>> COMPOUNDQUERIES
 
         self.scrid += 1
 
@@ -353,6 +386,17 @@ class RoundTrip:
                             }})();\n"""
         code = ""
 
+<<<<<<< HEAD
+=======
+        # TODO: FIX BUG WHICH MAKES THIS CODE BLOCK READ AS AN ASSIGNMENT
+        """
+        subselection = []
+        rng = ranges
+        for r in rng:
+            subselection += rng[r]
+        subselection = np.array(subselection)
+        """
+>>>>>>> COMPOUNDQUERIES
         for var in self.watched.keys():
             for i, token in enumerate(tokens):
                 if token.string == var:
@@ -377,14 +421,22 @@ class RoundTrip:
         if code != "":
             display(Javascript(code))
 
+<<<<<<< HEAD
     def fetch_data(self, js_var, ipy_var, converter=_default_from_converter):
+=======
+    def fetch_data(self, js_var, ipy_var):
+>>>>>>> COMPOUNDQUERIES
         """
         Retrieves data from the javascript Roundtrip object.
 
         :param js_var: String containing the key in the Javascript roundtrip object where the desired data can be found
         :param ipy_var: A String containing the name of a variable in the Jupyter notebook namespace where the retrieved data can be stored
         """
+<<<<<<< HEAD
         self.bridges[self.last_id].retrieve_from_js(js_var, ipy_var, converter)
+=======
+        self.bridges[self.last_id].retrieve_from_js(js_var, ipy_var)
+>>>>>>> COMPOUNDQUERIES
 
     def initialize(self):
         """
@@ -395,35 +447,47 @@ class RoundTrip:
 
 
 class Bridge:
+<<<<<<< HEAD
     def __init__(self, html, js=None, ipy_shell=get_ipython(), test=False):
+=======
+    def __init__(self, html, js=None, ipy_shell=get_ipython()):
+>>>>>>> COMPOUNDQUERIES
         self.html = html
         self.scripts = js
         self.shell = ipy_shell
         self.display = display(HTML(""), display_id=True)
         self.id = self.display.display_id
         self.converter = _default_converter
+<<<<<<< HEAD
         self.istest = test
 
         if self.istest:
             self.active_scripts = []
             self.active_html = None
+=======
+>>>>>>> COMPOUNDQUERIES
 
     def _extract_simple_dt(self, dt_str):
         return dt_str.split("'")[1]
 
     def run(self):
+<<<<<<< HEAD
         if not self.istest:
             display(HTML(self.html))
         else:
             new_HTML = HTML(self.html)
             self.active_html = new_HTML
             self.display.update(new_HTML)
+=======
+        self.display.update(HTML(self.html))
+>>>>>>> COMPOUNDQUERIES
 
         if self.scripts is not None:
             js_exe = ""
             for script in self.scripts:
                 js_exe += script
 
+<<<<<<< HEAD
             if not self.istest:
                 display(Javascript(js_exe))
             else:
@@ -438,6 +502,12 @@ class Bridge:
             new_Javascript = Javascript(code)
             self.active_scripts.append(new_Javascript)
             display(new_Javascript)
+=======
+            display(Javascript(js_exe))
+
+    def add_javascript(self, code):
+        display(Javascript(code))
+>>>>>>> COMPOUNDQUERIES
 
     # put down explicit write notification (maybe)
     # watch errors with user documentation
@@ -470,6 +540,7 @@ class Bridge:
             datatype = type(data)
             datatype = self._extract_simple_dt(str(datatype))
 
+<<<<<<< HEAD
         # some default conversion
         # we may want to push this off to the application
         # developer
@@ -478,6 +549,19 @@ class Bridge:
         else:
             data = py_to_js_converter(data)
             self.converter = py_to_js_converter
+=======
+        try:
+            # some default conversion
+            # we may want to push this off to the application
+            # developer
+            if py_to_js_converter is None:
+                data = self._default_converter(data)
+            else:
+                data = py_to_js_converter(data)
+                self.converter = py_to_js_converter
+        except DataError:
+            pass
+>>>>>>> COMPOUNDQUERIES
 
         # Patch: Ensure all ' and " are escaped
         data = data.replace('"', '\\"').replace("'", "\\'")
@@ -501,13 +585,19 @@ class Bridge:
             )
         )
 
+<<<<<<< HEAD
     def retrieve_from_js(self, js_variable, notebook_var, converter):
         # TODO: add validator(s)
 
+=======
+    def retrieve_from_js(self, js_variable, notebook_var):
+        # TODO: add validator(s)
+>>>>>>> COMPOUNDQUERIES
         hook_template = """
             (function(){{
                     var holder = Roundtrip['{src}'];
                     holder = `\'${{holder}}\'`;
+<<<<<<< HEAD
                     var code = {converter_code};
                     code += `\n{dest} = {converter_name}(${{holder}})`;
                     IPython.notebook.kernel.execute(code, {{
@@ -536,6 +626,14 @@ class Bridge:
             new_Javascript = Javascript(hook)
             self.active_scripts.append(new_Javascript)
             display(new_Javascript)
+=======
+                    var code = `{dest} = ${{holder}}`;
+                    IPython.notebook.kernel.execute(code);
+                    }})()
+               """
+        hook = hook_template.format(src=str(js_variable), dest=str(notebook_var))
+        display(Javascript(hook))
+>>>>>>> COMPOUNDQUERIES
         # self.add_javascript(hook)
 
 
