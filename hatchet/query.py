@@ -1283,7 +1283,7 @@ def parse_cypher_query(query_str):
     compound_ops = []
     for i, match in enumerate(curly_brace_iter):
         # Get the substring within curly braces
-        substr = query_str[match.start() : match.end()]
+        substr = query_str[match.start()+1 : match.end()-1]
         substr = substr.strip()
         # If an entire query (MATCH + WHERE) is within curly braces,
         # add the query to "query_list", and add the indexes corresponding
