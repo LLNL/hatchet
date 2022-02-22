@@ -214,7 +214,7 @@ class ChartView extends View{
         this._treeCanvasHeightScale = d3.scaleQuantize().range([450, 1250, 1500, 1750]).domain([1, 300]);
         this._treeDepthScale = d3.scaleLinear().range([0, element.offsetWidth-200]).domain([0, fMaxHeight])
         this._nodeScale = d3.scaleLinear().range([4, this._maxNodeRadius]).domain([secondaryMinMax.min, secondaryMinMax.max]);
-        this._aggNodeScale = d3.scaleLinear().range([4, this._maxNodeRadius]).domain([secondaryMinMax.min, secondaryMinMax.max]);
+        // this._aggNodeScale = d3.scaleLinear().range([4, this._maxNodeRadius]).domain([secondaryMinMax.min, secondaryMinMax.max]);
 
         //view specific data stores
         this.nodes = [];
@@ -250,19 +250,12 @@ class ChartView extends View{
             return;
         }
 
-
         let self = this;
-        let remove = [];
-
-
-        let potential_col = 0;
-        let inner = 0;
 
         let testBBs = [];
         //load bounding boxes 
         nodes.each(function(d){
             if(d.children != undefined && d.children.length > 0){
-                inner++;
                 return;
             }
 
@@ -288,8 +281,6 @@ class ChartView extends View{
                 compareBox = testBBs[j];
                 
                 if(compareBox.y < currentBox.y + 20 && compareBox.y > currentBox.y - 20){
-                    // console.log(currentBox);
-                    ++potential_col;
                     if(self.checkCollison(currentBox, compareBox)){
                          //collision resolution conditionals
                         let rmv = null;
@@ -320,68 +311,6 @@ class ChartView extends View{
                 }
             }
         }
-
-
-
-        // nodes.each(function(curr_d, i){
-        //     if(curr_d.children != undefined && curr_d.children.length > 0){
-        //         inner++;
-        //         return;
-        //     }
-        //     if(remove.includes(curr_d.data.metrics._hatchet_nid) || remove.includes(curr_d.data.id)){
-        //         return;
-        //     }
-
-        //     let currentBox = {};
-        //     let currentNode = this;
-        //     currentBox.y = curr_d.xMainG;
-        //     currentBox.x = curr_d.yMainG;
-        //     currentBox.height = this.getBBox().height;
-        //     currentBox.width = this.getBBox().width;
-
-        //     nodes.each(function(nd){
-        //         if(remove.includes(nd.data.metrics._hatchet_nid) || remove.includes(nd.data.id)){
-        //             return;
-        //         }
-
-        //         let compareBox = {};
-        //         let rmv = null;
-        //         compareBox.y = nd.xMainG;
-        //         compareBox.x = nd.yMainG;
-        //         compareBox.height = this.getBBox().height;
-        //         compareBox.width = this.getBBox().width;
-                
-        //         // if(curr_d.data.metrics._hatchet_nid == 26){
-        //         //     console.log(this, currentNode, self.checkCollison(currentBox, compareBox), compareBox.y, compareBox.height, currentBox.y, currentBox.height, currentNode.getBBox());
-        //         // }     
-        //         if(currentNode !== this && compareBox.y < currentBox.y + 20 && compareBox.y > currentBox.y - 5){
-        //             rmv = null;
-        //             ++potential_col;
-        //             if(self.checkCollison(currentBox, compareBox)){
-        //                 //collision resolution conditionals
-        //                 if(curr_d.depth > nd.depth){
-        //                     rmv = nd;
-        //                 }
-        //                 else if(curr_d.depth < nd.depth){
-        //                     rmv = curr_d;
-        //                 }
-        //                 else{
-        //                     if(nd.data.metrics[self.model.state.primaryMetric] > curr_d.data.metrics[self.model.state.primaryMetric]){
-        //                         rmv = nd;
-        //                     }
-        //                     else{
-        //                         rmv = curr_d;
-        //                     }
-        //                 }
-
-        //                 remove.push(rmv.data.metrics._hatchet_nid);
-        //                 // d3.select(rmv).select('text').text("");
-        //                 // d3.select(currentNode.parentNode).append('rect').attr('height',currentBox.height).attr('width', currentBox.width).attr('stroke', 'green').attr('stroke-width', '1px').attr('x', 13);
-        //             }
-        //         } 
-        //     })
-        // })
-
            
         nodes.select("text")
         .text((d) => {
@@ -395,11 +324,7 @@ class ChartView extends View{
             return "";
         });
 
-
-        console.log("NUMBER OF POTENTIAL CONFLICTS: ", nodes.size()-inner);
-        
         this.newDataFlag = 0;
-        console.log("COLLISION CHECKS:", potential_col);
     }
 
 
@@ -652,7 +577,7 @@ class ChartView extends View{
 
         //update scales
         this._nodeScale.domain([0, this.model.forest.forestMinMax[this.model.state.secondaryMetric].max]);
-        this._aggNodeScale.domain([this.model.forest.aggregateMinMax[this.model.state.secondaryMetric].min, this.model.forest.aggregateMinMax[this.model.state.secondaryMetric].max]);
+        // this._aggNodeScale.domain([this.model.forest.aggregateMinMax[this.model.state.secondaryMetric].min, this.model.forest.aggregateMinMax[this.model.state.secondaryMetric].max]);
 
         //add brush if there should be one
         if(this.model.state.brushOn > 0){
@@ -847,14 +772,14 @@ class ChartView extends View{
 
             aggNodeEnter.append("circle")
                     .attr('class', 'aggNodeCircle')
-                    .attr('r', (d) => {return this._aggNodeScale(d.data.aggregateMetrics[secondaryMetric]);})
+                    .attr('r', (d) => {return this._nodeScale(d.data.aggregateMetrics[secondaryMetric]);})
                     .attr("fill", (d) =>  {
                         return this.color_managers[treeIndex].calcAggColorScale(d.data);
                     })
                     .style("stroke-width", "1px")
                     .style("stroke", "black")
                     .attr('transform', function (d) {
-                        let r = self._aggNodeScale(d.data.aggregateMetrics[secondaryMetric]);
+                        let r = self._nodeScale(d.data.aggregateMetrics[secondaryMetric]);
                         return `translate(0, ${r/2})`;
                     });
 
@@ -863,7 +788,7 @@ class ChartView extends View{
                         .attr('fill', '#000')
                         .attr('stroke', '#000')
                         .attr('d', (d)=>{
-                                        let rad = self._aggNodeScale(d.data.aggregateMetrics[secondaryMetric]);
+                                        let rad = self._nodeScale(d.data.aggregateMetrics[secondaryMetric]);
 
                                         return `m 0,0 
                                         l 0,${rad*2} 
@@ -873,7 +798,7 @@ class ChartView extends View{
                                     });
             
             arrows.attr('transform', function(d){
-                let rad = self._aggNodeScale(d.data.aggregateMetrics[secondaryMetric]);
+                let rad = self._nodeScale(d.data.aggregateMetrics[secondaryMetric]);
                 return `translate(${rad*2},${(-rad/2)})`
             });
             
@@ -1008,7 +933,7 @@ class ChartView extends View{
 
             aggNodes
                 .select('.aggNodeCircle')
-                .attr('r', (d) => {return  this._aggNodeScale(d.data.aggregateMetrics[secondaryMetric]);})
+                .attr('r', (d) => {return  this._nodeScale(d.data.aggregateMetrics[secondaryMetric]);})
                 .style('stroke-width', (d) => {
                     if (this.model.state['selectedNodes'].includes(d)){
                         return '3px';
@@ -1021,14 +946,14 @@ class ChartView extends View{
                     return this.color_managers[treeIndex].calcAggColorScale(d.data);
                 })
                 .attr('transform', function (d) {
-                    let r = self._aggNodeScale(d.data.aggregateMetrics[secondaryMetric]);
+                    let r = self._nodeScale(d.data.aggregateMetrics[secondaryMetric]);
                     return `translate(0, ${r/2})`;
                 });
 
             aggNodes
                 .select('.aggNodeArrow')
                 .attr('d', (d)=>{
-                    let rad = self._aggNodeScale(d.data.aggregateMetrics[secondaryMetric])-1;
+                    let rad = self._nodeScale(d.data.aggregateMetrics[secondaryMetric])-1;
 
                     return `m 0,0 
                     l 0,${rad*2} 
@@ -1037,7 +962,7 @@ class ChartView extends View{
                     z`
                 })
                 .attr('transform', function(d){
-                    let rad = self._aggNodeScale(d.data.aggregateMetrics[secondaryMetric]);
+                    let rad = self._nodeScale(d.data.aggregateMetrics[secondaryMetric]);
                     return `translate(${rad*2},${(-rad/2)})`
                 });
 
