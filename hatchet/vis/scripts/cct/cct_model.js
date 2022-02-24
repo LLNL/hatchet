@@ -590,72 +590,61 @@ class Model{
 
         let aggs = leaves.filter((n)=>{return n.data.aggregate})
 
+        let full_query = '';
 
-        let partial_query = `[`
-
-        for(const node of this.data.removedNodes){
-            partial_query += `${node.data.metrics._hatchet_nid},`;
-        }
-
-        for(const node of aggs){
-            for(const child of node.data.elided){
-                child.each((ch)=>{
-                    partial_query += `${ch.data.metrics._hatchet_nid},`;
-                })
-            }
-            // node.
-        }
-
-        partial_query = partial_query.slice(0,-1) + `]`;
-
-
-
-
-        // let node_query = `MATCH ('*')->(n)\n`;
-        // let initial_flag = true;
-        // for(const leaf of norms){
-        //     if(initial_flag){
-        //         node_query += `WHERE n."node_id" = ${leaf.data.metrics._hatchet_nid}\n`;
-        //         initial_flag = false;
-        //     }
-        //     else{
-        //         node_query += `OR n."node_id" = ${leaf.data.metrics._hatchet_nid}\n`;
-        //     }
-        // }
-
-        let outerfunct = `def fil_generator():
-    return lambda n: n.nid not in ${partial_query}`
-        
-        //will likely just return a list of nodes
-
-        RT['jsNodeSelected'] = partial_query;
-
-        
-        // console.log(leaves);
-        // console.log(aggs);
-        // console.log(norms);
+        // let partial_query = `[`
 
         // for(const node of this.data.removedNodes){
-        //     if(initial_flag){
-        //         partial_query += `WHERE NOT n."node_id" = ${node.data.metrics._hatchet_nid}\n`;
-        //         initial_flag = false;
-        //     }
-        //     else{
-        //         partial_query += `AND NOT n."node_id" = ${node.data.metrics._hatchet_nid}\n`;
-        //     }
+        //     partial_query += `${node.data.metrics._hatchet_nid},`;
         // }
 
-
-
-        // for(const leaf of aggs){
-        //     if(initial_flag){
-        //         partial_query += `WHERE NOT n."node_id" >= ${leaf.data.metrics._hatchet_nid}\n`;
-        //         initial_flag = false;
+        // for(const node of aggs){
+        //     for(const child of node.data.elided){
+        //         child.each((ch)=>{
+        //             partial_query += `${ch.data.metrics._hatchet_nid},`;
+        //         })
         //     }
-        //     else{
-        //         partial_query += `AND NOT n."node_id" >= ${leaf.data.metrics._hatchet_nid}\n`;
-        //     }
+        //     // node.
         // }
+
+        // partial_query = partial_query.slice(0,-1) + `]`;
+
+
+        //inclusive query
+        let path_query = `MATCH (\\"*\\")->(n) `;
+        let initial_flag = true;
+        for(const leaf of leaves){
+            if(initial_flag){
+                path_query += `WHERE n.\\"node_id\\" = ${leaf.data.metrics._hatchet_nid}`;
+                initial_flag = false;
+            }
+            else{
+                path_query += ` OR n.\\"node_id\\" = ${leaf.data.metrics._hatchet_nid}`;
+            }
+        }
+
+        if(this.data.removedNodes.length > 0){
+            //exclusive query
+            initial_flag = true;
+            let ex_query = 'MATCH (r) ' 
+            for(const node of this.data.removedNodes){
+                if(initial_flag){
+                    ex_query += `WHERE NOT n.\\"node_id\\" = ${node.data.metrics._hatchet_nid}`;
+                    initial_flag = false;
+                }
+                else{
+                    ex_query += ` AND NOT n.\\"node_id\\" = ${node.data.metrics._hatchet_nid}`;
+                }
+            }
+
+            full_query=`{${path_query}} AND {${ex_query}}`
+        }
+
+        full_query=`${path_query}`
+        //will likely just return a list of nodes
+
+        
+        RT['jsNodeSelected'] = full_query;
 
         
     }

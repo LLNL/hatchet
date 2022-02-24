@@ -311,10 +311,6 @@ var RT_Handler = {
         return Reflect.set(obj[prop], "data", value);
     },
     get(obj, prop, reciever){
-<<<<<<< HEAD
-=======
-        // console.log("Get: ",...arguments);
->>>>>>> COMPOUNDQUERIES
         let ret = obj[prop].data
         return ret;  
     }
