@@ -52,6 +52,26 @@ var makeSignaller = function() {
 }
 
 
+const digitAbbrevScale = d3.scaleOrdinal().range(["K", "K", "K", "M", "M", "M", "B", "B", "B", "T", "T", "T",]).domain(new Array(12).fill(0).map((_,i)=>i+4));
+
+function getSigFigString(num){
+    if(num.toFixed(2).length <= 5){
+        return num.toFixed(2);
+    }
+    else{
+        let numdig = parseInt(num).toString().length;
+        for(let i = 4; i <= numdig; i +=3){
+            num = (parseInt(num)/1000);
+        }
+        let numstr = num.toFixed(2).toString();
+
+        let abbrev = digitAbbrevScale(numdig);
+
+        return numstr + abbrev;
+    }
+}
+
+
 var RT = window.Roundtrip;
 
-export { makeSignaller, globals, RT, d3 };
+export { makeSignaller, globals, RT, d3, getSigFigString };

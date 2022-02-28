@@ -14,7 +14,7 @@ def _gf_to_json(data):
 
     def serialize(obj):
         if isinstance(obj, Series):
-            return obj.to_json
+            return obj
         return obj.__dict__
 
     try:

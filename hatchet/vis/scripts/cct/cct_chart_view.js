@@ -1,4 +1,4 @@
-import { d3, globals } from "./cct_globals";
+import { d3, globals, getSigFigString } from "./cct_globals";
 import ColorManager from "./cct_color_manager";
 import View from "../utils/view";
 
@@ -19,7 +19,6 @@ class Legend extends View{
                     .attr('class', 'legend-grp');
 
         this.quantNodeScale = d3.scaleQuantize().range([0,1,2,3,4,5]).domain([this.secondaryMinMax[this.model.state.secondaryMetric].min, this.secondaryMinMax[this.model.state.secondaryMetric].max]);
-        this.digitAbbrevScale = d3.scaleOrdinal().range(["K", "K", "K", "M", "M", "M", "B", "B", "B", "T", "T", "T",]).domain(new Array(12).fill(0).map((_,i)=>i+4));
 
         this.preRender();
     }
@@ -38,23 +37,6 @@ class Legend extends View{
 
     getLegendHeight(){
         return this.leg_grp.node().getBBox().height;
-    }
-
-    getSigFigString(num){
-        if(num.toFixed(2).length <= 5){
-            return num.toFixed(2);
-        }
-        else{
-            let numdig = parseInt(num).toString().length;
-            for(let i = 4; i <= numdig; i +=3){
-                num = (parseInt(num)/1000);
-            }
-            let numstr = num.toFixed(2).toString();
-
-            let abbrev = this.digitAbbrevScale(numdig);
-
-            return numstr + abbrev;
-        }
     }
 
     preRender(){
@@ -166,9 +148,8 @@ class Legend extends View{
             .duration(globals.duration)
             .text((_, i) => {
                 if(this.type == "color"){
-                    this.getSigFigString(leg_dom[5-i][0]);
                     if (this.metricColumns.includes(this.model.state["primaryMetric"])) {
-                        return this.getSigFigString(leg_dom[5-i][0]) + ' - ' + this.getSigFigString(leg_dom[5-i][1]);
+                        return getSigFigString(leg_dom[5-i][0]) + ' - ' + getSigFigString(leg_dom[5-i][1]);
                     } 
                     else if (this.attributeColumns.includes(this.model.state["primaryMetric"])) {
                         return leg_dom[i];
@@ -176,7 +157,7 @@ class Legend extends View{
                 }
                 else if(this.type == "radius"){
                     let range = this.quantNodeScale.invertExtent(5-i);
-                    return `${this.getSigFigString(range[0])} - ${this.getSigFigString(range[1])}`;
+                    return `${getSigFigString(range[0])} - ${getSigFigString(range[1])}`;
                 } 
             });
     }
@@ -429,9 +410,15 @@ class ChartView extends View{
          */
         nodes.forEach(
             (d) => {
+                    if(d.data.id == 264){ 
+                        console.log("Before:", d.x)
+                    }
                     d.x0 = this._getLocalNodeX(d.x, treeIndex);
                     d.y0 = this._treeDepthScale(d.depth);
-                
+
+                    if(d.data.id == 264){
+                        console.log("After:", d.x0)
+                    }
                     // Store the overall position based on group
                     d.xMainG = d.x0 + this.chartOffset;
                     d.yMainG = d.y0 + this._margin.left;
@@ -452,7 +439,7 @@ class ChartView extends View{
             // .nodeSize([this._maxNodeRadius, this._maxNodeRadius]);
         
         
-        var zoom = d3.zoom()
+        this.zoom = d3.zoom()
             .on("zoom", function (){
                     let zoomObj = d3.select(this).selectAll(".chart");
                     zoomObj.attr("transform", d3.event.transform);
@@ -504,12 +491,16 @@ class ChartView extends View{
 
             this.legendOffset = Math.max(this.primary_legends[treeIndex].getLegendHeight(), this.secondary_legends[treeIndex].getLegendHeight());
 
+
+            this.treeOffset = 0 + this.legendOffset + this._margin.top;
+
             //make an invisible rectangle for zooming on
             newg.append('rect')
-                .attr('height', this._treeLayoutHeights[treeIndex])
+                .attr('class', 'zoom-rect')
+                .attr('height', currentLayoutHeight + this.treeOffset)
                 .attr('width', this._width)
                 .attr('fill', 'rgba(0,0,0,0)');
-
+        
             //put tree itself into a group
             newg.append('g')
                 .attr('class', 'chart')
@@ -517,8 +508,6 @@ class ChartView extends View{
                 .attr('height', globals.treeHeight)
                 .attr('width', this._width)
                 .attr('fill', 'rgba(0,0,0,0)');
-
-            this.treeOffset = 0 + this.legendOffset + this._margin.top;
 
             newg.style("display", "inline-block");
 
@@ -541,7 +530,7 @@ class ChartView extends View{
             this.chartOffset = this._treeLayoutHeights[treeIndex] + this.treeOffset + this._margin.top;
             this._height += this.chartOffset;
 
-            newg.call(zoom)
+            newg.call(this.zoom)
                 .on("dblclick.zoom", null);
 
         }
@@ -596,21 +585,26 @@ class ChartView extends View{
             var source = this.model.forest.getCurrentTree(treeIndex);
 
 
+            console.log(source);
+
             //will need to optimize this redrawing
             // by cacheing tree between calls
             if(this.model.state.hierarchyUpdated == true){
                 // let layout = d3.tree().size([this._treeCanvasHeightScale(source.size), this._width - this._margin.left - 200]);
                 let layout = d3.tree().nodeSize([this._maxNodeRadius+4, this._maxNodeRadius+4]);
                 var treeLayout = layout(source);
+
                 this.nodes[treeIndex] = treeLayout.descendants().filter(d=>{return !d.data.aggregate});
                 this.aggregates[treeIndex] = treeLayout.descendants().filter(d=>{return d.data.aggregate});
                 this.links[treeIndex] = treeLayout.descendants().slice(1);
                 
-                this._calcNodePositions(treeLayout.descendants(), treeIndex);
-
                 //recalculate layouts
                 this._treeLayoutHeights[treeIndex] = this._getHeightFromTree(treeLayout);
                 this._minmax[treeIndex] = this._getMinxMaxxFromTree(treeLayout);
+
+
+                //THIS MUST COME AFTER this._minmax update!!
+                this._calcNodePositions(treeLayout.descendants(), treeIndex);
 
                 //only update after last tree
                 if(treeIndex == this.model.forest.numberOfTrees - 1){
@@ -629,6 +623,8 @@ class ChartView extends View{
                  * BUG - D3 TRANSFORM EVENET DOES NOT UPDATE
                  */
                 treeGroup.attr("transform", "");
+
+                chart.call(this.zoom.transform, d3.zoomIdentity);
 
                 this.nodes[treeIndex].forEach(
                     (d) =>  {
@@ -687,9 +683,19 @@ class ChartView extends View{
                     })
                     .on("click", (d) => {
                         console.log(d);
+                        let data = [d];
+                        if(d3.event.shiftKey){
+                            if(this.model.state.selectedNodes.includes(d)){
+                                let delndx = this.model.state.selectedNodes.indexOf(d);
+                                this.model.state.selectedNodes.splice(delndx, 1);
+                                data = this.model.state.selectedNodes;
+                            }else{
+                                data = data.concat(this.model.state.selectedNodes);
+                            }
+                        }
                         this.observers.notify({
                             type: globals.signals.CLICK,
-                            node: d
+                            node: data
                         })
                     })
                     .on('dblclick', (d) =>  {
@@ -757,10 +763,9 @@ class ChartView extends View{
                     return `translate(${this._treeDepthScale(d.depth)}, ${this._getLocalNodeX(d.x, treeIndex)})`;
                 })
                 .on("click", (d) => {
-                    console.log(d);
                     this.observers.notify({
                         type: globals.signals.CLICK,
-                        node: d
+                        node: [d]
                     })
                 })
                 .on('dblclick', (d) =>  {
@@ -836,11 +841,12 @@ class ChartView extends View{
             // ---------------------------------------------
             
             // Chart updates
+
             chart
                 .transition()
                 .duration(globals.duration)
                 .attr("transform", () => {
-                    if(this.model.state["activeTree"].includes(this.model.forest.rootNodeNames[treeIndex+1])){
+                    if(this.model.state["activeTree"].includes(this.model.forest.rootNodeNames[treeIndex])){
                         return `translate(${this._margin.left}, ${this._margin.top})`;
                     } 
                     else {
@@ -851,7 +857,7 @@ class ChartView extends View{
                     if(this.model.state["activeTree"].includes("Show all trees")){
                         return "inline-block";
                     } 
-                    else if(this.model.state["activeTree"].includes(this.model.forest.rootNodeNames[treeIndex+1])){
+                    else if(this.model.state["activeTree"].includes(this.model.forest.rootNodeNames[treeIndex])){
                         return "inline-block";
                     } 
                     else {
@@ -883,7 +889,7 @@ class ChartView extends View{
                         return 'black';
                 })
                 .style('stroke-width', (d) => {
-                    if (this.model.state['selectedNodes'].some(n=>n.data.id == d.data.id)){
+                    if (this.model.state['selectedNodes'].some(n => n.data.id == d.data.id)){
                         return '4px';
                     } 
                     else {
@@ -997,9 +1003,11 @@ class ChartView extends View{
                 .remove();
 
             // make canvas always fit tree height
-            this.chartOffset = this._treeLayoutHeights[treeIndex] + this.treeOffset + this._margin.top;
-            this._height += this.chartOffset;
-            
+            if(this.model.state["activeTree"].includes("Show all trees") || this.model.state["activeTree"].includes(this.model.forest.rootNodeNames[treeIndex])){
+                this.chartOffset = this._treeLayoutHeights[treeIndex] + this.treeOffset + this._margin.top;
+                this._height += this.chartOffset;
+            }
+
             if(standardNodes.size() > nodeEnter.size()){
                 this.manageLabelCollisions(standardNodes);
             }
@@ -1008,6 +1016,7 @@ class ChartView extends View{
             }
         }                    
 
+        console.log(this.svg.node());
         this.svg.attr("height", this._height);
     }
 }

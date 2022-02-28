@@ -1,6 +1,6 @@
 import { bin } from 'd3-array';
 import View from '../utils/view';
-import {d3, globals} from './cct_globals';
+import {d3, globals, getSigFigString} from './cct_globals';
 
 class ScentedSliderPopup extends View{
 
@@ -74,19 +74,25 @@ class ScentedSliderPopup extends View{
         let update = false;
 
         if(slider.attr("class").includes('l-slider-grp')){
-            range_val = self.bins[bin_num].x0;
-            if(bin_num != this.current_l_bin && bin_num <= this.current_r_bin){
-                step_loc = self.h_x_scale(bin_num);
-                this.current_l_bin = bin_num;
-                update = true;
+            console.log(bin_num);
+            if(bin_num < self.bins.length){
+                range_val = self.bins[bin_num].x0;
+                if(bin_num != this.current_l_bin && bin_num <= this.current_r_bin){
+                    step_loc = self.h_x_scale(bin_num);
+                    this.current_l_bin = bin_num;
+                    update = true;
+                }
             }
         }
         else{
-            range_val = self.bins[bin_num].x1;
-            if(bin_num != this.current_r_bin && bin_num >= this.current_l_bin){
-                step_loc = self.h_x_scale(bin_num+1);
-                this.current_r_bin = bin_num;
-                update = true;
+            console.log(bin_num);
+            if(bin_num < self.bins.length){
+                range_val = self.bins[bin_num].x1;
+                if(bin_num != this.current_r_bin && bin_num >= this.current_l_bin){
+                    step_loc = self.h_x_scale(bin_num+1);
+                    this.current_r_bin = bin_num;
+                    update = true;
+                }
             }
         }
 
@@ -95,7 +101,7 @@ class ScentedSliderPopup extends View{
             self.update = true;
             slider.attr('transform', `translate(${step_loc-self.slider_width/2},0)`);
             // slider.select('text').text(`${range_val}`);
-            slider.select('text').text(`${range_val}`);
+            slider.select('text').text(`${getSigFigString(range_val)}`);
             slider.select('text').attr('x', function(){return -(this.getBBox().width/2) + self.slider_width/2});
         }
     }
@@ -240,7 +246,7 @@ class ScentedSliderPopup extends View{
                     .attr('stroke', 'rgba(200,50,50,1)');
 
         let txt = l_slider.append('text')
-                            .text(`${this.bins[parseInt(this.h_x_scale.invert(this.l_slider_pos_origin))].x0}`)
+                            .text(`${getSigFigString(this.bins[parseInt(this.h_x_scale.invert(this.l_slider_pos_origin))].x0)}`)
                             .attr('y', this.full_hist_height+2+this.slider_height+14);
 
         txt.attr('x', function(){return -(this.getBBox().width/2) + self.slider_width/2});
@@ -268,7 +274,7 @@ class ScentedSliderPopup extends View{
                     .attr('stroke', 'rgba(200,50,50,1)');
 
         txt = r_slider.append('text')
-                .text(`${this.bins[parseInt(this.h_x_scale.invert(this.r_slider_pos_origin))].x1}`)
+                .text(`${getSigFigString(this.bins[parseInt(this.h_x_scale.invert(this.r_slider_pos_origin))].x1)}`)
                 .attr('y', this.full_hist_height+2+this.slider_height+14);
 
         txt.attr('x', function(){return -(this.getBBox().width/2) + self.slider_width/2});
@@ -390,11 +396,11 @@ class ScentedSliderPopup extends View{
             let r_slider = this._svg.select('.r-slider-grp');
 
             l_slider.attr('transform', `translate(${l_step_loc-(this.slider_width/2)},0)`);
-            l_slider.select('text').text(`${self.bins[this.current_l_bin].x0}`);
+            l_slider.select('text').text(`${getSigFigString(self.bins[this.current_l_bin].x0)}`);
             l_slider.select('text').attr('x', function(){return -(this.getBBox().width/2) + self.slider_width/2});
 
             r_slider.attr('transform', `translate(${r_step_loc-(this.slider_width/2)},0)`);
-            r_slider.select('text').text(`${self.bins[this.current_r_bin].x1}`);
+            r_slider.select('text').text(`${getSigFigString(self.bins[this.current_r_bin].x1)}`);
             r_slider.select('text').attr('x', function(){return -(this.getBBox().width/2) + self.slider_width/2});
 
             

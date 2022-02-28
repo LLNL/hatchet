@@ -877,10 +877,15 @@ class GraphFrame:
 
             return df_index
 
+
         def metrics_to_dict(df_index):
             metrics_dict = {}
             for m in sorted(self.inc_metrics + self.exc_metrics):
                 node_metric_val = self.dataframe.loc[df_index, m]
+                if isinstance(node_metric_val, pd.Series):
+                    node_metric_val = node_metric_val[0]
+                if np.isinf(node_metric_val) or np.isneginf(node_metric_val):
+                    node_metric_val = 0.0
                 metrics_dict[m] = node_metric_val
 
             return metrics_dict
@@ -893,6 +898,8 @@ class GraphFrame:
             attributes_dict = {}
             for m in sorted(valid_columns):
                 node_attr_val = self.dataframe.loc[df_index, m]
+                if isinstance(node_attr_val, pd.Series):
+                    node_attr_val = node_attr_val[0]
                 attributes_dict[m] = node_attr_val
 
             return attributes_dict
@@ -904,11 +911,15 @@ class GraphFrame:
 
             node_name = self.dataframe.loc[df_index, name]
 
+            if(isinstance(node_name, pd.Series)):
+                self.dataframe.loc[df_index]
+                node_name = node_name[0]
 
             node_dict["name"] = node_name
             node_dict["frame"] = hnode.frame.attrs
             node_dict["metrics"] = metrics_to_dict(df_index)
-            node_dict["metrics"]["_hatchet_nid"] = int(self.dataframe["nid"][df_index])
+            # node_dict["metrics"]["_hatchet_nid"] = int(self.dataframe["nid"][df_index])
+            node_dict["metrics"]["_hatchet_nid"] = int(hnode._hatchet_nid)
             node_dict["attributes"] = attributes_to_dict(df_index)
 
             if hnode.children and hnode not in visited:

@@ -381,7 +381,6 @@ class Model{
         // Replaces a node if one was elided
         // Appends if multiple were elided
         else{
-            // console.log("IN EXPAND:", d);
             if(d.data.elided.length == 1){
                 // patch that clears aggregate metrics upon doubleclick
                 let insIndex = d.parent.children.indexOf(d);
@@ -588,7 +587,7 @@ class Model{
             leaves = leaves.concat(tree.leaves()); 
         }
 
-        let aggs = leaves.filter((n)=>{return n.data.aggregate})
+        let norms = leaves.filter((n)=>{return !n.data.aggregate})
 
         let full_query = '';
 
@@ -613,7 +612,7 @@ class Model{
         //inclusive query
         let path_query = `MATCH (\\"*\\")->(n) `;
         let initial_flag = true;
-        for(const leaf of leaves){
+        for(const leaf of norms){
             if(initial_flag){
                 path_query += `WHERE n.\\"node_id\\" = ${leaf.data.metrics._hatchet_nid}`;
                 initial_flag = false;
@@ -623,29 +622,28 @@ class Model{
             }
         }
 
+
+        full_query=`${path_query}`
+
+
         if(this.data.removedNodes.length > 0){
             //exclusive query
             initial_flag = true;
             let ex_query = 'MATCH (r) ' 
             for(const node of this.data.removedNodes){
                 if(initial_flag){
-                    ex_query += `WHERE NOT n.\\"node_id\\" = ${node.data.metrics._hatchet_nid}`;
+                    ex_query += `WHERE NOT r.\\"node_id\\" = ${node.data.metrics._hatchet_nid}`;
                     initial_flag = false;
                 }
                 else{
-                    ex_query += ` AND NOT n.\\"node_id\\" = ${node.data.metrics._hatchet_nid}`;
+                    ex_query += ` AND NOT r.\\"node_id\\" = ${node.data.metrics._hatchet_nid}`;
                 }
             }
 
             full_query=`{${path_query}} AND {${ex_query}}`
         }
 
-        full_query=`${path_query}`
-        //will likely just return a list of nodes
-
-        
         RT['jsNodeSelected'] = full_query;
-
         
     }
 

@@ -19,7 +19,7 @@ class Controller{
                     this.model.updateSelected(evt.nodes);
                     break;
                 case (globals.signals.CLICK):
-                    this.model.updateSelected([evt.node]);
+                    this.model.updateSelected(evt.node);
                     break;
                 case (globals.signals.COLLAPSESUBTREE):
                     this.model.handleDoubleClick(evt.node);

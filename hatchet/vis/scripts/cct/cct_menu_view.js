@@ -24,6 +24,10 @@ class MenuView extends View{
         this.menu_height = '2em';
         this.menu_bg_color = 'rgba(100,100,100,1)';
         
+        //state things
+        this.prior_submenu = null;
+        this.menu_active = false;
+        
         this._setUpMenuTree();
         this._renderMenuBar();
         this._preRender();
@@ -171,6 +175,7 @@ class MenuView extends View{
                 null,
                 null, 
                 function(evt_sel){
+                    window.alert("Query describting your current tree has been stored.\n Please use \"%cct_fetch_query <variable>\" to retireve your query back to the nodebook.")
                     self.observers.notify({
                         type: globals.signals.SNAPSHOT
                     })
@@ -213,6 +218,17 @@ class MenuView extends View{
         button.attr('width', width);
 
         this._svgButtonOffset += width + buttonPad;
+    }
+
+    _handleSubmenuVisibility(d){
+        const self = this;
+        let submenu = d3.select(self.elem).select(`.${d}-submenu`);
+        if(submenu.style('visibility') == 'hidden'){
+            submenu.style('visibility', 'visible');
+        }
+        else{
+            submenu.style('visibility', 'hidden');
+        }
     }
 
     _renderMenuBar(){
@@ -260,10 +276,16 @@ class MenuView extends View{
                             .append('g')
                             .attr('class', 'option')
                             .attr('cursor', 'pointer')
-                            .on('mouseover',function(){
+                            .on('mouseover',function(d){
                                 d3.select(this)
                                     .select('.menu-button')
                                     .style('fill', 'rgba(150,150,150,1)');
+                                if(self.menu_active && (d !== self.prior_submenu)){
+                                    self._handleSubmenuVisibility(d);
+                                    self._handleSubmenuVisibility(self.prior_submenu);
+                                    self.prior_submenu = d;
+                                }
+                                
                             })
                             .on('mouseout', function(){
                                 d3.select(this)
@@ -271,13 +293,9 @@ class MenuView extends View{
                                     .style('fill', bg_color);
                             })
                             .on('click', function(d){
-                                let submenu = d3.select(self.elem).select(`.${d}-submenu`);
-                                if(submenu.style('visibility') == 'hidden'){
-                                    submenu.style('visibility', 'visible');
-                                }
-                                else{
-                                    submenu.style('visibility', 'hidden');
-                                }
+                                self.menu_active = !self.menu_active;
+                                self.prior_submenu = d;
+                                self._handleSubmenuVisibility(d);
                             });
                             
         op_grp.append('rect')
@@ -314,7 +332,7 @@ class MenuView extends View{
     }
 
     _addSubmenu(submenu_name, submenu_options, x_offset){
-        let view_left =  this.elem.getBoundingClientRect().left;
+        let view_left =  this.elem.getBoundingClientRect().left - this.elem.parentNode.getBoundingClientRect().left;
         let view_top = this._svg.select('rect').node().getBBox().height;
         const button_pad = 10;
         const self = this;
@@ -323,7 +341,7 @@ class MenuView extends View{
                                 .append('svg')
                                 .style('position', 'absolute')
                                 .style('top', view_top + 16 + 'px')
-                                .style('left', view_left - 15 + x_offset + 'px')
+                                .style('left', view_left + x_offset + 5 + 'px')
                                 .style('width', '600px')
                                 .attr('class', `${submenu_name}-submenu`)
                                 .style('visibility', 'hidden')
