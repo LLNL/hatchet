@@ -1180,10 +1180,6 @@ def test_hdf_load_store(mock_graph_literal):
 
 def test_preserve_inc_metrics(mock_graph_literal_time_as_line):
     gf = GraphFrame.from_literal(mock_graph_literal_time_as_line)
-    if "line" in gf.inc_metrics:
-        gf.inc_metrics.remove("line")
-    if "line" not in gf.exc_metrics:
-        gf.exc_metrics.append("line")
 
     assert sorted(gf.exc_metrics) == ["line"]
     assert sorted(gf.inc_metrics) == ["time (inc)"]
