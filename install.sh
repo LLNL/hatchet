@@ -10,3 +10,4 @@ case "$PYTHONPATH" in
 esac
 
 python setup.py build_ext --inplace
+python hatchet/vis/static_fixer.py
