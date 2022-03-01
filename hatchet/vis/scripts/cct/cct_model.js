@@ -38,6 +38,7 @@ class Model{
                     };
 
         //setup model
+        RT['jsNodeSelected'] = '';
         let cleanTree = RT["hatchet_tree_def"];
         let _forestData = JSON.parse(cleanTree);
         this.forest = new Forest(_forestData);
@@ -408,24 +409,65 @@ class Model{
 
     handleNodeComposition(node){
         let children = node.children
-        let parent = node.parent
-        
+        let parent = node.parent;
+        let tpar;
+
+        if(node.data.true_parent === undefined){
+            tpar = node.parent;
+            node.data.true_parent = node.parent;
+        }
+        else{
+            tpar = node.data.true_parent;
+        }
+
 
         let index = parent.children.indexOf(node);
         parent.children.splice(index, 1);
 
+        if(tpar.data.composed == undefined){
+            tpar.data.composed = [];
+        }
+        tpar.data.composed.push(node);
+
         if(children != undefined && children.length > 0){
             for(let child of children){
+                child.data.true_parent = child.parent;
                 child.each(n=>{
                     n.depth--;
-                    n.height++;
                 })
                 child.parent = parent;
             }
             parent.children = parent.children.concat(children);
         }
 
+        //this is for querying
         this.data.removedNodes.push(node);
+
+        this.state.hierarchyUpdated = true;
+        this._observers.notify();
+    }
+
+    handleNodeDecomposition(node){
+        let ndx = null;
+
+        node.each(n=>{
+            console.log(n.data.name);
+            if(n.data.composed !== undefined){
+                for(let comp of n.data.composed){
+                    for(let cmpchild of comp.children){
+                        ndx = n.children.indexOf(cmpchild);
+                        console.log(ndx);
+                        n.children.splice(ndx, 1);
+                    }
+                    console.log(comp);
+                    n.children.push(comp);
+                    comp.parent = comp.data.true_parent;
+                    delete comp.data.true_parent;
+                }
+                delete n.data.composed;
+            }
+            n.depth = n.parent.depth+1;
+        })
 
         this.state.hierarchyUpdated = true;
         this._observers.notify();

@@ -410,15 +410,9 @@ class ChartView extends View{
          */
         nodes.forEach(
             (d) => {
-                    if(d.data.id == 264){ 
-                        console.log("Before:", d.x)
-                    }
                     d.x0 = this._getLocalNodeX(d.x, treeIndex);
                     d.y0 = this._treeDepthScale(d.depth);
 
-                    if(d.data.id == 264){
-                        console.log("After:", d.x0)
-                    }
                     // Store the overall position based on group
                     d.xMainG = d.x0 + this.chartOffset;
                     d.yMainG = d.y0 + this._margin.left;
@@ -584,9 +578,6 @@ class ChartView extends View{
             var secondaryMetric = this.model.state.secondaryMetric;
             var source = this.model.forest.getCurrentTree(treeIndex);
 
-
-            console.log(source);
-
             //will need to optimize this redrawing
             // by cacheing tree between calls
             if(this.model.state.hierarchyUpdated == true){
@@ -680,6 +671,19 @@ class ChartView extends View{
                     .attr('class', 'node')
                     .attr("transform", (d) => {
                         return `translate(${this._treeDepthScale(d.depth)}, ${this._getLocalNodeX(d.x, treeIndex)})`;
+                    });
+              
+
+            nodeEnter.append("circle")
+                    .attr('class', 'circleNode')
+                    .style("fill", (d) => {
+                        return this.color_managers[treeIndex].calcColorScale(d.data);
+                    })
+                    .attr('cursor', 'pointer')
+                    .style('stroke-width', '1px')
+                    .style('stroke', 'black')
+                    .attr("r", (d, i) => {
+                        return this._nodeScale(d.data.metrics[secondaryMetric]);
                     })
                     .on("click", (d) => {
                         console.log(d);
@@ -713,18 +717,6 @@ class ChartView extends View{
                         }
                     });
 
-            nodeEnter.append("circle")
-                    .attr('class', 'circleNode')
-                    .style("fill", (d) => {
-                        return this.color_managers[treeIndex].calcColorScale(d.data);
-                    })
-                    .attr('cursor', 'pointer')
-                    .style('stroke-width', '1px')
-                    .style('stroke', 'black')
-                    .attr("r", (d, i) => {
-                        return this._nodeScale(d.data.metrics[secondaryMetric]);
-                    });
-
 
             nodeEnter.append("text")
                         .attr("x", (d) => {
@@ -746,6 +738,35 @@ class ChartView extends View{
                         })
                         .style("font", "12px monospace")
                         .style('fill','rgba(0,0,0,.9)');
+            
+            //add pluses to super_nodes
+            let p_edge = 3;
+            let s_depth = 4;
+            nodeEnter.append("path")
+                    .attr('d', `M 0,${s_depth}
+                                h ${s_depth}
+                                v -${s_depth}
+                                h ${p_edge}
+                                v ${s_depth}
+                                h ${s_depth}
+                                v ${p_edge}
+                                h -${s_depth}
+                                v ${s_depth}
+                                h -${p_edge}
+                                v -${s_depth}
+                                h -${s_depth}
+                                v -${p_edge}
+                                z`)
+                    .attr("visibility", "hidden")
+                    .attr("fill", 'rgb(180,0,0)')
+                    .on('dblclick', (d)=>{
+                        this.observers.notify({
+                            type: globals.signals.DECOMPOSENODE,
+                            node: d
+                        })
+                    });
+
+
 
             // dNodeEnter.append("path")
             //         .attr('class', 'dummyNode')
@@ -928,6 +949,21 @@ class ChartView extends View{
                     });
             }
 
+
+            standardNodes.filter(function(d){ return d.data.composed != undefined})
+                        .selectAll("path")
+                        .attr('visibility', 'visible')
+                        .transition()
+                        .duration(globals.duration)
+                        .attr('transform',function(d){
+                            let rad = self._nodeScale(d.data.metrics[secondaryMetric]);
+                            return `translate(${s_depth},${(-rad*2 - s_depth)})`
+                        });
+            
+            standardNodes.filter(function(d){ return d3.select(this).select('path').attr('visibility') == 'visible' && d.data.composed == undefined})
+                        .selectAll("path")
+                        .attr('visibility', 'hidden')
+
             
             aggNodes
                 .transition()
@@ -1016,7 +1052,6 @@ class ChartView extends View{
             }
         }                    
 
-        console.log(this.svg.node());
         this.svg.attr("height", this._height);
     }
 }

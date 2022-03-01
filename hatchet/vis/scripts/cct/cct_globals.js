@@ -21,7 +21,8 @@ const globals = Object.freeze({
         RESETVIEW: "RESET",
         PRUNERANGEUPDATE: "PRUNERANGEUPDATE",
         UPDATESELECTED: "UPDATESELECTED",
-        SNAPSHOT: "SNAPSHOT"
+        SNAPSHOT: "SNAPSHOT",
+        DECOMPOSENODE: "DECOMPOSENODE"
     },
     layout: {
         margin: {top: 20, right: 20, bottom: 20, left: 20},

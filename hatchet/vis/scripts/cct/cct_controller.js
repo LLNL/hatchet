@@ -27,6 +27,10 @@ class Controller{
                 case(globals.signals.COMPOSEINTERNAL):
                     this.model.handleNodeComposition(evt.node);
                     break;
+                case(globals.signals.DECOMPOSENODE):
+                    // this.model.handleNodeDecomposition(evt.node);
+                    console.log("Decompose coming soon.")
+                    break;
                 case(globals.signals.TOGGLEBRUSH):
                     this.model.toggleBrush();
                     break;
