@@ -686,7 +686,7 @@ class ChartView extends View{
                         return this._nodeScale(d.data.metrics[secondaryMetric]);
                     })
                     .on("click", (d) => {
-                        // console.log(d);
+                        console.log(d);
                         let data = [d];
                         if(d3.event.shiftKey){
                             if(this.model.state.selectedNodes.includes(d)){

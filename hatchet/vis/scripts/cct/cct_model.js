@@ -441,6 +441,10 @@ class Model{
             parent.children = parent.children.concat(children);
         }
 
+        if(parent.children.length == 0){
+            delete parent.children;
+        }
+
         //this is for querying
         this.data.removedNodes.push(node);
 
@@ -539,17 +543,17 @@ class Model{
             this.state.secondaryMetric = newMetric;
         }
         
-        if(this.state.pruneEnabled && source.includes("primary")){
+        if(source.includes("primary")){
+            if(this.state.pruneEnabled){
+                this.forest.resetMutable();
+                this.state.hierarchyUpdated = true;
+                this.state.metricUpdated = true;
+            }
 
-            this.forest.resetMutable();
             this.updateBins(this.state.numBins);
-        
             this.state.prune_range.low = this.data.distCounts.nonzero[0].x0;
             this.state.prune_range.high = this.data.distCounts.nonzero[this.data.distCounts.nonzero.length-1].x1;
 
-
-            this.state.hierarchyUpdated = true;
-            this.state.metricUpdated = true;
         }
 
         this._observers.notify();

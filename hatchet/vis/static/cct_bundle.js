@@ -18352,6 +18352,10 @@ var Model = /*#__PURE__*/function () {
         }
 
         parent.children = parent.children.concat(children);
+      }
+
+      if (parent.children.length == 0) {
+        delete parent.children;
       } //this is for querying
 
 
@@ -18473,13 +18477,16 @@ var Model = /*#__PURE__*/function () {
         this.state.secondaryMetric = newMetric;
       }
 
-      if (this.state.pruneEnabled && source.includes("primary")) {
-        this.forest.resetMutable();
+      if (source.includes("primary")) {
+        if (this.state.pruneEnabled) {
+          this.forest.resetMutable();
+          this.state.hierarchyUpdated = true;
+          this.state.metricUpdated = true;
+        }
+
         this.updateBins(this.state.numBins);
         this.state.prune_range.low = this.data.distCounts.nonzero[0].x0;
         this.state.prune_range.high = this.data.distCounts.nonzero[this.data.distCounts.nonzero.length - 1].x1;
-        this.state.hierarchyUpdated = true;
-        this.state.metricUpdated = true;
       }
 
       this._observers.notify();
@@ -19974,7 +19981,7 @@ var ChartView = /*#__PURE__*/function (_View2) {
         }).attr('cursor', 'pointer').style('stroke-width', '1px').style('stroke', 'black').attr("r", function (d, i) {
           return _this7._nodeScale(d.data.metrics[secondaryMetric]);
         }).on("click", function (d) {
-          // console.log(d);
+          console.log(d);
           var data = [d];
 
           if (build_d3.event.shiftKey) {
@@ -20502,7 +20509,7 @@ var ScentedSliderPopup = /*#__PURE__*/function (_View) {
 
       windowDragHandler(topBar);
 
-      this._svg.append('text').text('Move Sliders to Set Prune Range').attr('fill', 'rgba(0,0,0,1)').attr('y', 20).attr('x', 5);
+      this._svg.append('text').text("Prune over \"".concat(this.model.state.primaryMetric, "\" metric distribution.")).attr('id', 'slider-header').attr('fill', 'rgba(0,0,0,1)').attr('y', 20).attr('x', 5);
 
       this._svg.append('text').text('i').attr('fill', 'rgba(0,0,0,1)').attr('y', 20).attr('x', this.popup_dims['width'] - 10);
 
@@ -20568,6 +20575,8 @@ var ScentedSliderPopup = /*#__PURE__*/function (_View) {
         if (_this3.model.state.pruneEnabled) return 'visible';
         return 'hidden';
       });
+
+      this._svg.select('#slider-header').text("Prune over \"".concat(this.model.state.primaryMetric, "\" metric distribution."));
 
       var bars = this.hist_grp.selectAll('.hist-bar').data(this.bins);
       var rev_bars = this.ice_grp.selectAll('.ice-bar').data(this.zero_bins);

@@ -164,7 +164,8 @@ class ScentedSliderPopup extends View{
         windowDragHandler(topBar);
 
         this._svg.append('text')
-                    .text('Move Sliders to Set Prune Range')
+                    .text(`Prune over "${this.model.state.primaryMetric}" metric distribution.`)
+                    .attr('id', 'slider-header')
                     .attr('fill', 'rgba(0,0,0,1)')
                     .attr('y', 20)
                     .attr('x', 5);
@@ -299,6 +300,9 @@ class ScentedSliderPopup extends View{
             return 'hidden';
         });
 
+
+        this._svg.select('#slider-header')
+                .text(`Prune over "${this.model.state.primaryMetric}" metric distribution.`)
 
         let bars = this.hist_grp.selectAll('.hist-bar')
             .data(this.bins);  
