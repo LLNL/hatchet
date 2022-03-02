@@ -22,10 +22,24 @@ class TooltipView extends View {
             .style('color', 'black')
             .style('font-size', '14px')
             .style('font-family', 'monospace')
-            .style('max-width','400px')
+            .style('max-width','800px')
             .style('max-height', '200px')
             .style('overflow', 'scroll')
             .html('<p>Click a node or "Select nodes" to see more info</p>');
+
+        d3.select('#site')
+            .on('scroll', (e)=>{
+                if(this.elem.getBoundingClientRect().top < 150 && !( -this.elem.getBoundingClientRect().top - this.elem.getBoundingClientRect().height > 0 )){
+                    this.tooltip
+                        .style('position', 'fixed')
+                        .style('top','150px');
+                }
+                else{
+                    this.tooltip
+                        .style('position', 'absolute')
+                        .style('top', '50px')
+                }
+            })
 
     }
 

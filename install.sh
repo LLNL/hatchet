@@ -1,7 +1,7 @@
 #!/bin/sh
 
-case "$PYTHONPATH" in
-    *"$PWD"*)
+case *"$PWD"* in
+    "$PYTHONPATH")
         ;;
 
     *)

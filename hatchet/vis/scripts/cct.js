@@ -9,6 +9,8 @@ import ScentedSliderPopup from './cct/cct_scented_slider_popup';
 
 d3.select(element).attr('width', '100%');
 
+
+
 RT['jsNodeSelected'] = JSON.stringify(["*"]);
 
 // ---------------------------------------------

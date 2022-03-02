@@ -17657,7 +17657,7 @@ var Forest = /*#__PURE__*/function () {
           _iterator9.f();
         }
 
-        if (root._children && root._children.length > 0) {
+        if (root._children && root._children.length > 0 && !root.data.aggregate) {
           dummyHolder = this._buildDummyHolder(elided[0], root, elided);
           root.children.push(dummyHolder);
         }
@@ -17699,16 +17699,16 @@ var Forest = /*#__PURE__*/function () {
        * overwrites the current tree in the view.
        */
       var newTrees;
-
-      if (this.zeros) {
-        newTrees = this.getFreshTrees();
-      } else {
-        newTrees = this.getPrePrunedTrees();
-      }
+      newTrees = this.getFreshTrees();
 
       for (var i in newTrees) {
         var t = newTrees[i];
         t = this.pruneTree(t, primaryMetric, conditionCallback);
+        t.each(function (n) {
+          if (n.data.aggregate == true && n.data.prototype.data.aggregate == true) {
+            n.data.prototype = n.data.prototype.data.prototype;
+          }
+        });
         this.mutableTrees[i] = t;
       }
     }
@@ -17738,7 +17738,6 @@ var Forest = /*#__PURE__*/function () {
   }, {
     key: "getPrePrunedTrees",
     value: function getPrePrunedTrees() {
-      console.log("GET NEW PRE PRUNED TREES");
       var mutableTrees = [];
 
       var _iterator10 = _createForOfIteratorHelper(this.prePrunedTrees),
@@ -17760,7 +17759,6 @@ var Forest = /*#__PURE__*/function () {
             if (tree_nodes[i].aggregate) {
               t_nodes[i].aggregate = true;
               t_nodes[i].elided = tree_nodes[i].elided;
-              console.log(tree_nodes[i].data.name, t_nodes[i].data.name, tree_nodes[i].aggregate, t_nodes[i].aggregate, tree_nodes[i].data.aggregateMetrics, t_nodes[i].data.aggregateMetrics);
             }
           }
 
@@ -18163,7 +18161,9 @@ var Model = /*#__PURE__*/function () {
         tree.each(function (node) {
           var metric = node.data.metrics[primaryMetric];
 
-          if (metric >= mdl.state.prune_range.low && metric <= mdl.state.prune_range.high) {
+          if (metric == 0) {
+            node.data.show = 0;
+          } else if (metric >= mdl.state.prune_range.low && metric <= mdl.state.prune_range.high) {
             node.data.show = 1;
           } else {
             node.data.show = 0;
@@ -18304,8 +18304,7 @@ var Model = /*#__PURE__*/function () {
         }
       }
 
-      this.state["lastClicked"] = d; // console.log("POST EXPAND:", d.parent.children);
-
+      this.state["lastClicked"] = d;
       this.state.hierarchyUpdated = true;
 
       this._observers.notify();
@@ -18366,8 +18365,6 @@ var Model = /*#__PURE__*/function () {
     value: function handleNodeDecomposition(node) {
       var ndx = null;
       node.each(function (n) {
-        console.log(n.data.name);
-
         if (n.data.composed !== undefined) {
           var _iterator5 = cct_model_createForOfIteratorHelper(n.data.composed),
               _step5;
@@ -18383,7 +18380,6 @@ var Model = /*#__PURE__*/function () {
                 for (_iterator6.s(); !(_step6 = _iterator6.n()).done;) {
                   var cmpchild = _step6.value;
                   ndx = n.children.indexOf(cmpchild);
-                  console.log(ndx);
                   n.children.splice(ndx, 1);
                 }
               } catch (err) {
@@ -18392,7 +18388,6 @@ var Model = /*#__PURE__*/function () {
                 _iterator6.f();
               }
 
-              console.log(comp);
               n.children.push(comp);
               comp.parent = comp.data.true_parent;
               delete comp.data.true_parent;
@@ -19900,8 +19895,8 @@ var ChartView = /*#__PURE__*/function (_View2) {
 
 
       var _loop = function _loop() {
-        console.log("============Tree ".concat(treeIndex, "================")); //retrieve new data from model
-
+        // console.log(`============Tree ${treeIndex}================`);
+        //retrieve new data from model
         secondaryMetric = _this7.model.state.secondaryMetric;
         source = _this7.model.forest.getCurrentTree(treeIndex); //will need to optimize this redrawing
         // by cacheing tree between calls
@@ -19979,7 +19974,7 @@ var ChartView = /*#__PURE__*/function (_View2) {
         }).attr('cursor', 'pointer').style('stroke-width', '1px').style('stroke', 'black').attr("r", function (d, i) {
           return _this7._nodeScale(d.data.metrics[secondaryMetric]);
         }).on("click", function (d) {
-          console.log(d);
+          // console.log(d);
           var data = [d];
 
           if (build_d3.event.shiftKey) {
@@ -20046,6 +20041,7 @@ var ChartView = /*#__PURE__*/function (_View2) {
         aggNodeEnter = aggNodes.enter().append('g').attr('class', 'aggNode').attr("transform", function (d) {
           return "translate(".concat(_this7._treeDepthScale(d.depth), ", ").concat(_this7._getLocalNodeX(d.x, treeIndex), ")");
         }).on("click", function (d) {
+          // console.log(d);
           _this7.observers.notify({
             type: globals.signals.CLICK,
             node: [d]
@@ -20302,7 +20298,14 @@ var TooltipView = /*#__PURE__*/function (_View) {
     cct_tooltip_view_classCallCheck(this, TooltipView);
 
     _this = _super.call(this, elem, model);
-    _this.tooltip = build_d3.select(elem).append("div").attr('id', 'tooltip').style('position', 'absolute').style('top', '50px').style('right', '15px').style('padding', '5px').style('border-radius', '5px').style('background', '#ccc').style('color', 'black').style('font-size', '14px').style('font-family', 'monospace').style('max-width', '400px').style('max-height', '200px').style('overflow', 'scroll').html('<p>Click a node or "Select nodes" to see more info</p>');
+    _this.tooltip = build_d3.select(elem).append("div").attr('id', 'tooltip').style('position', 'absolute').style('top', '50px').style('right', '15px').style('padding', '5px').style('border-radius', '5px').style('background', '#ccc').style('color', 'black').style('font-size', '14px').style('font-family', 'monospace').style('max-width', '800px').style('max-height', '200px').style('overflow', 'scroll').html('<p>Click a node or "Select nodes" to see more info</p>');
+    build_d3.select('#site').on('scroll', function (e) {
+      if (_this.elem.getBoundingClientRect().top < 150 && !(-_this.elem.getBoundingClientRect().top - _this.elem.getBoundingClientRect().height > 0)) {
+        _this.tooltip.style('position', 'fixed').style('top', '150px');
+      } else {
+        _this.tooltip.style('position', 'absolute').style('top', '50px');
+      }
+    });
     return _this;
   }
 

@@ -572,7 +572,7 @@ class ChartView extends View{
         //render for any number of trees
         for(var treeIndex = 0; treeIndex < this.model.forest.numberOfTrees; treeIndex++){
 
-            console.log(`============Tree ${treeIndex}================`);
+            // console.log(`============Tree ${treeIndex}================`);
 
             //retrieve new data from model
             var secondaryMetric = this.model.state.secondaryMetric;
@@ -686,7 +686,7 @@ class ChartView extends View{
                         return this._nodeScale(d.data.metrics[secondaryMetric]);
                     })
                     .on("click", (d) => {
-                        console.log(d);
+                        // console.log(d);
                         let data = [d];
                         if(d3.event.shiftKey){
                             if(this.model.state.selectedNodes.includes(d)){
@@ -784,6 +784,7 @@ class ChartView extends View{
                     return `translate(${this._treeDepthScale(d.depth)}, ${this._getLocalNodeX(d.x, treeIndex)})`;
                 })
                 .on("click", (d) => {
+                    // console.log(d);
                     this.observers.notify({
                         type: globals.signals.CLICK,
                         node: [d]

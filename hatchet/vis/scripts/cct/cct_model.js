@@ -274,7 +274,10 @@ class Model{
         return (tree, primaryMetric) => {
             tree.each((node)=>{
                 var metric = node.data.metrics[primaryMetric];
-                if(metric >= mdl.state.prune_range.low && metric <= mdl.state.prune_range.high){
+                if(metric == 0){
+                    node.data.show = 0
+                }
+                else if(metric >= mdl.state.prune_range.low && metric <= mdl.state.prune_range.high){
                     node.data.show = 1;
                 }
                 else{
@@ -401,8 +404,6 @@ class Model{
 
         this.state["lastClicked"] = d;
 
-        // console.log("POST EXPAND:", d.parent.children);
-
         this.state.hierarchyUpdated = true;
         this._observers.notify();
     }
@@ -451,15 +452,12 @@ class Model{
         let ndx = null;
 
         node.each(n=>{
-            console.log(n.data.name);
             if(n.data.composed !== undefined){
                 for(let comp of n.data.composed){
                     for(let cmpchild of comp.children){
                         ndx = n.children.indexOf(cmpchild);
-                        console.log(ndx);
                         n.children.splice(ndx, 1);
                     }
-                    console.log(comp);
                     n.children.push(comp);
                     comp.parent = comp.data.true_parent;
                     delete comp.data.true_parent;

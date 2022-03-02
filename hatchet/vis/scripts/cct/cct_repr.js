@@ -291,7 +291,6 @@ class Forest{
             elidedSubtrees:0
         };
 
-
         dummyHolder = protoype.copy();
         dummyHolder.depth = protoype.depth;
         dummyHolder.height = protoype.height;
@@ -395,7 +394,7 @@ class Forest{
                 this._pruningVisitor(child, condition, metric);
             }
 
-            if (root._children && root._children.length > 0){
+            if (root._children && root._children.length > 0 && !root.data.aggregate){
                 dummyHolder = this._buildDummyHolder(elided[0], root, elided);
                 root.children.push(dummyHolder);
             }
@@ -434,16 +433,19 @@ class Forest{
          * overwrites the current tree in the view.
          */
         let newTrees;
-        if(this.zeros){
-            newTrees = this.getFreshTrees();
-        }else{
-            newTrees = this.getPrePrunedTrees();
-        }
+
+        newTrees = this.getFreshTrees();
 
         for(let i in newTrees){
             let t = newTrees[i];
             
             t = this.pruneTree(t, primaryMetric, conditionCallback);
+
+            t.each(n=>{
+                if(n.data.aggregate == true && n.data.prototype.data.aggregate == true){
+                    n.data.prototype = n.data.prototype.data.prototype;
+                }
+            })
                 
             this.mutableTrees[i] = t;
         }
@@ -474,7 +476,6 @@ class Forest{
     }
 
     getPrePrunedTrees(){
-        console.log("GET NEW PRE PRUNED TREES");
         let mutableTrees = [];
 
 
@@ -491,7 +492,6 @@ class Forest{
                 if(tree_nodes[i].aggregate){
                     t_nodes[i].aggregate = true;
                     t_nodes[i].elided = tree_nodes[i].elided;
-                    console.log(tree_nodes[i].data.name, t_nodes[i].data.name, tree_nodes[i].aggregate, t_nodes[i].aggregate, tree_nodes[i].data.aggregateMetrics, t_nodes[i].data.aggregateMetrics);
                 }
                 
             }
