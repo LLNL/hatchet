@@ -322,6 +322,8 @@ class GraphFrame:
             self.dataframe.copy(),
             list(self.exc_metrics),
             list(self.inc_metrics),
+            self.default_metric,
+            self.metadata,
         )
 
     def deepcopy(self):
@@ -338,7 +340,12 @@ class GraphFrame:
         dataframe_copy.set_index(index_names, inplace=True)
 
         return GraphFrame(
-            graph_copy, dataframe_copy, list(self.exc_metrics), list(self.inc_metrics)
+            graph_copy,
+            dataframe_copy,
+            list(self.exc_metrics),
+            list(self.inc_metrics),
+            self.default_metric,
+            self.metadata,
         )
 
     def drop_index_levels(self, function=np.mean):
