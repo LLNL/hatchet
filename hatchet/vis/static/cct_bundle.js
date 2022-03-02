@@ -16333,7 +16333,7 @@ var digitAbbrevScale = build_d3.scaleOrdinal().range(["K", "K", "K", "M", "M", "
 }));
 
 function getSigFigString(num) {
-  if (num.toFixed(2).length <= 5) {
+  if (num.toFixed(2).length <= 6) {
     return num.toFixed(2);
   } else {
     var numdig = parseInt(num).toString().length;
@@ -17868,7 +17868,7 @@ var Model = /*#__PURE__*/function () {
       "metricUpdated": true
     }; //setup model
 
-    RT.jsNodeSelected = '';
+    RT.jsNodeSelected = 'MATCH (\\"*\\")->(a) WHERE a.\\"name\\" IS NOT NONE';
     var cleanTree = RT.hatchet_tree_def;
 
     var _forestData = JSON.parse(cleanTree);
@@ -18232,13 +18232,11 @@ var Model = /*#__PURE__*/function () {
        * @param {Array} nodes - A list of selected nodes
        */
       this.state['selectedNodes'] = nodes;
-      this.updateTooltip(nodes);
-
-      if (nodes.length > 0 && nodes[0]) {
-        RT.jsNodeSelected = JSON.stringify(this._printQuery(nodes));
-      } else {
-        RT.jsNodeSelected = JSON.stringify(["*"]);
-      }
+      this.updateTooltip(nodes); // if(nodes.length > 0 && nodes[0]){
+      //     RT['jsNodeSelected'] = JSON.stringify(this._printQuery(nodes));
+      // } else {
+      //     RT['jsNodeSelected'] = JSON.stringify(["*"]);
+      // }
 
       this._observers.notify();
     }
@@ -18582,20 +18580,7 @@ var Model = /*#__PURE__*/function () {
       var norms = leaves.filter(function (n) {
         return !n.data.aggregate;
       });
-      var full_query = ''; // let partial_query = `[`
-      // for(const node of this.data.removedNodes){
-      //     partial_query += `${node.data.metrics._hatchet_nid},`;
-      // }
-      // for(const node of aggs){
-      //     for(const child of node.data.elided){
-      //         child.each((ch)=>{
-      //             partial_query += `${ch.data.metrics._hatchet_nid},`;
-      //         })
-      //     }
-      //     // node.
-      // }
-      // partial_query = partial_query.slice(0,-1) + `]`;
-      //inclusive query
+      var full_query = ''; //inclusive query
 
       var path_query = "MATCH (\\\"*\\\")->(n) ";
       var initial_flag = true;

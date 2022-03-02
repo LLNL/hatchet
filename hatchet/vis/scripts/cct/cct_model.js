@@ -38,7 +38,7 @@ class Model{
                     };
 
         //setup model
-        RT['jsNodeSelected'] = '';
+        RT['jsNodeSelected'] = 'MATCH (\\"*\\")->(a) WHERE a.\\"name\\" IS NOT NONE';
         let cleanTree = RT["hatchet_tree_def"];
         let _forestData = JSON.parse(cleanTree);
         this.forest = new Forest(_forestData);
@@ -347,11 +347,11 @@ class Model{
         this.state['selectedNodes'] = nodes;
         this.updateTooltip(nodes);
 
-        if(nodes.length > 0 && nodes[0]){
-            RT['jsNodeSelected'] = JSON.stringify(this._printQuery(nodes));
-        } else {
-            RT['jsNodeSelected'] = JSON.stringify(["*"]);
-        }
+        // if(nodes.length > 0 && nodes[0]){
+        //     RT['jsNodeSelected'] = JSON.stringify(this._printQuery(nodes));
+        // } else {
+        //     RT['jsNodeSelected'] = JSON.stringify(["*"]);
+        // }
 
         this._observers.notify();
     }
@@ -634,24 +634,6 @@ class Model{
         let norms = leaves.filter((n)=>{return !n.data.aggregate})
 
         let full_query = '';
-
-        // let partial_query = `[`
-
-        // for(const node of this.data.removedNodes){
-        //     partial_query += `${node.data.metrics._hatchet_nid},`;
-        // }
-
-        // for(const node of aggs){
-        //     for(const child of node.data.elided){
-        //         child.each((ch)=>{
-        //             partial_query += `${ch.data.metrics._hatchet_nid},`;
-        //         })
-        //     }
-        //     // node.
-        // }
-
-        // partial_query = partial_query.slice(0,-1) + `]`;
-
 
         //inclusive query
         let path_query = `MATCH (\\"*\\")->(n) `;

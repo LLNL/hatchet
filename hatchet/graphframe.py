@@ -3,6 +3,7 @@
 #
 # SPDX-License-Identifier: MIT
 
+from platform import node
 import sys
 import traceback
 
@@ -885,6 +886,8 @@ class GraphFrame:
                 if isinstance(node_metric_val, pd.Series):
                     node_metric_val = node_metric_val[0]
                 if np.isinf(node_metric_val) or np.isneginf(node_metric_val):
+                    node_metric_val = 0.0
+                if pd.isna(node_metric_val):
                     node_metric_val = 0.0
                 metrics_dict[m] = node_metric_val
 
