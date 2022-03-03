@@ -17936,9 +17936,9 @@ var Model = /*#__PURE__*/function () {
           }
 
           if (nodeList[_i].data.aggregateMetrics) {
-            nodeStr += "<td>".concat(nodeList[_i].data.aggregateMetrics[metricColumns[j]].toFixed(2), "</td>");
+            nodeStr += "<td>".concat(getSigFigString(nodeList[_i].data.aggregateMetrics[metricColumns[j]]), "</td>");
           } else {
-            nodeStr += "<td>".concat(nodeList[_i].data.metrics[metricColumns[j]].toFixed(2), "</td>");
+            nodeStr += "<td>".concat(getSigFigString(nodeList[_i].data.metrics[metricColumns[j]]), "</td>");
           }
         }
 
@@ -18479,9 +18479,9 @@ var Model = /*#__PURE__*/function () {
         if (this.state.pruneEnabled) {
           this.forest.resetMutable();
           this.state.hierarchyUpdated = true;
-          this.state.metricUpdated = true;
         }
 
+        this.state.metricUpdated = true;
         this.updateBins(this.state.numBins);
         this.state.prune_range.low = this.data.distCounts.nonzero[0].x0;
         this.state.prune_range.high = this.data.distCounts.nonzero[this.data.distCounts.nonzero.length - 1].x1;
@@ -20339,6 +20339,7 @@ function cct_scented_slider_popup_getPrototypeOf(o) { cct_scented_slider_popup_g
 
 
 
+
 var ScentedSliderPopup = /*#__PURE__*/function (_View) {
   cct_scented_slider_popup_inherits(ScentedSliderPopup, _View);
 
@@ -20366,11 +20367,6 @@ var ScentedSliderPopup = /*#__PURE__*/function (_View) {
     model.updateBins(_this.num_bins);
     _this.bins = model.data.distCounts["nonzero"];
     _this.zero_bins = model.data.distCounts["internalzero"];
-    _this.max_zero_cnt = 0;
-
-    _this.zero_bins.forEach(function (b) {
-      _this.max_zero_cnt = Math.max(b.length, _this.max_zero_cnt);
-    });
 
     _this.update_bin_count_ranges();
 
@@ -20403,6 +20399,10 @@ var ScentedSliderPopup = /*#__PURE__*/function (_View) {
       var _this2 = this;
 
       this.bin_count_range = [Number.MAX_VALUE, Number.MIN_VALUE];
+      this.max_zero_cnt = 0;
+      this.zero_bins.forEach(function (b) {
+        _this2.max_zero_cnt = Math.max(b.length, _this2.max_zero_cnt);
+      });
       this.bins.forEach(function (d) {
         _this2.bin_count_range[0] = Math.min(d.length, _this2.bin_count_range[0]);
         _this2.bin_count_range[1] = Math.max(d.length, _this2.bin_count_range[1]);
@@ -20555,6 +20555,7 @@ var ScentedSliderPopup = /*#__PURE__*/function (_View) {
       this.h_y_scale.domain(this.bin_count_range);
       this.invert_y_scale.domain(this.bin_count_range);
       this.h_x_scale.domain([0, this.bins.length]);
+      this.i_y_scale.domain([0, this.max_zero_cnt]);
 
       this._svg.style('visibility', function () {
         if (_this3.model.state.pruneEnabled) return 'visible';
@@ -20627,29 +20628,6 @@ var ScentedSliderPopup = /*#__PURE__*/function (_View) {
        * 
        */
 
-      if (this.model.state.metricUpdated) {
-        this.current_l_bin = 0;
-        this.current_r_bin = parseInt(self.h_x_scale.invert(this.r_slider_pos_origin));
-        var l_step_loc = self.h_x_scale(this.current_l_bin);
-        var r_step_loc = self.h_x_scale(this.current_r_bin + 1);
-
-        var l_slider = this._svg.select('.l-slider-grp');
-
-        var r_slider = this._svg.select('.r-slider-grp');
-
-        l_slider.attr('transform', "translate(".concat(l_step_loc - this.slider_width / 2, ",0)"));
-        l_slider.select('text').text("".concat(getSigFigString(self.bins[this.current_l_bin].x0)));
-        l_slider.select('text').attr('x', function () {
-          return -(this.getBBox().width / 2) + self.slider_width / 2;
-        });
-        r_slider.attr('transform', "translate(".concat(r_step_loc - this.slider_width / 2, ",0)"));
-        r_slider.select('text').text("".concat(getSigFigString(self.bins[this.current_r_bin].x1)));
-        r_slider.select('text').attr('x', function () {
-          return -(this.getBBox().width / 2) + self.slider_width / 2;
-        });
-        this.model.state.metricUpdated = false;
-      }
-
       this.hist_grp.select('.left-axis').transition().duration(globals.duration).call(build_d3.axisLeft(this.invert_y_scale).ticks(4));
       this.hist_grp.select('.left-ice-axis').transition().duration(globals.duration).call(build_d3.axisLeft(this.i_y_scale).ticks(4));
       bars.attr('fill', function (_, i) {
@@ -20682,11 +20660,35 @@ var ScentedSliderPopup = /*#__PURE__*/function (_View) {
       }).attr('x', function (_, i) {
         return _this3.h_x_scale(i);
       });
+
+      if (this.model.state.metricUpdated) {
+        this.current_l_bin = 0;
+        this.current_r_bin = parseInt(self.h_x_scale.invert(this.r_slider_pos_origin));
+        var l_step_loc = self.h_x_scale(this.current_l_bin);
+        var r_step_loc = self.h_x_scale(this.current_r_bin + 1);
+
+        var l_slider = this._svg.select('.l-slider-grp');
+
+        var r_slider = this._svg.select('.r-slider-grp');
+
+        l_slider.attr('transform', "translate(".concat(l_step_loc - this.slider_width / 2, ",0)"));
+        l_slider.select('text').text("".concat(getSigFigString(self.bins[this.current_l_bin].x0)));
+        l_slider.select('text').attr('x', function () {
+          return -(this.getBBox().width / 2) + self.slider_width / 2;
+        });
+        r_slider.attr('transform', "translate(".concat(r_step_loc - this.slider_width / 2, ",0)"));
+        r_slider.select('text').text("".concat(getSigFigString(self.bins[this.current_r_bin].x1)));
+        r_slider.select('text').attr('x', function () {
+          return -(this.getBBox().width / 2) + self.slider_width / 2;
+        });
+        this.model.state.metricUpdated = false;
+      }
       /**
        * 
        * EXIT
        * 
        */
+
 
       bars.exit().remove();
       rev_bars.exit().remove();

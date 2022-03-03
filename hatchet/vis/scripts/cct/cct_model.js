@@ -1,4 +1,4 @@
-import { makeSignaller, RT} from "./cct_globals";
+import { makeSignaller, RT, getSigFigString} from "./cct_globals";
 import { bin } from 'd3-array';
 import Forest  from './cct_repr';
 
@@ -98,10 +98,10 @@ class Model{
                     }
                 }
                 if (nodeList[i].data.aggregateMetrics){
-                    nodeStr += `<td>${nodeList[i].data.aggregateMetrics[metricColumns[j]].toFixed(2)}</td>`
+                    nodeStr += `<td>${getSigFigString(nodeList[i].data.aggregateMetrics[metricColumns[j]])}</td>`
                 }
                 else{
-                    nodeStr += `<td>${nodeList[i].data.metrics[metricColumns[j]].toFixed(2)}</td>`
+                    nodeStr += `<td>${getSigFigString(nodeList[i].data.metrics[metricColumns[j]])}</td>`
                 }
             }
             nodeStr += '</tr>'
@@ -547,9 +547,9 @@ class Model{
             if(this.state.pruneEnabled){
                 this.forest.resetMutable();
                 this.state.hierarchyUpdated = true;
-                this.state.metricUpdated = true;
             }
 
+            this.state.metricUpdated = true;
             this.updateBins(this.state.numBins);
             this.state.prune_range.low = this.data.distCounts.nonzero[0].x0;
             this.state.prune_range.high = this.data.distCounts.nonzero[this.data.distCounts.nonzero.length-1].x1;

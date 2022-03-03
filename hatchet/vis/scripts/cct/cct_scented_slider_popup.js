@@ -1,4 +1,5 @@
 import { bin } from 'd3-array';
+import { randomIrwinHall } from 'd3v4';
 import View from '../utils/view';
 import {d3, globals, getSigFigString} from './cct_globals';
 
@@ -31,8 +32,7 @@ class ScentedSliderPopup extends View{
         model.updateBins(this.num_bins);
         this.bins = model.data.distCounts["nonzero"];
         this.zero_bins = model.data.distCounts["internalzero"]
-        this.max_zero_cnt = 0;
-        this.zero_bins.forEach((b)=>{this.max_zero_cnt = Math.max(b.length, this.max_zero_cnt)});
+       
         this.update_bin_count_ranges();
 
         if(this.max_zero_cnt > 0){
@@ -59,6 +59,9 @@ class ScentedSliderPopup extends View{
     
     update_bin_count_ranges(){
         this.bin_count_range = [Number.MAX_VALUE, Number.MIN_VALUE];
+
+        this.max_zero_cnt = 0;
+        this.zero_bins.forEach((b)=>{this.max_zero_cnt = Math.max(b.length, this.max_zero_cnt)});
 
         this.bins.forEach(d=>{
             this.bin_count_range[0] = Math.min(d.length, this.bin_count_range[0]);
@@ -293,6 +296,7 @@ class ScentedSliderPopup extends View{
         this.h_y_scale.domain(this.bin_count_range);
         this.invert_y_scale.domain(this.bin_count_range);
         this.h_x_scale.domain([0, this.bins.length]);
+        this.i_y_scale.domain([0, this.max_zero_cnt]);
 
 
         this._svg.style('visibility', ()=>{
@@ -390,32 +394,11 @@ class ScentedSliderPopup extends View{
          */
 
 
-         if(this.model.state.metricUpdated){
-            this.current_l_bin = 0;
-            this.current_r_bin = parseInt(self.h_x_scale.invert(this.r_slider_pos_origin));
-            let l_step_loc = self.h_x_scale(this.current_l_bin);
-            let r_step_loc = self.h_x_scale(this.current_r_bin+1);
-
-            let l_slider = this._svg.select('.l-slider-grp');
-            let r_slider = this._svg.select('.r-slider-grp');
-
-            l_slider.attr('transform', `translate(${l_step_loc-(this.slider_width/2)},0)`);
-            l_slider.select('text').text(`${getSigFigString(self.bins[this.current_l_bin].x0)}`);
-            l_slider.select('text').attr('x', function(){return -(this.getBBox().width/2) + self.slider_width/2});
-
-            r_slider.attr('transform', `translate(${r_step_loc-(this.slider_width/2)},0)`);
-            r_slider.select('text').text(`${getSigFigString(self.bins[this.current_r_bin].x1)}`);
-            r_slider.select('text').attr('x', function(){return -(this.getBBox().width/2) + self.slider_width/2});
-
-            
-            this.model.state.metricUpdated = false;
-        }
         
-        
-        this.hist_grp.select('.left-axis')
-                .transition()
-                .duration(globals.duration)
-                .call(d3.axisLeft(this.invert_y_scale).ticks(4));
+         this.hist_grp.select('.left-axis')
+         .transition()
+         .duration(globals.duration)
+         .call(d3.axisLeft(this.invert_y_scale).ticks(4));
 
         this.hist_grp.select('.left-ice-axis')
                 .transition()
@@ -458,6 +441,29 @@ class ScentedSliderPopup extends View{
             .attr('x', (_,i)=>{return this.h_x_scale(i)});
 
 
+
+
+        if(this.model.state.metricUpdated){
+            this.current_l_bin = 0;
+            this.current_r_bin = parseInt(self.h_x_scale.invert(this.r_slider_pos_origin));
+            let l_step_loc = self.h_x_scale(this.current_l_bin);
+            let r_step_loc = self.h_x_scale(this.current_r_bin+1);
+
+            let l_slider = this._svg.select('.l-slider-grp');
+            let r_slider = this._svg.select('.r-slider-grp');
+
+            l_slider.attr('transform', `translate(${l_step_loc-(this.slider_width/2)},0)`);
+            l_slider.select('text').text(`${getSigFigString(self.bins[this.current_l_bin].x0)}`);
+            l_slider.select('text').attr('x', function(){return -(this.getBBox().width/2) + self.slider_width/2});
+
+            r_slider.attr('transform', `translate(${r_step_loc-(this.slider_width/2)},0)`);
+            r_slider.select('text').text(`${getSigFigString(self.bins[this.current_r_bin].x1)}`);
+            r_slider.select('text').attr('x', function(){return -(this.getBBox().width/2) + self.slider_width/2});
+
+            
+            this.model.state.metricUpdated = false;
+        }
+        
         /**
          * 
          * EXIT
