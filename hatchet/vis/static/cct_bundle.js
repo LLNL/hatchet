@@ -20291,8 +20291,9 @@ var TooltipView = /*#__PURE__*/function (_View) {
 
     _this = _super.call(this, elem, model);
     _this.tooltip = build_d3.select(elem).append("div").attr('id', 'tooltip').style('position', 'absolute').style('top', '50px').style('right', '15px').style('padding', '5px').style('border-radius', '5px').style('background', '#ccc').style('color', 'black').style('font-size', '14px').style('font-family', 'monospace').style('max-width', '800px').style('max-height', '200px').style('overflow', 'scroll').html('<p>Click a node or "Select nodes" to see more info</p>');
-    build_d3.select('#site').on('scroll', function (e) {
-      if (_this.elem.getBoundingClientRect().top < 150 && !(-_this.elem.getBoundingClientRect().top - _this.elem.getBoundingClientRect().height > 0)) {
+    build_d3.select('#site').on("scroll.".concat(build_d3.select(elem).select('script').attr('id')), function (e) {
+      // console.log(d3.select(elem).select('script').attr('id'));
+      if (_this.elem.getBoundingClientRect().top < 150 && !(-_this.elem.getBoundingClientRect().top - _this.elem.getBoundingClientRect().height > -250)) {
         _this.tooltip.style('position', 'fixed').style('top', '150px');
       } else {
         _this.tooltip.style('position', 'absolute').style('top', '50px');

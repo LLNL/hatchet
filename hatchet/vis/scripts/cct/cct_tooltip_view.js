@@ -28,8 +28,9 @@ class TooltipView extends View {
             .html('<p>Click a node or "Select nodes" to see more info</p>');
 
         d3.select('#site')
-            .on('scroll', (e)=>{
-                if(this.elem.getBoundingClientRect().top < 150 && !( -this.elem.getBoundingClientRect().top - this.elem.getBoundingClientRect().height > 0 )){
+            .on(`scroll.${d3.select(elem).select('script').attr('id')}`, (e)=>{
+                // console.log(d3.select(elem).select('script').attr('id'));
+                if(this.elem.getBoundingClientRect().top < 150 && !( -this.elem.getBoundingClientRect().top - this.elem.getBoundingClientRect().height > -250) ){
                     this.tooltip
                         .style('position', 'fixed')
                         .style('top','150px');
