@@ -175,7 +175,7 @@ class MenuView extends View{
                 null,
                 null, 
                 function(evt_sel){
-                    window.alert("Query describting your current tree has been stored.\n Please use \"%cct_fetch_query <variable>\" to retireve your query back to the nodebook.")
+                    window.alert("Query describing your current tree has been stored.\n Please use: \n\n\t%cct_fetch_query <python_variable>\n\n to retrieve your query back to the notebook.")
                     self.observers.notify({
                         type: globals.signals.SNAPSHOT
                     })

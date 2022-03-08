@@ -18854,7 +18854,7 @@ var MenuView = /*#__PURE__*/function (_View) {
         });
       }));
       this.menu_tree['Query'].push(this._makeSubmenuOption('Get Snapshot Query', 'button', null, null, function (evt_sel) {
-        window.alert("Query describting your current tree has been stored.\n Please use \"%cct_fetch_query <variable>\" to retireve your query back to the nodebook.");
+        window.alert("Query describing your current tree has been stored.\n Please use: \n\n\t%cct_fetch_query <python_variable>\n\n to retrieve your query back to the notebook.");
         self.observers.notify({
           type: globals.signals.SNAPSHOT
         });
@@ -19591,6 +19591,8 @@ var ChartView = /*#__PURE__*/function (_View2) {
   }, {
     key: "manageLabelCollisions",
     value: function manageLabelCollisions(nodes, entrflg) {
+      var _this5 = this;
+
       if (!this.newDataFlag) {
         return;
       }
@@ -19661,6 +19663,12 @@ var ChartView = /*#__PURE__*/function (_View2) {
         }
 
         return "";
+      }).attr("text-anchor", function (d) {
+        if (d.data.text !== undefined || d.children) {
+          return "end";
+        }
+      }).attr("x", function (d) {
+        return d.children || d.data.text !== undefined || _this5.model.state['collapsedNodes'].includes(d) ? -13 : _this5._nodeScale(d.data.metrics[_this5.model.state.secondaryMetric]) + 5;
       });
       this.newDataFlag = 0;
     }
@@ -19758,7 +19766,7 @@ var ChartView = /*#__PURE__*/function (_View2) {
   }, {
     key: "_calcNodePositions",
     value: function _calcNodePositions(nodes, treeIndex) {
-      var _this5 = this;
+      var _this6 = this;
 
       /**
        * Calculates the local and gloabal node positions for each tree in
@@ -19768,17 +19776,17 @@ var ChartView = /*#__PURE__*/function (_View2) {
        * @param {Number} treeIndex - An integer of the current tree index
        */
       nodes.forEach(function (d) {
-        d.x0 = _this5._getLocalNodeX(d.x, treeIndex);
-        d.y0 = _this5._treeDepthScale(d.depth); // Store the overall position based on group
+        d.x0 = _this6._getLocalNodeX(d.x, treeIndex);
+        d.y0 = _this6._treeDepthScale(d.depth); // Store the overall position based on group
 
-        d.xMainG = d.x0 + _this5.chartOffset;
-        d.yMainG = d.y0 + _this5._margin.left;
+        d.xMainG = d.x0 + _this6.chartOffset;
+        d.yMainG = d.y0 + _this6._margin.left;
       });
     }
   }, {
     key: "_preRender",
     value: function _preRender() {
-      var _this6 = this;
+      var _this7 = this;
 
       //For calls which need the context of
       // the d3 callback and class
@@ -19855,9 +19863,9 @@ var ChartView = /*#__PURE__*/function (_View2) {
       this.svg.attr("height", this._height); //setup Interactions
 
       this.brush = build_d3.brush().extent([[0, 0], [2 * this._width, 2 * (this._height + globals.layout.margin.top + globals.layout.margin.bottom)]]).on('brush', function () {}).on('end', function () {
-        var selection = _this6._getSelectedNodes(build_d3.event.selection);
+        var selection = _this7._getSelectedNodes(build_d3.event.selection);
 
-        _this6.observers.notify({
+        _this7.observers.notify({
           type: globals.signals.BRUSH,
           selection: selection
         });
@@ -19866,7 +19874,7 @@ var ChartView = /*#__PURE__*/function (_View2) {
   }, {
     key: "render",
     value: function render() {
-      var _this7 = this;
+      var _this8 = this;
 
       /**
            * Core render function for the chart portion of the view, including legends
@@ -19889,125 +19897,155 @@ var ChartView = /*#__PURE__*/function (_View2) {
       var _loop = function _loop() {
         // console.log(`============Tree ${treeIndex}================`);
         //retrieve new data from model
-        secondaryMetric = _this7.model.state.secondaryMetric;
-        source = _this7.model.forest.getCurrentTree(treeIndex); //will need to optimize this redrawing
+        secondaryMetric = _this8.model.state.secondaryMetric;
+        source = _this8.model.forest.getCurrentTree(treeIndex); //will need to optimize this redrawing
         // by cacheing tree between calls
 
-        if (_this7.model.state.hierarchyUpdated == true) {
+        if (_this8.model.state.hierarchyUpdated == true) {
           // let layout = d3.tree().size([this._treeCanvasHeightScale(source.size), this._width - this._margin.left - 200]);
-          var layout = build_d3.tree().nodeSize([_this7._maxNodeRadius + 4, _this7._maxNodeRadius + 4]);
+          var layout = build_d3.tree().nodeSize([_this8._maxNodeRadius + 4, _this8._maxNodeRadius + 4]);
           treeLayout = layout(source);
-          _this7.nodes[treeIndex] = treeLayout.descendants().filter(function (d) {
+          _this8.nodes[treeIndex] = treeLayout.descendants().filter(function (d) {
             return !d.data.aggregate;
           });
-          _this7.aggregates[treeIndex] = treeLayout.descendants().filter(function (d) {
+          _this8.aggregates[treeIndex] = treeLayout.descendants().filter(function (d) {
             return d.data.aggregate;
           });
-          _this7.links[treeIndex] = treeLayout.descendants().slice(1); //recalculate layouts
+          _this8.links[treeIndex] = treeLayout.descendants().slice(1); //recalculate layouts
 
-          _this7._treeLayoutHeights[treeIndex] = _this7._getHeightFromTree(treeLayout);
-          _this7._minmax[treeIndex] = _this7._getMinxMaxxFromTree(treeLayout); //THIS MUST COME AFTER this._minmax update!!
+          _this8._treeLayoutHeights[treeIndex] = _this8._getHeightFromTree(treeLayout);
+          _this8._minmax[treeIndex] = _this8._getMinxMaxxFromTree(treeLayout); //THIS MUST COME AFTER this._minmax update!!
 
-          _this7._calcNodePositions(treeLayout.descendants(), treeIndex); //only update after last tree
+          _this8._calcNodePositions(treeLayout.descendants(), treeIndex); //only update after last tree
 
 
-          if (treeIndex == _this7.model.forest.numberOfTrees - 1) {
-            _this7.model.state.hierarchyUpdated = false;
+          if (treeIndex == _this8.model.forest.numberOfTrees - 1) {
+            _this8.model.state.hierarchyUpdated = false;
           }
 
-          _this7.newDataFlag = 1;
+          _this8.newDataFlag = 1;
         }
 
-        chart = _this7.svg.selectAll('.group-' + treeIndex);
+        chart = _this8.svg.selectAll('.group-' + treeIndex);
         treeGroup = chart.selectAll('.chart');
 
-        if (_this7.model.state.resetView == true) {
+        if (_this8.model.state.resetView == true) {
           /**
            * BUG - D3 TRANSFORM EVENET DOES NOT UPDATE
            */
           treeGroup.attr("transform", "");
-          chart.call(_this7.zoom.transform, build_d3.zoomIdentity);
+          chart.call(_this8.zoom.transform, build_d3.zoomIdentity);
 
-          _this7.nodes[treeIndex].forEach(function (d) {
+          _this8.nodes[treeIndex].forEach(function (d) {
             // Store the overall position based on group
-            d.xMainG = d.x0 + _this7.chartOffset;
-            d.yMainG = d.y0 + _this7._margin.left;
+            d.xMainG = d.x0 + _this8.chartOffset;
+            d.yMainG = d.y0 + _this8._margin.left;
           }); //only update after last tree
 
 
-          if (treeIndex == _this7.model.forest.numberOfTrees - 1) {
-            _this7.model.state.resetView = false;
+          if (treeIndex == _this8.model.forest.numberOfTrees - 1) {
+            _this8.model.state.resetView = false;
           }
         } // ---------------------------------------------
         // ENTER 
         // ---------------------------------------------
 
 
-        standardNodes = treeGroup.selectAll(".node").data(_this7.nodes[treeIndex], function (d) {
+        standardNodes = treeGroup.selectAll(".node").data(_this8.nodes[treeIndex], function (d) {
           return d.data.metrics._hatchet_nid || d.data.id;
         });
-        aggNodes = treeGroup.selectAll(".aggNode").data(_this7.aggregates[treeIndex], function (d) {
+        aggNodes = treeGroup.selectAll(".aggNode").data(_this8.aggregates[treeIndex], function (d) {
           return d.data.metrics._hatchet_nid || d.data.id;
         }); // links
 
-        links = treeGroup.selectAll("path.link").data(_this7.links[treeIndex], function (d) {
+        links = treeGroup.selectAll("path.link").data(_this8.links[treeIndex], function (d) {
           return d.data.metrics._hatchet_nid || d.data.id;
         }); // Enter any new links at the parent's previous position.
 
         links.enter().append("path").attr("class", "link").attr("d", function (d) {
-          return _this7.diagonal(d, d.parent, treeIndex);
+          return _this8.diagonal(d, d.parent, treeIndex);
         }).attr('fill', 'none').attr('stroke', '#ccc').attr('stroke-width', '2px'); // Enter any new nodes at the parent's previous position.
 
         nodeEnter = standardNodes.enter().append('g').attr('class', 'node').attr("transform", function (d) {
-          return "translate(".concat(_this7._treeDepthScale(d.depth), ", ").concat(_this7._getLocalNodeX(d.x, treeIndex), ")");
+          return "translate(".concat(_this8._treeDepthScale(d.depth), ", ").concat(_this8._getLocalNodeX(d.x, treeIndex), ")");
+        }).on('mouseover', function (d) {
+          var ndgrp = build_d3.select(this);
+
+          if (!(d.data.text === undefined && (!d.children || d.children.length == 0))) {
+            ndgrp.selectAll("text").text(function () {
+              var n = d.data.name;
+
+              if (n.includes("<unknown file>")) {
+                n = n.replace('<unknown file>', '');
+              }
+
+              if (n.includes("<unknown procedure>")) {
+                n = n.replace('<unknown procedure>', '');
+              }
+
+              return n;
+            });
+            var textBBox = ndgrp.select("text").node().getBBox();
+            ndgrp.selectAll("rect").attr("visibility", 'visible').attr("width", textBBox.width + 2).attr("height", textBBox.height + 2).attr("x", textBBox.x - 1).attr("y", textBBox.y - 1).attr("stroke-width", "1px").attr("stroke", "rgb(30,30,30)");
+          }
+        }).on('mouseout', function (d) {
+          if (!(d.data.text === undefined && (!d.children || d.children.length == 0))) {
+            build_d3.select(this).selectAll("text").text("");
+            build_d3.select(this).selectAll("rect").attr("visibility", 'hidden');
+          }
         });
+        nodeEnter.append('rect').attr('fill', 'rgba(255,255,255,1)').attr("visibility", 'visible');
         nodeEnter.append("circle").attr('class', 'circleNode').style("fill", function (d) {
-          return _this7.color_managers[treeIndex].calcColorScale(d.data);
+          return _this8.color_managers[treeIndex].calcColorScale(d.data);
         }).attr('cursor', 'pointer').style('stroke-width', '1px').style('stroke', 'black').attr("r", function (d, i) {
-          return _this7._nodeScale(d.data.metrics[secondaryMetric]);
+          return _this8._nodeScale(d.data.metrics[secondaryMetric]);
         }).on("click", function (d) {
           console.log(d);
           var data = [d];
 
           if (build_d3.event.shiftKey) {
-            if (_this7.model.state.selectedNodes.includes(d)) {
-              var delndx = _this7.model.state.selectedNodes.indexOf(d);
+            if (_this8.model.state.selectedNodes.includes(d)) {
+              var delndx = _this8.model.state.selectedNodes.indexOf(d);
 
-              _this7.model.state.selectedNodes.splice(delndx, 1);
+              _this8.model.state.selectedNodes.splice(delndx, 1);
 
-              data = _this7.model.state.selectedNodes;
+              data = _this8.model.state.selectedNodes;
             } else {
-              data = data.concat(_this7.model.state.selectedNodes);
+              data = data.concat(_this8.model.state.selectedNodes);
             }
           }
 
-          _this7.observers.notify({
+          _this8.observers.notify({
             type: globals.signals.CLICK,
             node: data
           });
         }).on('dblclick', function (d) {
           if (build_d3.event.ctrlKey) {
-            _this7.observers.notify({
+            _this8.observers.notify({
               type: globals.signals.COMPOSEINTERNAL,
               node: d
             });
           } else {
-            _this7.observers.notify({
+            _this8.observers.notify({
               type: globals.signals.COLLAPSESUBTREE,
               node: d
             });
           }
         });
         nodeEnter.append("text").attr("x", function (d) {
-          return d.children || _this7.model.state['collapsedNodes'].includes(d) ? -13 : _this7._nodeScale(d.data.metrics[secondaryMetric]) + 5;
+          return d.children || _this8.model.state['collapsedNodes'].includes(d) ? -13 : _this8._nodeScale(d.data.metrics[secondaryMetric]) + 5;
         }).attr("dy", ".5em").attr("text-anchor", function (d) {
-          return d.children || _this7.model.state['collapsedNodes'].includes(d) ? "end" : "start";
+          return d.children || _this8.model.state['collapsedNodes'].includes(d) ? "end" : "start";
         }).text(function (d) {
           if (!d.children || d.children.length == 0) {
             var n = d.data.name;
 
             if (n.includes("<unknown file>")) {
               n = n.replace('<unknown file>', '');
+            }
+
+            if (n.includes("<unknown procedure>")) {
+              n = n.replace('<unknown procedure>', '');
             }
 
             return n;
@@ -20019,7 +20057,7 @@ var ChartView = /*#__PURE__*/function (_View2) {
         var p_edge = 3;
         var s_depth = 4;
         nodeEnter.append("path").attr('d', "M 0,".concat(s_depth, "\n                                h ").concat(s_depth, "\n                                v -").concat(s_depth, "\n                                h ").concat(p_edge, "\n                                v ").concat(s_depth, "\n                                h ").concat(s_depth, "\n                                v ").concat(p_edge, "\n                                h -").concat(s_depth, "\n                                v ").concat(s_depth, "\n                                h -").concat(p_edge, "\n                                v -").concat(s_depth, "\n                                h -").concat(s_depth, "\n                                v -").concat(p_edge, "\n                                z")).attr("visibility", "hidden").attr("fill", 'rgb(180,0,0)').on('dblclick', function (d) {
-          _this7.observers.notify({
+          _this8.observers.notify({
             type: globals.signals.DECOMPOSENODE,
             node: d
           });
@@ -20031,23 +20069,23 @@ var ChartView = /*#__PURE__*/function (_View2) {
         //         .style("stroke", "rgba(100,100,100)");
 
         aggNodeEnter = aggNodes.enter().append('g').attr('class', 'aggNode').attr("transform", function (d) {
-          return "translate(".concat(_this7._treeDepthScale(d.depth), ", ").concat(_this7._getLocalNodeX(d.x, treeIndex), ")");
+          return "translate(".concat(_this8._treeDepthScale(d.depth), ", ").concat(_this8._getLocalNodeX(d.x, treeIndex), ")");
         }).on("click", function (d) {
           // console.log(d);
-          _this7.observers.notify({
+          _this8.observers.notify({
             type: globals.signals.CLICK,
             node: [d]
           });
         }).on('dblclick', function (d) {
-          _this7.observers.notify({
+          _this8.observers.notify({
             type: globals.signals.COLLAPSESUBTREE,
             node: d
           });
         });
         aggNodeEnter.append("circle").attr('class', 'aggNodeCircle').attr('r', function (d) {
-          return _this7._nodeScale(d.data.aggregateMetrics[secondaryMetric]);
+          return _this8._nodeScale(d.data.aggregateMetrics[secondaryMetric]);
         }).attr("fill", function (d) {
-          return _this7.color_managers[treeIndex].calcAggColorScale(d.data);
+          return _this8.color_managers[treeIndex].calcAggColorScale(d.data);
         }).style("stroke-width", "1px").style("stroke", "black").attr('transform', function (d) {
           var r = self._nodeScale(d.data.aggregateMetrics[secondaryMetric]);
 
@@ -20094,38 +20132,38 @@ var ChartView = /*#__PURE__*/function (_View2) {
         // Chart updates
 
         chart.transition().duration(globals.duration).attr("transform", function () {
-          if (_this7.model.state["activeTree"].includes(_this7.model.forest.rootNodeNames[treeIndex])) {
-            return "translate(".concat(_this7._margin.left, ", ").concat(_this7._margin.top, ")");
+          if (_this8.model.state["activeTree"].includes(_this8.model.forest.rootNodeNames[treeIndex])) {
+            return "translate(".concat(_this8._margin.left, ", ").concat(_this8._margin.top, ")");
           } else {
-            return "translate(".concat(_this7._margin.left, ", ").concat(_this7.chartOffset, ")");
+            return "translate(".concat(_this8._margin.left, ", ").concat(_this8.chartOffset, ")");
           }
         }).style("display", function () {
-          if (_this7.model.state["activeTree"].includes("Show all trees")) {
+          if (_this8.model.state["activeTree"].includes("Show all trees")) {
             return "inline-block";
-          } else if (_this7.model.state["activeTree"].includes(_this7.model.forest.rootNodeNames[treeIndex])) {
+          } else if (_this8.model.state["activeTree"].includes(_this8.model.forest.rootNodeNames[treeIndex])) {
             return "inline-block";
           } else {
             return "none";
           }
         }); //legend updates
 
-        _this7.primary_legends[treeIndex].render();
+        _this8.primary_legends[treeIndex].render();
 
-        _this7.secondary_legends[treeIndex].render(); // Transition links to their new position.
+        _this8.secondary_legends[treeIndex].render(); // Transition links to their new position.
 
 
         links.transition().duration(globals.duration).attr("d", function (d) {
-          return _this7.diagonal(d, d.parent, treeIndex);
+          return _this8.diagonal(d, d.parent, treeIndex);
         }); // Transition normal nodes to their new position.
 
         standardNodes.transition().duration(globals.duration).attr("transform", function (d) {
-          return "translate(".concat(_this7._treeDepthScale(d.depth), ", ").concat(_this7._getLocalNodeX(d.x, treeIndex), ")");
+          return "translate(".concat(_this8._treeDepthScale(d.depth), ", ").concat(_this8._getLocalNodeX(d.x, treeIndex), ")");
         }); //update other characteristics of nodes
 
         standardNodes.select('circle.circleNode').style('stroke', function (d) {
           return 'black';
         }).style('stroke-width', function (d) {
-          if (_this7.model.state['selectedNodes'].some(function (n) {
+          if (_this8.model.state['selectedNodes'].some(function (n) {
             return n.data.id == d.data.id;
           })) {
             return '4px';
@@ -20133,16 +20171,16 @@ var ChartView = /*#__PURE__*/function (_View2) {
             return '1px';
           }
         }).attr('cursor', 'pointer').transition().duration(globals.duration).attr("r", function (d, i) {
-          return _this7._nodeScale(d.data.metrics[secondaryMetric]);
+          return _this8._nodeScale(d.data.metrics[secondaryMetric]);
         }).style('fill', function (d) {
-          return _this7.color_managers[treeIndex].calcColorScale(d.data);
+          return _this8.color_managers[treeIndex].calcColorScale(d.data);
         });
 
-        if (_this7.newDataFlag) {
+        if (_this8.newDataFlag) {
           standardNodes.select("text").attr("x", function (d) {
-            return d.children || _this7.model.state['collapsedNodes'].includes(d) ? -13 : _this7._nodeScale(d.data.metrics[secondaryMetric]) + 5;
+            return d.children || _this8.model.state['collapsedNodes'].includes(d) ? -13 : _this8._nodeScale(d.data.metrics[secondaryMetric]) + 5;
           }).attr("dy", ".5em").attr("text-anchor", function (d) {
-            return d.children || _this7.model.state['collapsedNodes'].includes(d) ? "end" : "start";
+            return d.children || _this8.model.state['collapsedNodes'].includes(d) ? "end" : "start";
           }).text(function (d) {
             if (d.data.text === undefined && (!d.children || d.children.length == 0)) {
               var n = d.data.name;
@@ -20172,15 +20210,15 @@ var ChartView = /*#__PURE__*/function (_View2) {
           return "translate(".concat(self._treeDepthScale(d.depth), ", ").concat(self._getLocalNodeX(d.x, treeIndex), ")");
         });
         aggNodes.select('.aggNodeCircle').attr('r', function (d) {
-          return _this7._nodeScale(d.data.aggregateMetrics[secondaryMetric]);
+          return _this8._nodeScale(d.data.aggregateMetrics[secondaryMetric]);
         }).style('stroke-width', function (d) {
-          if (_this7.model.state['selectedNodes'].includes(d)) {
+          if (_this8.model.state['selectedNodes'].includes(d)) {
             return '3px';
           } else {
             return '1px';
           }
         }).style('fill', function (d) {
-          return _this7.color_managers[treeIndex].calcAggColorScale(d.data);
+          return _this8.color_managers[treeIndex].calcAggColorScale(d.data);
         }).attr('transform', function (d) {
           var r = self._nodeScale(d.data.aggregateMetrics[secondaryMetric]);
 
@@ -20200,7 +20238,7 @@ var ChartView = /*#__PURE__*/function (_View2) {
 
         nodeExit = standardNodes.exit().transition().duration(globals.duration).attr("transform", function (d) {
           // console.log(d.data.name, d.parent.data.name, d.xMainG, d.yMainG, this._treeDepthScale(d.depth), this._getLocalNodeX(d.x, treeIndex), "translate(" + this._treeDepthScale(d.parent.depth) + "," + this._getLocalNodeX(d.parent.x, treeIndex) + ")");
-          return "translate(" + _this7._treeDepthScale(d.parent.depth) + "," + _this7._getLocalNodeX(d.parent.x, treeIndex) + ")";
+          return "translate(" + _this8._treeDepthScale(d.parent.depth) + "," + _this8._getLocalNodeX(d.parent.x, treeIndex) + ")";
         }).remove(); // console.log("EXITED:", nodeExit.size());
         // console.log("Remaining:", standardNodes.size());
         // console.log("Entered:", nodeEnter.size());
@@ -20208,18 +20246,18 @@ var ChartView = /*#__PURE__*/function (_View2) {
         aggNodes.exit().remove(); // Transition exiting links to the parent's new position.
 
         links.exit().transition().duration(globals.duration).attr("d", function (d) {
-          return _this7.diagonal(d.parent, d.parent, treeIndex);
+          return _this8.diagonal(d.parent, d.parent, treeIndex);
         }).remove(); // make canvas always fit tree height
 
-        if (_this7.model.state["activeTree"].includes("Show all trees") || _this7.model.state["activeTree"].includes(_this7.model.forest.rootNodeNames[treeIndex])) {
-          _this7.chartOffset = _this7._treeLayoutHeights[treeIndex] + _this7.treeOffset + _this7._margin.top;
-          _this7._height += _this7.chartOffset;
+        if (_this8.model.state["activeTree"].includes("Show all trees") || _this8.model.state["activeTree"].includes(_this8.model.forest.rootNodeNames[treeIndex])) {
+          _this8.chartOffset = _this8._treeLayoutHeights[treeIndex] + _this8.treeOffset + _this8._margin.top;
+          _this8._height += _this8.chartOffset;
         }
 
         if (standardNodes.size() > nodeEnter.size()) {
-          _this7.manageLabelCollisions(standardNodes);
+          _this8.manageLabelCollisions(standardNodes);
         } else {
-          _this7.manageLabelCollisions(nodeEnter);
+          _this8.manageLabelCollisions(nodeEnter);
         }
       };
 

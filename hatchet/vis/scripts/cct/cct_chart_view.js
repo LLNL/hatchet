@@ -303,6 +303,14 @@ class ChartView extends View{
                 return n;
             }
             return "";
+        })
+        .attr("text-anchor", (d)=>{
+            if(d.data.text !== undefined || d.children){
+                return "end"
+            }
+        })
+        .attr("x", (d) => {
+            return d.children || d.data.text !== undefined ||this.model.state['collapsedNodes'].includes(d) ? -13 : this._nodeScale(d.data.metrics[this.model.state.secondaryMetric]) + 5;
         });
 
         this.newDataFlag = 0;
@@ -671,9 +679,51 @@ class ChartView extends View{
                     .attr('class', 'node')
                     .attr("transform", (d) => {
                         return `translate(${this._treeDepthScale(d.depth)}, ${this._getLocalNodeX(d.x, treeIndex)})`;
-                    });
-              
+                    })
+                    .on('mouseover', function (d){
+                        let ndgrp = d3.select(this);
 
+                        if(!((d.data.text === undefined) && (!d.children || d.children.length == 0))){   
+                            ndgrp.selectAll("text")
+                                            .text(()=>{
+                                                let n = d.data.name;
+                                                if (n.includes("<unknown file>")){
+                                                    n = n.replace('<unknown file>', '');
+                                                }
+                                                if (n.includes("<unknown procedure>")){
+                                                    n = n.replace('<unknown procedure>', '');
+                                                }
+                                                return n;
+                                            });
+
+                            let textBBox = ndgrp.select("text").node().getBBox();
+
+                            ndgrp.selectAll("rect")
+                                .attr("visibility", 'visible')
+                                .attr("width", textBBox.width+2)
+                                .attr("height", textBBox.height+2)
+                                .attr("x",textBBox.x-1)
+                                .attr("y",textBBox.y-1)
+                                .attr("stroke-width", "1px")
+                                .attr("stroke", "rgb(30,30,30)");
+                
+                        }
+                    })
+                    .on('mouseout', function(d){
+                        if(!((d.data.text === undefined) && (!d.children || d.children.length == 0))){
+                            d3.select(this).selectAll("text")
+                            .text("");
+
+                            d3.select(this).selectAll("rect")                
+                                .attr("visibility", 'hidden');
+                        }
+                    });
+            
+            
+            nodeEnter.append('rect')
+                .attr('fill', 'rgba(255,255,255,1)')
+                .attr("visibility", 'visible');
+                
             nodeEnter.append("circle")
                     .attr('class', 'circleNode')
                     .style("fill", (d) => {
@@ -732,6 +782,9 @@ class ChartView extends View{
                                 if (n.includes("<unknown file>")){
                                     n = n.replace('<unknown file>', '');
                                 }
+                                if (n.includes("<unknown procedure>")){
+                                    n = n.replace('<unknown procedure>', '');
+                                }
                                 return n;
                             }
                             return "";
@@ -739,6 +792,8 @@ class ChartView extends View{
                         .style("font", "12px monospace")
                         .style('fill','rgba(0,0,0,.9)');
             
+                        
+
             //add pluses to super_nodes
             let p_edge = 3;
             let s_depth = 4;
