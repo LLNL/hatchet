@@ -31,6 +31,8 @@ def test_copy(mock_graph_literal):
     assert gf.dataframe.equals(other.dataframe)
     assert gf.inc_metrics == other.inc_metrics
     assert gf.exc_metrics == other.exc_metrics
+    assert gf.default_metric == other.default_metric
+    assert gf.metadata == other.metadata
 
 
 def test_deepcopy(mock_graph_literal):
@@ -41,6 +43,8 @@ def test_deepcopy(mock_graph_literal):
     assert gf.dataframe is not other.dataframe
     assert gf.inc_metrics == other.inc_metrics
     assert gf.exc_metrics == other.exc_metrics
+    assert gf.default_metric == other.default_metric
+    assert gf.metadata == other.metadata
 
 
 def test_drop_index_levels(calc_pi_hpct_db):
