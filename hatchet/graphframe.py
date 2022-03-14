@@ -40,6 +40,24 @@ def parallel_apply(filter_function, dataframe, queue):
     queue.put(filtered_df)
 
 
+# TODO Move into global configuration when Connor's PR is merged
+_format_extensions = {
+    ".hdf5": "hdf",
+    ".hdf": "hdf",
+    ".h5": "hdf",
+    ".csv": "csv",
+    ".xls": "excel",
+    ".xlsx": "excel",
+    ".xlsm": "excel",
+    ".xlsb": "excel",
+    ".odf": "excel",
+    ".ods": "excel",
+    ".odt": "excel",
+    ".pkl": "pickle",
+    ".pickle": "pickle",
+}
+
+
 class GraphFrame:
     """An input dataset is read into an object of this type, which includes a graph
     and a dataframe.
@@ -299,17 +317,133 @@ class GraphFrame:
         return gf
 
     @staticmethod
-    def from_hdf(filename, **kwargs):
+    def load(filename, fileformat=None, **kwargs):
+        format_priority = ["hdf", "pickle", "csv", "excel"]
+        fformat = fileformat
+        if fformat is None:
+            # TODO
+            # for ext in self._format_extensions.keys():
+            for ext in _format_extensions.keys():
+                if filename.endswith(ext):
+                    # TODO
+                    # fformat = self._format_extensions[ext]
+                    fformat = _format_extensions[ext]
+                    break
+        if fformat is not None and fformat in format_priority:
+            format_priority.remove(fformat)
+            try:
+                # TODO
+                # gf = self._load_func_dict[fformat](filename, **kwargs)
+                gf = _load_func_dict[fformat](filename, **kwargs)
+                print("Successfully saved to {}".format(fformat))
+                return gf
+            except ImportError:
+                print(
+                    "Could not load from {} format. Trying alternatives.".format(
+                        fformat
+                    )
+                )
+        for form in format_priority:
+            print("Trying {}".format(form))
+            try:
+                # TODO
+                # gf = self._load_func_dict[form](filename, **kwargs)
+                gf = _load_func_dict[form](filename, **kwargs)
+                print("Sucessfully loaded from {}".format(form))
+                return gf
+            except ImportError:
+                print("Could not load from {} format.".format(form))
+        raise IOError(
+            "Could not parse {} with the available formats. Make sure you have the necessary dependencies installed.".format(
+                filename
+            )
+        )
+
+    def save(self, filename, fileformat=None, **kwargs):
+        format_priority = ["hdf", "pickle", "csv", "excel"]
+        fformat = fileformat
+        if fformat is None:
+            # TODO
+            # for ext in self._format_extensions.keys():
+            for ext in _format_extensions.keys():
+                if filename.endswith(ext):
+                    # TODO
+                    # fformat = self._format_extensions[ext]
+                    fformat = _format_extensions[ext]
+                    break
+        if fformat is not None and fformat in format_priority:
+            format_priority.remove(fformat)
+            try:
+                # TODO
+                # self._save_func_dict[fformat](self, filename, **kwargs)
+                _save_func_dict[fformat](self, filename, **kwargs)
+                print("Successfully saved to {}".format(fformat))
+                return
+            except ImportError:
+                print(
+                    "Could not save to {} format. Trying alternatives.".format(fformat)
+                )
+        for form in format_priority:
+            print("Trying {}".format(form))
+            try:
+                # TODO
+                # self._save_func_dict[form](self, filename, **kwargs)
+                _save_func_dict[form](self, filename, **kwargs)
+                print("Successfully saved to {}".format(form))
+                return
+            except ImportError:
+                print("Could not save to {} format.".format(form))
+        raise IOError(
+            "Could not save {} with the available formats. Make sure you have the necessary dependencies installed.".format(
+                filename
+            )
+        )
+
+    @staticmethod
+    def from_hdf(filename, key=None, **kwargs):
         # import this lazily to avoid circular dependencies
         from .readers.hdf5_reader import HDF5Reader
 
-        return HDF5Reader(filename).read(**kwargs)
+        return HDF5Reader(filename).read(key=key, **kwargs)
 
     def to_hdf(self, filename, key="hatchet_graphframe", **kwargs):
         # import this lazily to avoid circular dependencies
         from .writers.hdf5_writer import HDF5Writer
 
         HDF5Writer(filename).write(self, key=key, **kwargs)
+
+    @staticmethod
+    def from_pickle(filename, **kwargs):
+        from .readers.pickle_reader import PickleReader
+
+        return PickleReader(filename).read(**kwargs)
+
+    def to_pickle(self, filename, **kwargs):
+        from .writers.pickle_writer import PickleWriter
+
+        PickleWriter(filename).write(self, **kwargs)
+
+    @staticmethod
+    def from_csv(filename, **kwargs):
+        from .readers.csv_reader import CSVReader
+
+        return CSVReader(filename).read(**kwargs)
+
+    def to_csv(self, filename, **kwargs):
+        from .writers.csv_writer import CSVWriter
+
+        CSVWriter(filename).write(self, **kwargs)
+
+    @staticmethod
+    def from_excel(filename, **kwargs):
+        from .readers.excel_reader import ExcelReader
+
+        return ExcelReader(filename).read(**kwargs)
+
+    def to_excel(self, filename, **kwargs):
+        from .writers.excel_writer import ExcelWriter
+
+        ExcelWriter(filename).write(self, **kwargs)
 
     def copy(self):
         """Return a shallow copy of the graphframe.
@@ -1367,6 +1501,20 @@ class GraphFrame:
         self.unify(other_copy)
 
         return self._operator(other_copy, self.dataframe.mul)
+
+
+_load_func_dict = {
+    "hdf": GraphFrame.from_hdf,
+    "csv": GraphFrame.from_csv,
+    "excel": GraphFrame.from_excel,
+    "pickle": GraphFrame.from_pickle,
+}
+_save_func_dict = {
+    "hdf": GraphFrame.to_hdf,
+    "csv": GraphFrame.to_csv,
+    "excel": GraphFrame.to_excel,
+    "pickle": GraphFrame.to_pickle,
+}
 
 
 class InvalidFilter(Exception):

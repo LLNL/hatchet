@@ -45,7 +45,10 @@ jobs:
         python -m pip install --upgrade pip flake8 pytest
         pip install -r requirements.txt
         # Optional Dependency for HDF Checkpointing
-        pip install tables
+        python -m pip install tables
+        # All Possible Optional Dependencies for Excel Checkpointing
+        # python -m pip install XlsxWriter openpyxl pyxlsb xlrd xlwt
+        python -m pip install xlrd xlwt
         python setup.py install
         python setup.py build_ext --inplace
         python -m pip list

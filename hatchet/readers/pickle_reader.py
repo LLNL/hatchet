@@ -3,22 +3,18 @@
 #
 # SPDX-License-Identifier: MIT
 
-import warnings
 import pandas as pd
-import sys
 from .dataframe_reader import DataframeReader
 
+import sys
 
-class HDF5Reader(DataframeReader):
+
+class PickleReader(DataframeReader):
     def __init__(self, filename):
         if sys.version_info[0] == 2:
-            super(HDF5Reader, self).__init__(filename)
+            super(PickleReader, self).__init__(filename)
         else:
             super().__init__(filename)
 
     def _read_dataframe_from_file(self, **kwargs):
-        df = None
-        with warnings.catch_warnings():
-            warnings.filterwarnings("ignore", category=Warning)
-            df = pd.read_hdf(self.filename, **kwargs)
-        return df
+        return pd.read_pickle(self.filename, **kwargs)
