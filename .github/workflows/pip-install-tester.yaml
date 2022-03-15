@@ -1,7 +1,8 @@
 name: pip install tester
 
 on:
-  workflow_dispatch:
+  push:
+    branches: ['pip_install_tester']
   # TODO Replace the workflow_dispatch to schedule
   # schedule:
   #   # - cron: '0 16 16 * *'
