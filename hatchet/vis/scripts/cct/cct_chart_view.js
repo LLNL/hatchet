@@ -1,4 +1,4 @@
-import { d3, globals, getSigFigString } from "./cct_globals";
+import { d3, globals, getSigFigString, areaToRad } from "./cct_globals";
 import ColorManager from "./cct_color_manager";
 import View from "../utils/view";
 
@@ -68,7 +68,7 @@ class Legend extends View{
                         return "translate(-20, " + y + ")";
                     }
                     else if(this.type == 'radius'){
-                        return `translate(-20, ${i*(this._nodeScale(this.quantNodeScale.invertExtent(5)[0]+1)+13)})`;
+                        return `translate(-20, ${i*(areaToRad(this._nodeScale(this.quantNodeScale.invertExtent(5)[0]+1))+13)})`;
                     }
                 });
 
@@ -95,10 +95,10 @@ class Legend extends View{
                     .attr('class', 'legend-samples')
                     .attr('cx', 0)
                     .attr('cy', (_,i)=>{
-                        return (this._nodeScale(this.quantNodeScale.invertExtent(5)[0]+1)/2 + 3);
+                        return ( areaToRad(this._nodeScale(this.quantNodeScale.invertExtent(5)[0]+1))/2 + 3);
                     })
                     .attr('r', (_,i)=>{
-                        return this._nodeScale(this.quantNodeScale.invertExtent(5-i)[0]+1);
+                        return areaToRad(this._nodeScale(this.quantNodeScale.invertExtent(5-i)[0]+1));
                     })
                     .style('stroke', 'black')
                     .style('fill', 'white');
@@ -106,7 +106,7 @@ class Legend extends View{
             legendGroups.append('text')
                     .attr('class', 'legend-ranges')
                     .attr('x', (_,i)=>{
-                        return this._nodeScale(this.quantNodeScale.invertExtent(5)[0]+1)+5
+                        return areaToRad(this._nodeScale(this.quantNodeScale.invertExtent(5)[0]+1))+5
                     }) 
                     .attr('y', 13)
                     .text("0.0 - 0.0")
@@ -176,6 +176,7 @@ class ChartView extends View{
         this._width = element.clientWidth - this._margin.right - this._margin.left;
         this._height = this._margin.top + this._margin.bottom;
         this._maxNodeRadius = 12;
+        this._maxNodeArea = 144*Math.PI;
         this._treeLayoutHeights = [];
         this.legendOffset = 0;
         this.chartOffset = this._margin.top;
@@ -194,8 +195,7 @@ class ChartView extends View{
         //scales
         this._treeCanvasHeightScale = d3.scaleQuantize().range([450, 1250, 1500, 1750]).domain([1, 300]);
         this._treeDepthScale = d3.scaleLinear().range([0, element.offsetWidth-200]).domain([0, fMaxHeight])
-        this._nodeScale = d3.scaleLinear().range([4, this._maxNodeRadius]).domain([secondaryMinMax.min, secondaryMinMax.max]);
-        // this._aggNodeScale = d3.scaleLinear().range([4, this._maxNodeRadius]).domain([secondaryMinMax.min, secondaryMinMax.max]);
+        this._nodeScale = d3.scaleLinear().range([16*Math.PI, this._maxNodeArea]).domain([secondaryMinMax.min, secondaryMinMax.max]);
 
         //view specific data stores
         this.nodes = [];
@@ -221,8 +221,8 @@ class ChartView extends View{
            box1.y < box2.y + box2.height &&
            box1.y + box1.height > box2.y){
                return true;
-           }
-           return false;
+        }
+        return false;
     }
 
 
@@ -250,18 +250,21 @@ class ChartView extends View{
             testBBs.push(currentBox);
         });
 
-        // testBBs.sort((bb1, bb2) => bb1.y - bb2.y);
+        testBBs.sort((bb1, bb2) => bb1.y - bb2.y);
+
+        console.log(testBBs);
 
         let currentBox = null;
         let compareBox = null;
         let curr_d = null;
         let nd = null;
-        for(let i = 0; i < testBBs.length; i ++){
-            for(let j = i+1; j < testBBs.length; j ++){
-                currentBox = testBBs[i];
-                compareBox = testBBs[j];
-                
-                if(compareBox.y < currentBox.y + 20 && compareBox.y > currentBox.y - 20){
+        for(let i = 0; i < testBBs.length-1; i ++){
+            currentBox = testBBs[i];
+            let cmpndx = i+1;
+            compareBox = testBBs[cmpndx];
+            // console.log(currentBox.y, compareBox.y);
+            while(cmpndx < testBBs.length && compareBox.y <= currentBox.y + 20){
+                    console.log("collison check");
                     if(self.checkCollison(currentBox, compareBox)){
                          //collision resolution conditionals
                         let rmv = null;
@@ -289,7 +292,8 @@ class ChartView extends View{
 
                         rmv.data.text = false;
                     }
-                }
+                cmpndx += 1;
+                compareBox = testBBs[cmpndx]
             }
         }
            
@@ -310,7 +314,7 @@ class ChartView extends View{
             }
         })
         .attr("x", (d) => {
-            return d.children || d.data.text !== undefined ||this.model.state['collapsedNodes'].includes(d) ? -13 : this._nodeScale(d.data.metrics[this.model.state.secondaryMetric]) + 5;
+            return d.children || d.data.text !== undefined ||this.model.state['collapsedNodes'].includes(d) ? -13 : areaToRad(this._nodeScale(d.data.metrics[this.model.state.secondaryMetric])) + 5;
         });
 
         this.newDataFlag = 0;
@@ -733,7 +737,7 @@ class ChartView extends View{
                     .style('stroke-width', '1px')
                     .style('stroke', 'black')
                     .attr("r", (d, i) => {
-                        return this._nodeScale(d.data.metrics[secondaryMetric]);
+                        return areaToRad(this._nodeScale(d.data.metrics[secondaryMetric]));
                     })
                     .on("click", (d) => {
                         console.log(d);
@@ -770,7 +774,7 @@ class ChartView extends View{
 
             nodeEnter.append("text")
                         .attr("x", (d) => {
-                            return d.children || this.model.state['collapsedNodes'].includes(d) ? -13 : this._nodeScale(d.data.metrics[secondaryMetric]) + 5;
+                            return d.children || this.model.state['collapsedNodes'].includes(d) ? -13 : areaToRad(this._nodeScale(d.data.metrics[secondaryMetric])) + 5;
                         })
                         .attr("dy", ".5em")
                         .attr("text-anchor", (d) => {
@@ -854,14 +858,14 @@ class ChartView extends View{
 
             aggNodeEnter.append("circle")
                     .attr('class', 'aggNodeCircle')
-                    .attr('r', (d) => {return this._nodeScale(d.data.aggregateMetrics[secondaryMetric]);})
+                    .attr('r', (d) => {return areaToRad(this._nodeScale(d.data.aggregateMetrics[secondaryMetric]));})
                     .attr("fill", (d) =>  {
                         return this.color_managers[treeIndex].calcAggColorScale(d.data);
                     })
                     .style("stroke-width", "1px")
                     .style("stroke", "black")
                     .attr('transform', function (d) {
-                        let r = self._nodeScale(d.data.aggregateMetrics[secondaryMetric]);
+                        let r = areaToRad(self._nodeScale(d.data.aggregateMetrics[secondaryMetric]));
                         return `translate(0, ${r/2})`;
                     });
 
@@ -870,7 +874,7 @@ class ChartView extends View{
                         .attr('fill', '#000')
                         .attr('stroke', '#000')
                         .attr('d', (d)=>{
-                                        let rad = self._nodeScale(d.data.aggregateMetrics[secondaryMetric]);
+                                        let rad = areaToRad(self._nodeScale(d.data.aggregateMetrics[secondaryMetric]));
 
                                         return `m 0,0 
                                         l 0,${rad*2} 
@@ -880,7 +884,7 @@ class ChartView extends View{
                                     });
             
             arrows.attr('transform', function(d){
-                let rad = self._nodeScale(d.data.aggregateMetrics[secondaryMetric]);
+                let rad = areaToRad(self._nodeScale(d.data.aggregateMetrics[secondaryMetric]));
                 return `translate(${rad*2},${(-rad/2)})`
             });
             
@@ -977,7 +981,7 @@ class ChartView extends View{
                 .transition()
                 .duration(globals.duration)
                 .attr("r", (d, i) => {
-                    return this._nodeScale(d.data.metrics[secondaryMetric]);
+                    return areaToRad(this._nodeScale(d.data.metrics[secondaryMetric]));
                 })
                 .style('fill', (d) => {
                     return this.color_managers[treeIndex].calcColorScale(d.data);
@@ -987,7 +991,7 @@ class ChartView extends View{
             if(this.newDataFlag){
                 standardNodes.select("text")
                     .attr("x", (d) => {
-                        return d.children || this.model.state['collapsedNodes'].includes(d) ? -13 : this._nodeScale(d.data.metrics[secondaryMetric]) + 5;
+                        return d.children || this.model.state['collapsedNodes'].includes(d) ? -13 : areaToRad(this._nodeScale(d.data.metrics[secondaryMetric])) + 5;
                     })
                     .attr("dy", ".5em")
                     .attr("text-anchor", (d) => {
@@ -1012,7 +1016,7 @@ class ChartView extends View{
                         .transition()
                         .duration(globals.duration)
                         .attr('transform',function(d){
-                            let rad = self._nodeScale(d.data.metrics[secondaryMetric]);
+                            let rad = areaToRad(self._nodeScale(d.data.metrics[secondaryMetric]));
                             return `translate(${s_depth},${(-rad*2 - s_depth)})`
                         });
             
@@ -1031,7 +1035,7 @@ class ChartView extends View{
 
             aggNodes
                 .select('.aggNodeCircle')
-                .attr('r', (d) => {return  this._nodeScale(d.data.aggregateMetrics[secondaryMetric]);})
+                .attr('r', (d) => {return  areaToRad(this._nodeScale(d.data.aggregateMetrics[secondaryMetric]));})
                 .style('stroke-width', (d) => {
                     if (this.model.state['selectedNodes'].includes(d)){
                         return '3px';
@@ -1044,14 +1048,14 @@ class ChartView extends View{
                     return this.color_managers[treeIndex].calcAggColorScale(d.data);
                 })
                 .attr('transform', function (d) {
-                    let r = self._nodeScale(d.data.aggregateMetrics[secondaryMetric]);
+                    let r = areaToRad(self._nodeScale(d.data.aggregateMetrics[secondaryMetric]));
                     return `translate(0, ${r/2})`;
                 });
 
             aggNodes
                 .select('.aggNodeArrow')
                 .attr('d', (d)=>{
-                    let rad = self._nodeScale(d.data.aggregateMetrics[secondaryMetric])-1;
+                    let rad = areaToRad(self._nodeScale(d.data.aggregateMetrics[secondaryMetric]))-1;
 
                     return `m 0,0 
                     l 0,${rad*2} 
@@ -1060,7 +1064,7 @@ class ChartView extends View{
                     z`
                 })
                 .attr('transform', function(d){
-                    let rad = self._nodeScale(d.data.aggregateMetrics[secondaryMetric]);
+                    let rad = areaToRad(self._nodeScale(d.data.aggregateMetrics[secondaryMetric]));
                     return `translate(${rad*2},${(-rad/2)})`
                 });
 

@@ -72,7 +72,11 @@ function getSigFigString(num){
     }
 }
 
+function areaToRad(area){
+    return Math.sqrt(area/Math.PI);
+}
+
 
 var RT = window.Roundtrip;
 
-export { makeSignaller, globals, RT, d3, getSigFigString };
+export { makeSignaller, globals, RT, d3, getSigFigString, areaToRad};

@@ -16348,6 +16348,10 @@ function getSigFigString(num) {
   }
 }
 
+function areaToRad(area) {
+  return Math.sqrt(area / Math.PI);
+}
+
 var RT = window.Roundtrip;
 
 ;// CONCATENATED MODULE: ./scripts/cct/cct_controller.js
@@ -19469,7 +19473,7 @@ var Legend = /*#__PURE__*/function (_View) {
           var y = 18 * i;
           return "translate(-20, " + y + ")";
         } else if (_this2.type == 'radius') {
-          return "translate(-20, ".concat(i * (_this2._nodeScale(_this2.quantNodeScale.invertExtent(5)[0] + 1) + 13), ")");
+          return "translate(-20, ".concat(i * (areaToRad(_this2._nodeScale(_this2.quantNodeScale.invertExtent(5)[0] + 1)) + 13), ")");
         }
       }); //legend rectangles & text
 
@@ -19480,12 +19484,12 @@ var Legend = /*#__PURE__*/function (_View) {
 
       if (this.type == 'radius') {
         legendGroups.append('circle').attr('class', 'legend-samples').attr('cx', 0).attr('cy', function (_, i) {
-          return _this2._nodeScale(_this2.quantNodeScale.invertExtent(5)[0] + 1) / 2 + 3;
+          return areaToRad(_this2._nodeScale(_this2.quantNodeScale.invertExtent(5)[0] + 1)) / 2 + 3;
         }).attr('r', function (_, i) {
-          return _this2._nodeScale(_this2.quantNodeScale.invertExtent(5 - i)[0] + 1);
+          return areaToRad(_this2._nodeScale(_this2.quantNodeScale.invertExtent(5 - i)[0] + 1));
         }).style('stroke', 'black').style('fill', 'white');
         legendGroups.append('text').attr('class', 'legend-ranges').attr('x', function (_, i) {
-          return _this2._nodeScale(_this2.quantNodeScale.invertExtent(5)[0] + 1) + 5;
+          return areaToRad(_this2._nodeScale(_this2.quantNodeScale.invertExtent(5)[0] + 1)) + 5;
         }).attr('y', 13).text("0.0 - 0.0").style('font-family', 'monospace').style('font-size', '12px');
       }
 
@@ -19549,6 +19553,7 @@ var ChartView = /*#__PURE__*/function (_View2) {
     _this4._width = element.clientWidth - _this4._margin.right - _this4._margin.left;
     _this4._height = _this4._margin.top + _this4._margin.bottom;
     _this4._maxNodeRadius = 12;
+    _this4._maxNodeArea = 144 * Math.PI;
     _this4._treeLayoutHeights = [];
     _this4.legendOffset = 0;
     _this4.chartOffset = _this4._margin.top;
@@ -19560,8 +19565,7 @@ var ChartView = /*#__PURE__*/function (_View2) {
 
     _this4._treeCanvasHeightScale = build_d3.scaleQuantize().range([450, 1250, 1500, 1750]).domain([1, 300]);
     _this4._treeDepthScale = build_d3.scaleLinear().range([0, element.offsetWidth - 200]).domain([0, fMaxHeight]);
-    _this4._nodeScale = build_d3.scaleLinear().range([4, _this4._maxNodeRadius]).domain([secondaryMinMax.min, secondaryMinMax.max]); // this._aggNodeScale = d3.scaleLinear().range([4, this._maxNodeRadius]).domain([secondaryMinMax.min, secondaryMinMax.max]);
-    //view specific data stores
+    _this4._nodeScale = build_d3.scaleLinear().range([16 * Math.PI, _this4._maxNodeArea]).domain([secondaryMinMax.min, secondaryMinMax.max]); //view specific data stores
 
     _this4.nodes = [];
     _this4.surrogates = [];
@@ -19612,42 +19616,49 @@ var ChartView = /*#__PURE__*/function (_View2) {
         currentBox.width = this.getBBox().width;
         currentBox.dat = d;
         testBBs.push(currentBox);
-      }); // testBBs.sort((bb1, bb2) => bb1.y - bb2.y);
-
+      });
+      testBBs.sort(function (bb1, bb2) {
+        return bb1.y - bb2.y;
+      });
+      console.log(testBBs);
       var currentBox = null;
       var compareBox = null;
       var curr_d = null;
       var nd = null;
 
-      for (var i = 0; i < testBBs.length; i++) {
-        for (var j = i + 1; j < testBBs.length; j++) {
-          currentBox = testBBs[i];
-          compareBox = testBBs[j];
+      for (var i = 0; i < testBBs.length - 1; i++) {
+        currentBox = testBBs[i];
+        var cmpndx = i + 1;
+        compareBox = testBBs[cmpndx]; // console.log(currentBox.y, compareBox.y);
 
-          if (compareBox.y < currentBox.y + 20 && compareBox.y > currentBox.y - 20) {
-            if (self.checkCollison(currentBox, compareBox)) {
-              //collision resolution conditionals
-              var rmv = null;
-              curr_d = currentBox.dat;
-              nd = compareBox.dat;
-              delete curr_d.data.text; //comparing nodes of different depths
+        while (cmpndx < testBBs.length && compareBox.y <= currentBox.y + 20) {
+          console.log("collison check");
 
-              if (curr_d.depth > nd.depth) {
-                rmv = nd;
-              } else if (curr_d.depth < nd.depth) {
+          if (self.checkCollison(currentBox, compareBox)) {
+            //collision resolution conditionals
+            var rmv = null;
+            curr_d = currentBox.dat;
+            nd = compareBox.dat;
+            delete curr_d.data.text; //comparing nodes of different depths
+
+            if (curr_d.depth > nd.depth) {
+              rmv = nd;
+            } else if (curr_d.depth < nd.depth) {
+              rmv = curr_d;
+            } else {
+              //comparing siblings
+              if (nd.data.metrics[self.model.state.primaryMetric] > curr_d.data.metrics[self.model.state.primaryMetric]) {
                 rmv = curr_d;
               } else {
-                //comparing siblings
-                if (nd.data.metrics[self.model.state.primaryMetric] > curr_d.data.metrics[self.model.state.primaryMetric]) {
-                  rmv = curr_d;
-                } else {
-                  rmv = nd;
-                }
+                rmv = nd;
               }
-
-              rmv.data.text = false;
             }
+
+            rmv.data.text = false;
           }
+
+          cmpndx += 1;
+          compareBox = testBBs[cmpndx];
         }
       }
 
@@ -19668,7 +19679,7 @@ var ChartView = /*#__PURE__*/function (_View2) {
           return "end";
         }
       }).attr("x", function (d) {
-        return d.children || d.data.text !== undefined || _this5.model.state['collapsedNodes'].includes(d) ? -13 : _this5._nodeScale(d.data.metrics[_this5.model.state.secondaryMetric]) + 5;
+        return d.children || d.data.text !== undefined || _this5.model.state['collapsedNodes'].includes(d) ? -13 : areaToRad(_this5._nodeScale(d.data.metrics[_this5.model.state.secondaryMetric])) + 5;
       });
       this.newDataFlag = 0;
     }
@@ -19998,7 +20009,7 @@ var ChartView = /*#__PURE__*/function (_View2) {
         nodeEnter.append("circle").attr('class', 'circleNode').style("fill", function (d) {
           return _this8.color_managers[treeIndex].calcColorScale(d.data);
         }).attr('cursor', 'pointer').style('stroke-width', '1px').style('stroke', 'black').attr("r", function (d, i) {
-          return _this8._nodeScale(d.data.metrics[secondaryMetric]);
+          return areaToRad(_this8._nodeScale(d.data.metrics[secondaryMetric]));
         }).on("click", function (d) {
           console.log(d);
           var data = [d];
@@ -20033,7 +20044,7 @@ var ChartView = /*#__PURE__*/function (_View2) {
           }
         });
         nodeEnter.append("text").attr("x", function (d) {
-          return d.children || _this8.model.state['collapsedNodes'].includes(d) ? -13 : _this8._nodeScale(d.data.metrics[secondaryMetric]) + 5;
+          return d.children || _this8.model.state['collapsedNodes'].includes(d) ? -13 : areaToRad(_this8._nodeScale(d.data.metrics[secondaryMetric])) + 5;
         }).attr("dy", ".5em").attr("text-anchor", function (d) {
           return d.children || _this8.model.state['collapsedNodes'].includes(d) ? "end" : "start";
         }).text(function (d) {
@@ -20083,22 +20094,19 @@ var ChartView = /*#__PURE__*/function (_View2) {
           });
         });
         aggNodeEnter.append("circle").attr('class', 'aggNodeCircle').attr('r', function (d) {
-          return _this8._nodeScale(d.data.aggregateMetrics[secondaryMetric]);
+          return areaToRad(_this8._nodeScale(d.data.aggregateMetrics[secondaryMetric]));
         }).attr("fill", function (d) {
           return _this8.color_managers[treeIndex].calcAggColorScale(d.data);
         }).style("stroke-width", "1px").style("stroke", "black").attr('transform', function (d) {
-          var r = self._nodeScale(d.data.aggregateMetrics[secondaryMetric]);
-
+          var r = areaToRad(self._nodeScale(d.data.aggregateMetrics[secondaryMetric]));
           return "translate(0, ".concat(r / 2, ")");
         });
         var arrows = aggNodeEnter.append('path').attr('class', 'aggNodeArrow').attr('fill', '#000').attr('stroke', '#000').attr('d', function (d) {
-          var rad = self._nodeScale(d.data.aggregateMetrics[secondaryMetric]);
-
+          var rad = areaToRad(self._nodeScale(d.data.aggregateMetrics[secondaryMetric]));
           return "m 0,0 \n                                        l 0,".concat(rad * 2, " \n                                        l ").concat(rad, ", ").concat(-rad, ", \n                                        l ").concat(-rad, ",0 \n                                        z");
         });
         arrows.attr('transform', function (d) {
-          var rad = self._nodeScale(d.data.aggregateMetrics[secondaryMetric]);
-
+          var rad = areaToRad(self._nodeScale(d.data.aggregateMetrics[secondaryMetric]));
           return "translate(".concat(rad * 2, ",").concat(-rad / 2, ")");
         }); // aggNodeEnter.append("text")
         //     .attr("x", function () {
@@ -20171,14 +20179,14 @@ var ChartView = /*#__PURE__*/function (_View2) {
             return '1px';
           }
         }).attr('cursor', 'pointer').transition().duration(globals.duration).attr("r", function (d, i) {
-          return _this8._nodeScale(d.data.metrics[secondaryMetric]);
+          return areaToRad(_this8._nodeScale(d.data.metrics[secondaryMetric]));
         }).style('fill', function (d) {
           return _this8.color_managers[treeIndex].calcColorScale(d.data);
         });
 
         if (_this8.newDataFlag) {
           standardNodes.select("text").attr("x", function (d) {
-            return d.children || _this8.model.state['collapsedNodes'].includes(d) ? -13 : _this8._nodeScale(d.data.metrics[secondaryMetric]) + 5;
+            return d.children || _this8.model.state['collapsedNodes'].includes(d) ? -13 : areaToRad(_this8._nodeScale(d.data.metrics[secondaryMetric])) + 5;
           }).attr("dy", ".5em").attr("text-anchor", function (d) {
             return d.children || _this8.model.state['collapsedNodes'].includes(d) ? "end" : "start";
           }).text(function (d) {
@@ -20199,8 +20207,7 @@ var ChartView = /*#__PURE__*/function (_View2) {
         standardNodes.filter(function (d) {
           return d.data.composed != undefined;
         }).selectAll("path").attr('visibility', 'visible').transition().duration(globals.duration).attr('transform', function (d) {
-          var rad = self._nodeScale(d.data.metrics[secondaryMetric]);
-
+          var rad = areaToRad(self._nodeScale(d.data.metrics[secondaryMetric]));
           return "translate(".concat(s_depth, ",").concat(-rad * 2 - s_depth, ")");
         });
         standardNodes.filter(function (d) {
@@ -20210,7 +20217,7 @@ var ChartView = /*#__PURE__*/function (_View2) {
           return "translate(".concat(self._treeDepthScale(d.depth), ", ").concat(self._getLocalNodeX(d.x, treeIndex), ")");
         });
         aggNodes.select('.aggNodeCircle').attr('r', function (d) {
-          return _this8._nodeScale(d.data.aggregateMetrics[secondaryMetric]);
+          return areaToRad(_this8._nodeScale(d.data.aggregateMetrics[secondaryMetric]));
         }).style('stroke-width', function (d) {
           if (_this8.model.state['selectedNodes'].includes(d)) {
             return '3px';
@@ -20220,16 +20227,14 @@ var ChartView = /*#__PURE__*/function (_View2) {
         }).style('fill', function (d) {
           return _this8.color_managers[treeIndex].calcAggColorScale(d.data);
         }).attr('transform', function (d) {
-          var r = self._nodeScale(d.data.aggregateMetrics[secondaryMetric]);
-
+          var r = areaToRad(self._nodeScale(d.data.aggregateMetrics[secondaryMetric]));
           return "translate(0, ".concat(r / 2, ")");
         });
         aggNodes.select('.aggNodeArrow').attr('d', function (d) {
-          var rad = self._nodeScale(d.data.aggregateMetrics[secondaryMetric]) - 1;
+          var rad = areaToRad(self._nodeScale(d.data.aggregateMetrics[secondaryMetric])) - 1;
           return "m 0,0 \n                    l 0,".concat(rad * 2, " \n                    l ").concat(rad, ", ").concat(-rad, ", \n                    l ").concat(-rad, ",0 \n                    z");
         }).attr('transform', function (d) {
-          var rad = self._nodeScale(d.data.aggregateMetrics[secondaryMetric]);
-
+          var rad = areaToRad(self._nodeScale(d.data.aggregateMetrics[secondaryMetric]));
           return "translate(".concat(rad * 2, ",").concat(-rad / 2, ")");
         }); // ---------------------------------------------
         // Exit
