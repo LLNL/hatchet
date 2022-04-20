@@ -6,12 +6,12 @@ Version `2022.1.0` is a major release.
 * 3 new readers: TAU, SpotDB, and Caliper python reader
 * Query language extensions: compound queries, not query, and middle-level API
 * Adds GraphFrame checkpoints in HDF5 format
-* Roundtrip enhancements: pan and zoom, module encoding, multivariate encoding
-  and adjustable mass pruning on large datasets
+* Interactive CCT visualization enhancements: pan and zoom, module encoding,
+  multivariate encoding and adjustable mass pruning on large datasets
 * HPCToolkit: extend for GPU stream data
 * New color maps for terminal tree visualization
-
-### Other notable new features
+* New function for calculating exclusive metrics from corresponding inclusive
+  metrics
 
 ### Changes to existing APIs
 * Precision parameter applied to second metric in terminal tree visualization
@@ -22,6 +22,8 @@ Version `2022.1.0` is a major release.
 * New interface for calling the Hatchet calling context tree from Roundtrip:
   `%cct <graphframe or list>`. Deprecated interface: `%loadVisualization
   <roundtrip_path> <literal_tree>`
+* Add recursion limit parameter to graphframe filter(rec_limit=1000)`,
+  resolving recursion depth errors on large graphs
 
 ### Tutorials and documentation
 * New tutorial material from the ECP Annual Meeting 2021
@@ -33,11 +35,13 @@ Version `2022.1.0` is a major release.
 * Extend update_inclusive_columns() for multi-indexed trees
 * Moves CI from Travis to GitHub Actions
 * Roundtrip refactor
+* New unit test for formatting license headers
 
 ### Bugfixes
 * Return default_metric and metadata in filter(), squash(), copy(), and
   deepcopy()
 * flamegraph: extract name from dataframe column instead of frame
+* Preserve existing inc_metrics in update_inclusive_columns
 
 # v1.3.1a0 (2021-04-02)
 
