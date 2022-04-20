@@ -448,6 +448,8 @@ class GraphFrame:
         filtered_gf = GraphFrame(self.graph, filtered_df)
         filtered_gf.exc_metrics = self.exc_metrics
         filtered_gf.inc_metrics = self.inc_metrics
+        filtered_gf.default_metric = self.default_metric
+        filtered_gf.metadata = self.metadata
 
         if squash:
             return filtered_gf.squash()
@@ -541,7 +543,14 @@ class GraphFrame:
         agg_df.sort_index(inplace=True)
 
         # put it all together
-        new_gf = GraphFrame(graph, agg_df, self.exc_metrics, self.inc_metrics)
+        new_gf = GraphFrame(
+            graph,
+            agg_df,
+            self.exc_metrics,
+            self.inc_metrics,
+            self.default_metric,
+            self.metadata,
+        )
         new_gf.update_inclusive_columns()
         return new_gf
 
@@ -1169,7 +1178,14 @@ class GraphFrame:
         graph.enumerate_traverse()
 
         # put it all together
-        new_gf = GraphFrame(graph, tmp_df, self.exc_metrics, self.inc_metrics)
+        new_gf = GraphFrame(
+            graph,
+            tmp_df,
+            self.exc_metrics,
+            self.inc_metrics,
+            self.default_metric,
+            self.metadata,
+        )
         new_gf.drop_index_levels()
         return new_gf
 
