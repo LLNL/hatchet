@@ -188,7 +188,7 @@ class ScentedSliderPopup extends View{
                     .attr('x', 5);
         
         this._svg.append('text')
-                    .text('i')
+                    .text('')
                     .attr('fill', 'rgba(0,0,0,1)')
                     .attr('y', 20)
                     .attr('x', this.popup_dims['width']-10);
