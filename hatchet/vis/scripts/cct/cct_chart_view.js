@@ -3,6 +3,9 @@ import ColorManager from "./cct_color_manager";
 import View from "../utils/view";
 
 class Legend extends View{
+    /**
+     * Handles the drawing and management of different types of legends.
+     */
     constructor(elem, model, encoding_type, tree_index, cm, nodeScale){
         super(elem, model);
         this._colorManager = cm;
@@ -28,6 +31,9 @@ class Legend extends View{
     }
 
     offset(x){
+        /**
+         * Offsets a legend by x pixels along the x axis
+         */
         this.leg_grp.attr('transform', `translate(${x}, 0)`);
     }
 
@@ -216,6 +222,12 @@ class ChartView extends View{
 
 
     checkCollison(box1, box2){
+        /**
+         * Collision checking algorithm.
+         * Used on text bounding boxes for
+         * mitigating text overlap in dense
+         * node clusters.
+         */
         if(box1.x < box2.x + box2.width &&
            box1.x + box1.width > box2.x &&
            box1.y < box2.y + box2.height &&
@@ -226,7 +238,14 @@ class ChartView extends View{
     }
 
 
-    manageLabelCollisions(nodes, entrflg){
+    manageLabelCollisions(nodes){
+        /**
+         * Main label collision management algorithm.
+         *  Orders all labels by y coordinate and only checks
+         *  a small number of possible conflicts as defined
+         *  by their proximity to the tested label.
+         */
+
         if(!this.newDataFlag){
             return;
         }
@@ -262,9 +281,7 @@ class ChartView extends View{
             currentBox = testBBs[i];
             let cmpndx = i+1;
             compareBox = testBBs[cmpndx];
-            // console.log(currentBox.y, compareBox.y);
             while(cmpndx < testBBs.length && compareBox.y <= currentBox.y + 20){
-                    console.log("collison check");
                     if(self.checkCollison(currentBox, compareBox)){
                          //collision resolution conditionals
                         let rmv = null;
@@ -298,24 +315,24 @@ class ChartView extends View{
         }
            
         nodes.select("text")
-        .text((d) => {
-            if((d.data.text === undefined) && (!d.children || d.children.length == 0)){
-                let n = d.data.name;
-                if (n.includes("<unknown file>")){
-                    n = n.replace('<unknown file>', '');
+            .text((d) => {
+                if((d.data.text === undefined) && (!d.children || d.children.length == 0)){
+                    let n = d.data.name;
+                    if (n.includes("<unknown file>")){
+                        n = n.replace('<unknown file>', '');
+                    }
+                    return n;
                 }
-                return n;
-            }
-            return "";
-        })
-        .attr("text-anchor", (d)=>{
-            if(d.data.text !== undefined || d.children){
-                return "end"
-            }
-        })
-        .attr("x", (d) => {
-            return d.children || d.data.text !== undefined ||this.model.state['collapsedNodes'].includes(d) ? -13 : areaToRad(this._nodeScale(d.data.metrics[this.model.state.secondaryMetric])) + 5;
-        });
+                return "";
+            })
+            .attr("text-anchor", (d)=>{
+                if(d.data.text !== undefined || d.children){
+                    return "end"
+                }
+            })
+            .attr("x", (d) => {
+                return d.children || d.data.text !== undefined ||this.model.state['collapsedNodes'].includes(d) ? -13 : areaToRad(this._nodeScale(d.data.metrics[this.model.state.secondaryMetric])) + 5;
+            });
 
         this.newDataFlag = 0;
     }
@@ -440,9 +457,14 @@ class ChartView extends View{
 
         var mainG = this.svg.append("g")
             .attr('id', "mainG")
-            .attr("transform", "translate(" + globals.layout.margin.left + "," + globals.layout.margin.top + ")");
-            
-            // .nodeSize([this._maxNodeRadius, this._maxNodeRadius]);
+            .attr("transform", "translate(" + globals.layout.margin.left + "," + globals.layout.margin.top + ")")        
+            .on('click', ()=>{
+                console.log("CLICKED: ", self.model.state.menu_active);
+                
+                if(self.model.state.menu_active){
+                    self.observers.notify({type: globals.signals.TOGGLEMENU});
+                }
+            });
         
         
         this.zoom = d3.zoom()
@@ -506,7 +528,7 @@ class ChartView extends View{
                 .attr('height', currentLayoutHeight + this.treeOffset)
                 .attr('width', this._width)
                 .attr('fill', 'rgba(0,0,0,0)');
-        
+
             //put tree itself into a group
             newg.append('g')
                 .attr('class', 'chart')
@@ -676,6 +698,122 @@ class ChartView extends View{
                 .attr('stroke', '#ccc')
                 .attr('stroke-width', '2px');
 
+            
+                        
+                var aggNodeEnter = aggNodes.enter().append('g')
+                .attr('class', 'aggNode')
+                .attr("transform", (d) =>  {
+                    return `translate(${this._treeDepthScale(d.depth)}, ${this._getLocalNodeX(d.x, treeIndex)})`;
+                })
+                .on('mouseover', function (d){
+                    let ndgrp = d3.select(this);
+                    ndgrp.selectAll("text")
+                                    .text((d)=>{
+                                        let n = "";
+                                    
+                                        if (d.data.elided.length == 1){
+                                            n = `${d.data.prototype.data.name} Subtree`
+                                        }
+                                        else if(d.data.elided.length > 1){
+                                            nodeStr = `Children of: ${d.parent.data.name}`
+                                        }
+                                        if (n.includes("<unknown file>")){
+                                            n = n.replace('<unknown file>', '');
+                                        }
+                                        if (n.includes("<unknown procedure>")){
+                                            n = n.replace('<unknown procedure>', '');
+                                        }
+        
+                                        return n;
+                                    });
+
+                let textBBox = ndgrp.select("text").node().getBBox();
+
+                ndgrp.selectAll("rect")
+                        .attr("visibility", 'visible')
+                        .attr("width", textBBox.width+2)
+                        .attr("height", textBBox.height+2)
+                        .attr("x",textBBox.x-1)
+                        .attr("y",textBBox.y-1)
+                        .attr("stroke-width", "1px")
+                        .attr("stroke", "rgb(30,30,30)");
+                })
+                .on('mouseout', function(d){
+                        d3.select(this).selectAll("text")
+                        .text("");
+
+                        d3.select(this).selectAll("rect")                
+                            .attr("visibility", 'hidden');
+                })
+                .on("click", (d) => {
+                    console.log(d);
+                    this.observers.notify({
+                        type: globals.signals.CLICK,
+                        node: [d]
+                    })
+                })
+                .on('dblclick', (d) =>  {
+                    this.observers.notify({
+                        type: globals.signals.COLLAPSESUBTREE,
+                        node: d
+                    })
+                });
+              
+            
+            
+            aggNodeEnter.append('rect')
+                .attr('fill', 'rgba(255,255,255,1)')
+                .attr("visibility", 'visible');
+
+            aggNodeEnter.append("circle")
+                    .attr('class', 'aggNodeCircle')
+                    .attr('r', (d) => {return areaToRad(this._nodeScale(d.data.aggregateMetrics[secondaryMetric]));})
+                    .attr("fill", (d) =>  {
+                        return this.color_managers[treeIndex].calcAggColorScale(d.data);
+                    })
+                    .style("stroke-width", "1px")
+                    .style("stroke", "black")
+                    .attr('transform', function (d) {
+                        let r = areaToRad(self._nodeScale(d.data.aggregateMetrics[secondaryMetric]));
+                        return `translate(0, ${r/2})`;
+                    });
+
+            let arrows = aggNodeEnter.append('path')
+                        .attr('class', 'aggNodeArrow')
+                        .attr('fill', '#000')
+                        .attr('stroke', '#000')
+                        .attr('d', (d)=>{
+                                        let rad = areaToRad(self._nodeScale(d.data.aggregateMetrics[secondaryMetric]));
+
+                                        return `m 0,0 
+                                        l 0,${rad*2} 
+                                        l ${rad}, ${-rad}, 
+                                        l ${-rad},0 
+                                        z`
+                                    });
+            
+            arrows.attr('transform', function(d){
+                let rad = areaToRad(self._nodeScale(d.data.aggregateMetrics[secondaryMetric]));
+                return `translate(${rad*2},${(-rad/2)})`
+            });
+
+            aggNodeEnter.append("text")
+                        .attr("x", (d) => {
+                            return -13;
+                        })
+                        .attr("dy", ".5em")
+                        .attr("text-anchor", (d) => {
+                            return "end";
+                        })
+                        .text((d) => {
+                           
+                            return "";
+                        })
+                        .style("font", "12px monospace")
+                        .style('fill','rgba(0,0,0,.9)');
+            
+            
+
 
             // Enter any new nodes at the parent's previous position.
             var nodeEnter = standardNodes.enter()
@@ -824,97 +962,6 @@ class ChartView extends View{
                             node: d
                         })
                     });
-
-
-
-            // dNodeEnter.append("path")
-            //         .attr('class', 'dummyNode')
-            //         .attr("d", "M 6 2 C 6 2 5 2 5 3 S 6 4 6 4 S 7 4 7 3 S 6 2 6 2 Z M 6 3 S 6 3 6 3 Z M 8 0 C 8 0 7 0 7 1 C 7 1 7 2 8 2 C 8 2 9 2 9 1 C 9 0 8 0 8 0 M 9 5 C 9 4 8 4 8 4 S 7 4 7 5 S 8 6 8 6 S 9 6 9 5")
-            //         .attr("fill", "rgba(0,0,0, .4)")
-            //         .style("stroke-width", ".5px")
-            //         .style("stroke", "rgba(100,100,100)");
-            
-
-
-                        
-            var aggNodeEnter = aggNodes.enter().append('g')
-                .attr('class', 'aggNode')
-                .attr("transform", (d) =>  {
-                    return `translate(${this._treeDepthScale(d.depth)}, ${this._getLocalNodeX(d.x, treeIndex)})`;
-                })
-                .on("click", (d) => {
-                    // console.log(d);
-                    this.observers.notify({
-                        type: globals.signals.CLICK,
-                        node: [d]
-                    })
-                })
-                .on('dblclick', (d) =>  {
-                    this.observers.notify({
-                        type: globals.signals.COLLAPSESUBTREE,
-                        node: d
-                    })
-                });
-
-            aggNodeEnter.append("circle")
-                    .attr('class', 'aggNodeCircle')
-                    .attr('r', (d) => {return areaToRad(this._nodeScale(d.data.aggregateMetrics[secondaryMetric]));})
-                    .attr("fill", (d) =>  {
-                        return this.color_managers[treeIndex].calcAggColorScale(d.data);
-                    })
-                    .style("stroke-width", "1px")
-                    .style("stroke", "black")
-                    .attr('transform', function (d) {
-                        let r = areaToRad(self._nodeScale(d.data.aggregateMetrics[secondaryMetric]));
-                        return `translate(0, ${r/2})`;
-                    });
-
-            let arrows = aggNodeEnter.append('path')
-                        .attr('class', 'aggNodeArrow')
-                        .attr('fill', '#000')
-                        .attr('stroke', '#000')
-                        .attr('d', (d)=>{
-                                        let rad = areaToRad(self._nodeScale(d.data.aggregateMetrics[secondaryMetric]));
-
-                                        return `m 0,0 
-                                        l 0,${rad*2} 
-                                        l ${rad}, ${-rad}, 
-                                        l ${-rad},0 
-                                        z`
-                                    });
-            
-            arrows.attr('transform', function(d){
-                let rad = areaToRad(self._nodeScale(d.data.aggregateMetrics[secondaryMetric]));
-                return `translate(${rad*2},${(-rad/2)})`
-            });
-            
-            // aggNodeEnter.append("text")
-            //     .attr("x", function () {
-            //         return 25;
-            //     })
-            //     .attr("dy", ".5em")
-            //     .attr("text-anchor", function () {
-            //         return "start";
-            //     })
-            //     .text((d) =>  {
-            //         if (d.elided.length > 1){
-            //             let n = d.parent.data.name;
-            //             if (n.includes("<unknown file>")){
-            //                 n = n.replace('<unknown file>', '');
-            //             }
-            //             return `Children of: ${n}` ;
-            //         } 
-            //         else{
-            //             let n = d.data.name;
-            //             if (n.includes("<unknown file>")){
-            //                 n = n.replace('<unknown file>', '');
-            //             }
-            //             return `${n} Subtree`;
-            //         }
-            //     })
-            //     .style("font", "12px monospace")
-            //     .style('fill','rgba(0,0,0,.9)');
-            
 
 
             // ---------------------------------------------

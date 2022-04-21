@@ -26,7 +26,7 @@ class MenuView extends View{
         
         //state things
         this.prior_submenu = null;
-        this.menu_active = false;
+        this.model.state.menu_active = false;
         
         this._setUpMenuTree();
         this._renderMenuBar();
@@ -54,6 +54,12 @@ class MenuView extends View{
     }
 
     _setUpMenuTree(){
+        /**
+         * Creates a hierarchical data structure which is used by the render functions to load
+         * a dropdown menu. This data model supports three types of
+         * interactions on buttons 'dropdown' (a list of options which users can click and select from),
+         * 'click' (a generic button), 'toggle' (a single option toggle on/off)
+         */
         let model = this.model;
         let rootNodeNames = model.forest.rootNodeNames;
         let metricColumns = model.forest.metricColumns;
@@ -223,7 +229,7 @@ class MenuView extends View{
     _handleSubmenuVisibility(d){
         const self = this;
         let submenu = d3.select(self.elem).select(`.${d}-submenu`);
-        if(submenu.style('visibility') == 'hidden'){
+        if(self.model.state.menu_active && submenu.style('visibility') == 'hidden'){
             submenu.style('visibility', 'visible');
         }
         else{
@@ -280,7 +286,7 @@ class MenuView extends View{
                                 d3.select(this)
                                     .select('.menu-button')
                                     .style('fill', 'rgba(150,150,150,1)');
-                                if(self.menu_active && (d !== self.prior_submenu)){
+                                if(self.model.state.menu_active && (d !== self.prior_submenu)){
                                     self._handleSubmenuVisibility(d);
                                     self._handleSubmenuVisibility(self.prior_submenu);
                                     self.prior_submenu = d;
@@ -293,7 +299,7 @@ class MenuView extends View{
                                     .style('fill', bg_color);
                             })
                             .on('click', function(d){
-                                self.menu_active = !self.menu_active;
+                                self.observers.notify({type: globals.signals.TOGGLEMENU});
                                 self.prior_submenu = d;
                                 self._handleSubmenuVisibility(d);
                             });
@@ -332,6 +338,9 @@ class MenuView extends View{
     }
 
     _addSubmenu(submenu_name, submenu_options, x_offset){
+        /**
+         * Renders a submenu drop down under a top level menu button.
+         */
         let view_left =  this.elem.getBoundingClientRect().left - this.elem.parentNode.getBoundingClientRect().left;
         let view_top = this._svg.select('rect').node().getBBox().height;
         const button_pad = 10;
@@ -429,6 +438,9 @@ class MenuView extends View{
     }
 
     _makeDropDownMenu(button, options, xoffset, callback){
+        /**
+         * Renders a list of options under a 'dropdown' submenu option.
+         */
         let xorigin = xoffset;
         let yorigin = button.node().getBBox().y;
         let button_pad = 10;
@@ -530,6 +542,12 @@ class MenuView extends View{
         let pruneEnabled = model.state["pruneEnabled"];
         let brushOn = model.state["brushOn"];
 
+        if(!model.state.menu_active && self.prior_submenu){
+            let submenu = d3.select(self.elem).select(`.${self.prior_submenu}-submenu`);
+            if(submenu.style('visibility') != 'hidden'){
+                submenu.style('visibility', 'hidden');
+            }
+        }
 
         for(let option of this.categories){
             let submenuopts = d3.select(this.elem)

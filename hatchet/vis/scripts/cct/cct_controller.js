@@ -64,6 +64,9 @@ class Controller{
                 case(globals.signals.SNAPSHOT):
                     this.model.storeSnapshotQuery();
                     break;
+                case(globals.signals.TOGGLEMENU):
+                    this.model.toggleMenuActive();
+                    break;
                 default:
                     console.warn('Unknown event type', evt.type);
             }

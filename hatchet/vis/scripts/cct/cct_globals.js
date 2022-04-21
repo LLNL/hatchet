@@ -22,7 +22,8 @@ const globals = Object.freeze({
         PRUNERANGEUPDATE: "PRUNERANGEUPDATE",
         UPDATESELECTED: "UPDATESELECTED",
         SNAPSHOT: "SNAPSHOT",
-        DECOMPOSENODE: "DECOMPOSENODE"
+        DECOMPOSENODE: "DECOMPOSENODE",
+        TOGGLEMENU: "TOGGLEMENU"
     },
     layout: {
         margin: {top: 20, right: 20, bottom: 20, left: 20},
@@ -56,6 +57,11 @@ var makeSignaller = function() {
 const digitAbbrevScale = d3.scaleOrdinal().range(["K", "K", "K", "M", "M", "M", "B", "B", "B", "T", "T", "T",]).domain(new Array(12).fill(0).map((_,i)=>i+4));
 
 function getSigFigString(num){
+    /**
+     * Converts an integer or float to a string
+     * with fixed number of figures before and after
+     * the decimal point and an magnitude abbreviation.
+     */
     if(num.toFixed(2).length <= 6){
         return num.toFixed(2);
     }
@@ -73,6 +79,10 @@ function getSigFigString(num){
 }
 
 function areaToRad(area){
+    /**
+     * Converts area to radius. Used for accuracy in scaling
+     * nodes.
+     */
     return Math.sqrt(area/Math.PI);
 }
 

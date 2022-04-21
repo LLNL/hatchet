@@ -1,3 +1,10 @@
+/**
+ * Description: Contains the core forest data stucture. 
+ *  This datasructure is responsible for all tree related metadata,
+ *  magaining the state of trees and providing properly stated trees
+ *  back to the model.
+ */
+
 import {d3, globals} from './cct_globals';
 import Stats from './cct_stats';
 import { hierarchy as d3v7_hierarchy } from 'd3-hierarchy';
@@ -36,6 +43,9 @@ class Forest{
     }
 
     postOrderCheck(t){
+        /**
+         * Post order check of nodes to identify duplicate subtrees.
+         */
         let str = "";
         
         if(t == null)
@@ -65,6 +75,9 @@ class Forest{
     }
 
     findDuplicateSubtrees(){
+        /**
+         * Wrapper function to idenfity duplicate subtrees.
+         */
         for(let t of this.immutableTrees){
             this.postOrderCheck(t);    
         }
@@ -101,6 +114,12 @@ class Forest{
     }
 
     initializePrunedTrees(primaryMetric){
+        /**
+         * Inializes trees with all zero-subtrees collapsed
+         *  into aggregate nodes by default. These are provided
+         *  to ensure that intially drawn trees are not overly cluttered
+         *  with irrelevant noisy data.
+         */
         let newTrees = this.getFreshTrees();
 
         for(let t in newTrees){
@@ -233,8 +252,8 @@ class Forest{
                     break;
                 case globals.SUM:
                     if(!metric.includes("(inc)")){
-                        if(d.aggregateMetrics){
-                            return d.aggregateMetrics[metric];
+                        if(h.aggregateMetrics){
+                            return h.aggregateMetrics[metric];
                         }
                         else{
                             h.sum(d=>{
@@ -312,7 +331,7 @@ class Forest{
         }
 
         for(let elided of dummyHolder.data.elided){
-            var aggMetsForChild = this._getAggregateMetrics(elided, globals.AVG);
+            var aggMetsForChild = this._getAggregateMetrics(elided, globals.SUM);
             var descriptionOfChild = this._getSubTreeDescription(elided);
 
             for(let metric of this.metricColumns){
@@ -406,10 +425,19 @@ class Forest{
     }
 
     _setDisplayFlags(t, primaryMetric, conditionCallback){
+        /**
+         * Wrapper function for recursive _setPruneFlags function.
+         */
         this._setPruneFlags(t, primaryMetric, conditionCallback);
     }
 
     pruneTree(t, primaryMetric, conditionCallback){
+        /**
+         * Takes a tree and prunes it according to the flags
+         *  set in setDisplayFlags. The setDisplayFlags sets
+         *  flags according to a boolean criteria 
+         *  defined in the callback function passed here.
+         */
 
         this._setDisplayFlags(t, primaryMetric, conditionCallback);
 
@@ -467,6 +495,9 @@ class Forest{
     }
 
     resetMutable(){
+        /**
+         * Resets the mutable trees usable by the model to their initial state.
+         */
         if(this.zeroes){
             this.mutableTrees = this.getFreshTrees();
         }
@@ -476,6 +507,10 @@ class Forest{
     }
 
     getPrePrunedTrees(){
+        /**
+         * Function which yeilds a new set of pre-pruned trees
+         * to the the calling function
+         */
         let mutableTrees = [];
 
 
@@ -503,6 +538,9 @@ class Forest{
     }
 
     getFreshTrees(){
+        /**
+         * Yields a list of un-pruned trees to the calling function.
+         */
         let mutableTrees = [];
 
         for(let tree of this.immutableTrees){

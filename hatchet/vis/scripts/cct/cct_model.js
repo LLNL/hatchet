@@ -1,6 +1,7 @@
 import { makeSignaller, RT, getSigFigString} from "./cct_globals";
 import { bin } from 'd3-array';
 import Forest  from './cct_repr';
+import { leastIndex } from "d3";
 
 class Model{
     constructor(){
@@ -252,6 +253,11 @@ class Model{
     }
 
     _setZeroFlags(){
+        /**
+         * Reurns a call back function which
+         * flags all subtrees that
+         * only contains zero values.
+         */
         return (h, primaryMetric)=>{
             h.each(function(node){
                 var metric = node.data.metrics[primaryMetric];
@@ -409,6 +415,11 @@ class Model{
     }
 
     handleNodeComposition(node){
+        /**
+         * Function which re-arranges the tree to compose
+         * a nodes with its parent.
+         * Warning: There are bugs in this function.
+         */
         let children = node.children
         let parent = node.parent;
         let tpar;
@@ -453,6 +464,10 @@ class Model{
     }
 
     handleNodeDecomposition(node){
+        /**
+         * Function which manages decomposing 
+         * a node from its parent.
+         */
         let ndx = null;
 
         node.each(n=>{
@@ -592,6 +607,11 @@ class Model{
     }
 
     updatePruneRange(low, high){
+        /**
+         * Updates the inclusive range of metrics
+         *  which are not to be pruned away.
+         *  Additionally, prunes and aggregates trees.
+         */
         this.state.prune_range.low = low;
         this.state.prune_range.high = high;
 
@@ -623,15 +643,32 @@ class Model{
         this._observers.notify();
     }
 
+    toggleMenuActive(){
+        /**
+         * Set a global flag indicating if the menu was
+         *  clicked on or off.
+         */
+        this.state.menu_active = !this.state.menu_active;
+        this._observers.notify();
+    }
 
 
     storeSnapshotQuery(){
+        /**
+         * Stores a snapshot description of the tree 
+         * as a query in a roundtrip variable.
+         */
         let leaves = []
         for(let tree of this.forest.getTrees()){
             leaves = leaves.concat(tree.leaves()); 
         }
 
-        let norms = leaves.filter((n)=>{return !n.data.aggregate})
+        let norms = leaves.filter((n)=>{return !n.data.aggregate});
+        let aggs = leaves.filter((n)=>{return n.data.aggregate});
+
+        norms = norms.concat(aggs);
+
+        console.log(norms);
 
         let full_query = '';
 
@@ -640,7 +677,12 @@ class Model{
         let initial_flag = true;
         for(const leaf of norms){
             if(initial_flag){
-                path_query += `WHERE n.\\"node_id\\" = ${leaf.data.metrics._hatchet_nid}`;
+                if(leaf.data.aggregate){
+                    path_query += `WHERE n.\\"node_id\\" = ${leaf.data.prototype.data.metrics._hatchet_nid}`;
+                }
+                else{
+                    path_query += `WHERE n.\\"node_id\\" = ${leaf.data.metrics._hatchet_nid}`;
+                }
                 initial_flag = false;
             }
             else{

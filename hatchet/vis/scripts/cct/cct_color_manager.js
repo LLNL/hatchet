@@ -2,6 +2,12 @@ import { d3 } from './cct_globals';
 
 
 class ColorManager{
+    /**
+     * Class that manages the color schemes used for legends
+     * and coloring the nodes of the tree.
+     * @param {Model} model 
+     * @param {int} treeIndex 
+     */
     constructor(model, treeIndex){
         const REGULAR_COLORS = [
             ['#006d2c', '#31a354', '#74c476', '#a1d99b', '#c7e9c0', '#edf8e9'], //green
@@ -57,6 +63,10 @@ class ColorManager{
     }
 
     _updateScales(){
+        /**
+         * Updates the scales to reflect new data
+         *  when the primary metric changes.
+         */
 
         const a_dom = this._aggregateMinMax[this._state.primaryMetric];
         this.agg_color_scale.domain([a_dom.min,a_dom.max]);
@@ -77,11 +87,11 @@ class ColorManager{
         }
     }
 
-    /**
-     * FUTURE CONNOR: MAKE SURE RANGE INCLUDES AGGREGATE HIGH AND LOW . . . 
-     * AND CHANGE SIG FIGURES
-     */
     _getDomainFromScale(scale){
+        /**
+         * Returns an array of ranges from a 
+         * d3.scaleQuantize
+         */
         let ranges = []
         for(let col of scale.range()){
             ranges.push(scale.invertExtent(col));
@@ -94,6 +104,11 @@ class ColorManager{
     }
 
     _getCorrectScale(){
+        /**
+         * Returns color scale based on the state of
+         *  the color scheme: universal or unique to each
+         *  tree in the forest.
+         */
         if(this._model.data["legends"][this._state["legend"]].includes("Unified")){
             return this.universal_color_scale;
         }
@@ -103,28 +118,35 @@ class ColorManager{
     }
 
     getAggLegendDomains(){
+        /**
+         * Returns domains across aggregate nodes.
+         */
         this._updateScales();
         return this._getDomainFromScale(this.agg_color_scale);
     }
 
     getLegendDomains(){
+        /**
+         * Returns domains across all normal nodes.
+         */
         this._updateScales();
         
-        if(this._model.data["legends"][this._state["legend"]].includes("Unified")){
-            return this._getDomainFromScale(this.universal_color_scale);
-        }
-        else{
-            return this._getDomainFromScale(this.single_color_scale);
-        }
+        return this._getDomainFromScale(this._getCorrectScale());
     }
 
     calcColorScale(nodeData){
+        /**
+         * Update the scales for the current primary metric.
+         */
         this._updateScales();
         const nodeMetric = nodeData.metrics[this._state.primaryMetric];
         return this._getCorrectScale()(nodeMetric);
     }
 
     calcAggColorScale(nodeData){
+         /**
+         * Update aggregate scales for the current primary metric.
+         */
         this._updateScales();
         const nodeMetric = nodeData.aggregateMetrics[this._state.primaryMetric];
         return this._getCorrectScale()(nodeMetric);

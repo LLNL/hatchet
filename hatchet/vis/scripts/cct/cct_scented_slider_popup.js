@@ -1,5 +1,3 @@
-import { bin } from 'd3-array';
-import { randomIrwinHall } from 'd3v4';
 import View from '../utils/view';
 import {d3, globals, getSigFigString} from './cct_globals';
 
@@ -14,15 +12,17 @@ class ScentedSliderPopup extends View{
             'right_padding': 30,
             'top_padding': 30
         }
-        this.full_hist_height = this.popup_dims.height*.6;
+        this.full_hist_height = this.popup_dims.height*.5;
         this.num_bins = 25;
         this.slider_width = 10;
         this.slider_height = 20;
+        this.dropdown_clicked = false;
 
         this._svg = d3.select(elem)
                         .append('svg')
                         .attr('width', this.popup_dims['width'])
                         .attr('height', this.popup_dims['height'])
+                        .style('overflow', 'visible')
                         .style('position', 'absolute')
                         // .style('left', (this.elem.clientWidth*.5 - this.popup_dims.width*.5) + 'px')
                         .style('left', '145px')
@@ -58,6 +58,11 @@ class ScentedSliderPopup extends View{
     }
     
     update_bin_count_ranges(){
+        /**
+         * Update the minimum and maximum ranges of values across all
+         * bins in the histogram. Used for mainting the y scale of the
+         * histogram.
+         */
         this.bin_count_range = [Number.MAX_VALUE, Number.MIN_VALUE];
 
         this.max_zero_cnt = 0;
@@ -70,6 +75,10 @@ class ScentedSliderPopup extends View{
     }
 
     manage_slider_update(slider, x_pos){
+        /**
+         * Callback function which manages updating the data and state associated with
+         * the histogram sliders.
+         */
         const self = this;
         let bin_num = parseInt(self.h_x_scale.invert(x_pos+this.slider_width/2));
         let range_val = 0;
@@ -103,13 +112,17 @@ class ScentedSliderPopup extends View{
         if(update){
             self.update = true;
             slider.attr('transform', `translate(${step_loc-self.slider_width/2},0)`);
-            // slider.select('text').text(`${range_val}`);
             slider.select('text').text(`${getSigFigString(range_val)}`);
             slider.select('text').attr('x', function(){return -(this.getBBox().width/2) + self.slider_width/2});
         }
     }
 
     handle_range_drag(sld_node){
+        /**
+         * Routing function which enables the correct
+         * slider update arguments to be called depending on the location of the sliders.
+         */
+
         let slider = d3.select(sld_node);
         const self = this;
 
@@ -131,6 +144,7 @@ class ScentedSliderPopup extends View{
         var start_x = 0;
         var start_y = 0;
 
+        //Define drag functionality for the whole popup
         let windowDragHandler = d3.drag()
                             .on("end", function(){
                                 d3.select(this)
@@ -285,10 +299,75 @@ class ScentedSliderPopup extends View{
         
         dragHandler(l_slider);
         dragHandler(r_slider);
+        
+
+        //Selection box area
+        let select_line = this._svg
+                            .append('g')
+                            .attr('class', 'distribution_selection')
+                            .attr('transform', `translate(10, ${this.full_hist_height+this.slider_height+topBar.node().getBBox().height + 40})`);
+
+        let info_txt = select_line.append('text')
+                            .text('Current metric distribution: ');
+
+        let select_box = select_line.append('g')
+                                    .attr('class', 'selection-button')
+                                    .attr('cursor', 'default')
+                                    .on('mouseenter', function(){
+                                        select_area
+                                            .attr('fill', 'rgba(100,100,200,1)');
+                                        self.current_selection_text.attr('fill', 'rgba(255,255,255,.9)');
+                                    })
+                                    .on('mouseleave', function(){
+                                        if(!self.dropdown_clicked){
+                                            select_area
+                                                .attr('fill', 'rgba(255,255,255,1)');
+                                            self.current_selection_text
+                                                .attr('fill', 'rgba(0,0,0,.9)');
+                                        }
+                                    })
+                                    .on('click', function(){
+                                        self.dropdown_clicked = !self.dropdown_clicked;
+                                        if(self.dropdown_clicked){
+                                            select_area
+                                                .attr('fill', 'rgba(100,100,200,1)');
+                                            self.current_selection_text.attr('fill', 'rgba(255,255,255,.9)');
+                                            self.options_dropdown.style('visibility', 'visible');
+                                        }
+                                        else{
+                                            select_area
+                                                .attr('fill', 'rgba(255,255,255,1)');
+                                            self.current_selection_text.attr('fill', 'rgba(0,0,0,.9)');
+                                            self.options_dropdown.style('visibility', 'hidden');
+                                        }
+                                    });
+        
+        let select_area = select_box.append('rect')
+            .attr('y', ()=>{return -info_txt.node().getBBox().height;})
+            .attr('x',  info_txt.node().getBBox().width + 10)
+            .attr('fill', 'rgba(255,255,255,1)')
+            .attr('stroke', 'rgba(0,0,0,1)')
+            .attr('stroke-width', 1);
+
+        this.current_selection_text = select_box.append('text')
+            .text(()=>{return this.model.state.primaryMetric})
+            .attr('x', ()=>{return info_txt.node().getBBox().width + 12;});
+
+        this.options_dropdown = select_box.append('g')
+                                            .style('visibility', 'hidden');
+
+        select_area.attr('height', ()=>{return this.current_selection_text.node().getBBox().height+4})
+                    .attr('width', ()=>{return this.current_selection_text.node().getBBox().width+10});      
+                                                  
+
+        
+                
+
     }
 
     render(){
         const self = this;
+        let options = this.model.forest.metricColumns;
         this.bins = this.model.data.distCounts["nonzero"];
         this.zero_bins = this.model.data.distCounts["internalzero"];
         this.update_bin_count_ranges();
@@ -313,12 +392,64 @@ class ScentedSliderPopup extends View{
         
         let rev_bars = this.ice_grp.selectAll('.ice-bar')
             .data(this.zero_bins);
+        
+        let met_options = this.options_dropdown.selectAll('.metric-option')
+            .data(options)
 
         /**
          * 
          * ENTER
          * 
          */
+
+                
+        let sel_btn_bbx = this._svg.select('.selection-button').node().getBBox();
+        let max_option_width = 0;
+        let max_option_height = 0;
+
+        let option_button = met_options.enter()
+                            .append('g')
+                            .attr('class', 'metric-option')
+                            .attr('transform', (_,i)=>{
+                                return `translate(${sel_btn_bbx.x}, ${i*sel_btn_bbx.height + sel_btn_bbx.height/4})`
+                            })
+                            .on('click',  function(d){
+                                self.observers.notify({
+                                    type: globals.signals.METRICCHANGE,
+                                    newMetric: d,
+                                    source: "primary"
+                                });
+                            })
+                            .on('mouseenter',function(){
+                                d3.select(this).select('rect').attr('fill', 'rgba(100,100,200,1)');
+                                d3.select(this).select('text').attr('fill', 'rgba(255,255,255,.9)');
+                            })
+                            .on('mouseleave',function(){
+                                d3.select(this).select('rect').attr('fill', 'rgba(255,255,255,1)');
+                                d3.select(this).select('text').attr('fill', 'rgba(0,0,0,.9)');
+                            });
+                           
+
+            
+        let option_rects = option_button.append('rect')
+                            .attr('height', sel_btn_bbx.height)
+                            .attr('fill', 'rgba(255,255,255,1)')
+                            .attr('stroke', 'rgba(0,0,0,1)')
+                            .attr('stroke-width', 1);
+                               
+        let opt_txt = option_button.append('text')
+                     .text((d)=>{return d})
+                     .attr('x', 2);
+        
+        opt_txt.each(function(){
+            max_option_width = Math.max(this.getBBox().width, max_option_width);
+            max_option_height = Math.max(this.getBBox().height, max_option_height);
+
+
+            d3.select(this).attr('y', sel_btn_bbx.height/2 + this.getBBox().height/2 );
+        })
+    
+
         bars.enter()
             .append('rect')
             .attr('class', 'hist-bar')
@@ -393,12 +524,38 @@ class ScentedSliderPopup extends View{
          * 
          */
 
+        this._svg.select('.selection-button')
+                    .select('rect')
+                    .attr('fill',  ()=>{
+                        if(!self.dropdown_clicked){
+                           return 'rgba(255,255,255,1)';
+                        }
+                        else{
+                            return 'rgba(100,100,200,1)';
+                        }
+                    });
 
+        this._svg.select('.selection-button')
+                    .select('text')
+                    .attr('fill',  ()=>{
+                        if(!self.dropdown_clicked){
+                            return 'rgba(0,0,0,.9)';
+                        }
+                        else{
+                            return 'rgba(255,255,255,.9)';
+                        }
+                    });
+
+        option_rects
+            .attr('width', max_option_width + 10);
+                        
         
-         this.hist_grp.select('.left-axis')
-         .transition()
-         .duration(globals.duration)
-         .call(d3.axisLeft(this.invert_y_scale).ticks(4));
+        this.current_selection_text.text(this.model.state.primaryMetric);
+
+        this.hist_grp.select('.left-axis')
+                .transition()
+                .duration(globals.duration)
+                .call(d3.axisLeft(this.invert_y_scale).ticks(4));
 
         this.hist_grp.select('.left-ice-axis')
                 .transition()
