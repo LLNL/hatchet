@@ -478,7 +478,7 @@ class Bridge:
             else:
                 data = py_to_js_converter(data)
                 self.converter = py_to_js_converter
-        except DataError:
+        except Exception:
             pass
 
         # Patch: Ensure all ' and " are escaped

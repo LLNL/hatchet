@@ -21,7 +21,7 @@ def _gf_to_json(data):
         if isinstance(data, GraphFrame):
             return json.dumps(data.to_literal(), default=serialize)
         else:
-            with open('check', 'w') as f:
+            with open("check", "w") as f:
                 f.write(json.dumps(data, default=serialize))
             return json.dumps(data, default=serialize)
     except ValueError:

@@ -3,7 +3,6 @@
 #
 # SPDX-License-Identifier: MIT
 
-from platform import node
 import sys
 import traceback
 
@@ -894,7 +893,6 @@ class GraphFrame:
 
             return df_index
 
-
         def metrics_to_dict(df_index):
             metrics_dict = {}
             for m in sorted(self.inc_metrics + self.exc_metrics):
@@ -930,7 +928,7 @@ class GraphFrame:
 
             node_name = self.dataframe.loc[df_index, name]
 
-            if(isinstance(node_name, pd.Series)):
+            if isinstance(node_name, pd.Series):
                 self.dataframe.loc[df_index]
                 node_name = node_name[0]
 
