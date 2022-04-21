@@ -9,18 +9,18 @@ import os
 import re
 from collections import defaultdict
 
-#import llnl.util.filesystem as fs
-#import llnl.util.tty as tty
+# import llnl.util.filesystem as fs
+# import llnl.util.tty as tty
 
-#import hatchet.paths
-#from hatchet.util.executable import which
+# import hatchet.paths
+# from hatchet.util.executable import which
 
 description = 'list and check license headers on files in hatchet'
 section = "developer"
 level = "long"
 
 #: need the git command to check new files
-git = which('git')
+git = which("git")
 
 #: SPDX license id must appear in the first <license_lines> lines of a file
 license_lines = 7
@@ -30,51 +30,29 @@ mit_spdx = "(MIT)"
 
 #: regular expressions for licensed files.
 licensed_files = [
-    # hatchet scripts
-    r'^bin/hatchet$',
-    r'^bin/hatchet-python$',
+    # hatchet docs
+    r"docs/.*\.rst$",
+    r"docs/example/.*\.rst$",
+    r"docs/source/.*\.rst$",
 
-    # all of hatchet core except unparse
-    r'^lib/hatchet/hatchet/(?!(test/)?util/unparse).*\.py$',
-    r'^lib/hatchet/hatchet/.*\.sh$',
-    r'^lib/hatchet/hatchet/.*\.lp$',
-    r'^lib/hatchet/llnl/.*\.py$',
-    r'^lib/hatchet/env/cc$',
+    # hatchet source
+    r"hatchet/.*\.py$",
+    r"hatchet/cython_modules.*\.pyx$",
+    r"hatchet/cython_modules.*\.c$",
 
-    # special case this test data file, which has a license header
-    r'^lib/hatchet/hatchet/test/data/style/broken.dummy',
+    # hatchet readers and writers
+    r"hatchet/readers/.*\.py$",
+    r"hatchet/writers/.*\.py$",
 
-    # rst files in documentation
-    r'^lib/hatchet/docs/(?!command_index|hatchet|llnl).*\.rst$',
-    r'^lib/hatchet/docs/.*\.py$',
-    r'^lib/hatchet/docs/hatchet.yaml$',
+    # hatchet tests
+    r"hatchet/tests/.*\.py$",
 
-    # 1 file in external
-    r'^lib/hatchet/external/__init__.py$',
+    # hatchet utils
+    r"hatchet/utils/.*\.py$",
 
-    # shell scripts in share
-    r'^share/hatchet/.*\.sh$',
-    r'^share/hatchet/.*\.bash$',
-    r'^share/hatchet/.*\.csh$',
-    r'^share/hatchet/.*\.fish$',
-    r'^share/hatchet/qa/run-[^/]*$',
-    r'^share/hatchet/bash/hatchet-completion.in$',
-    r'^share/hatchet/templates/misc/coconcretization.pyt$',
-
-    # action workflows
-    r'^.github/actions/.*\.py$',
-
-    # all packages
-    r'^var/hatchet/repos/.*/package.py$',
+    # hatchet vis
+    r"hatchet/vis/.*\.py$",
 ]
-
-#: licensed files that can have LGPL language in them
-#: so far, just this command -- so it can find LGPL things elsewhere
-lgpl_exceptions = [
-    r'lib/hatchet/hatchet/cmd/license.py',
-    r'lib/hatchet/hatchet/test/cmd/license.py',
-]
-
 
 def _all_hatchet_files(root=hatchet.paths.prefix):
     """Generates root-relative paths of all files in the hatchet repository."""
