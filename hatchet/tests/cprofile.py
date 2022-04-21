@@ -24,7 +24,7 @@ def test_graphframe(hatchet_cycle_pstats):
         elif col in ("line", "numcalls", "nativecalls"):
             assert gf.dataframe[col].dtype == np.int64
         elif col in ("name", "type", "file", "module", "node"):
-            assert gf.dataframe[col].dtype == np.object
+            assert gf.dataframe[col].dtype == object
 
 
 def test_tree(hatchet_cycle_pstats):

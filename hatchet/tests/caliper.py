@@ -60,7 +60,7 @@ def test_graphframe(lulesh_caliper_json):
         elif col in ("nid", "rank"):
             assert gf.dataframe[col].dtype == np.int64
         elif col in ("name", "node"):
-            assert gf.dataframe[col].dtype == np.object
+            assert gf.dataframe[col].dtype == object
 
     # TODO: add tests to confirm values in dataframe
 
@@ -224,7 +224,7 @@ def test_graphframe_native_lulesh_from_file(lulesh_caliper_cali):
         elif col in ("nid", "rank"):
             assert gf.dataframe[col].dtype == np.int64
         elif col in ("name", "node"):
-            assert gf.dataframe[col].dtype == np.object
+            assert gf.dataframe[col].dtype == object
 
 
 @pytest.mark.skipif(
@@ -246,7 +246,7 @@ def test_graphframe_native_lulesh_from_caliperreader(lulesh_caliper_cali):
         elif col in ("nid", "rank"):
             assert gf.dataframe[col].dtype == np.int64
         elif col in ("name", "node"):
-            assert gf.dataframe[col].dtype == np.object
+            assert gf.dataframe[col].dtype == object
 
 
 def test_inclusive_time_calculation(lulesh_caliper_json):
@@ -279,7 +279,7 @@ def test_sw4_cuda_from_caliperreader(sw4_caliper_cuda_activity_profile_cali):
         elif col in "rank":
             assert gf.dataframe[col].dtype == np.int64
         elif col in "name":
-            assert gf.dataframe[col].dtype == np.object
+            assert gf.dataframe[col].dtype == object
 
     for col in gf.exc_metrics + gf.inc_metrics:
         assert col in gf.dataframe.columns

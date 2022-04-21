@@ -29,7 +29,7 @@ def test_graphframe(calc_pi_callgrind_dot):
         if col in ("time (inc)", "time"):
             assert gf.dataframe[col].dtype == np.float64
         elif col in ("name", "module", "node"):
-            assert gf.dataframe[col].dtype == np.object
+            assert gf.dataframe[col].dtype == object
 
     # TODO: add tests to confirm values in dataframe
 

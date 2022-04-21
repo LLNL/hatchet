@@ -35,7 +35,7 @@ def test_graphframe(timemory_json_data):
         elif col in ("nid", "rank"):
             assert gf.dataframe[col].dtype == np.int64
         elif col in ("name", "node"):
-            assert gf.dataframe[col].dtype == np.object
+            assert gf.dataframe[col].dtype == object
 
 
 @pytest.mark.skipif(not timemory_avail, reason="timemory package not available")

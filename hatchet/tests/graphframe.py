@@ -31,6 +31,8 @@ def test_copy(mock_graph_literal):
     assert gf.dataframe.equals(other.dataframe)
     assert gf.inc_metrics == other.inc_metrics
     assert gf.exc_metrics == other.exc_metrics
+    assert gf.default_metric == other.default_metric
+    assert gf.metadata == other.metadata
 
 
 def test_deepcopy(mock_graph_literal):
@@ -41,6 +43,8 @@ def test_deepcopy(mock_graph_literal):
     assert gf.dataframe is not other.dataframe
     assert gf.inc_metrics == other.inc_metrics
     assert gf.exc_metrics == other.exc_metrics
+    assert gf.default_metric == other.default_metric
+    assert gf.metadata == other.metadata
 
 
 def test_drop_index_levels(calc_pi_hpct_db):
@@ -163,6 +167,8 @@ def check_filter_no_squash(gf, filter_func, num_rows):
     assert filtered.graph is gf.graph
     assert filtered.graph == orig_graph
     assert len(filtered.dataframe) == num_rows
+    assert filtered.default_metric == gf.default_metric
+    assert filtered.metadata == gf.metadata
 
     # parallel versions of the same test
     orig_graph = gf.graph.copy()
@@ -172,6 +178,8 @@ def check_filter_no_squash(gf, filter_func, num_rows):
     assert filtered.graph is gf.graph
     assert filtered.graph == orig_graph
     assert len(filtered.dataframe) == num_rows
+    assert filtered.default_metric == gf.default_metric
+    assert filtered.metadata == gf.metadata
 
 
 def check_filter_squash(gf, filter_func, expected_graph, expected_inc_time):
@@ -206,6 +214,9 @@ def check_filter_squash(gf, filter_func, expected_graph, expected_inc_time):
     assert expected_inc_time == [
         filtered_squashed.dataframe.loc[node, "time (inc)"] for node in nodes
     ]
+
+    assert filtered_squashed.default_metric == gf.default_metric
+    assert filtered_squashed.metadata == gf.metadata
 
     # parallel versions
     filtered_squashed = gf.filter(filter_func)
