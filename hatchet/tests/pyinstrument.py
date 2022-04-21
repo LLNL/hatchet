@@ -70,7 +70,7 @@ def test_graphframe(hatchet_pyinstrument_json):
         elif col in ("is_application_code"):
             assert gf.dataframe[col].dtype == bool
         elif col in ("name", "type", "file", "node"):
-            assert gf.dataframe[col].dtype == np.object
+            assert gf.dataframe[col].dtype == object
 
 
 def test_tree(hatchet_pyinstrument_json):
