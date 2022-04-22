@@ -20,11 +20,15 @@ mit_spdx = "MIT"
 licensed_files = [
     # hatchet docs
     r"^docs/.*\.rst$",
+    r"^docs/conf.py$",
+    r"^docs/Makefile$",
     r"^docs/example/.*\.rst$",
     r"^docs/source/.*\.rst$",
     # hatchet source
+    r"^pytest.ini",
     r"^hatchet\/[^\/]*\.py$",
     r"^hatchet/cython_modules/.*\.pyx$",
+    r"^hatchet/cython_modules/.*\.py$",
     # hatchet external
     r"^hatchet/external/__init__.py",
     # hatchet readers and writers
@@ -33,7 +37,7 @@ licensed_files = [
     # hatchet tests
     r"^hatchet/tests/.*\.py$",
     # hatchet utils
-    r"^hatchet/utils/.*\.py$",
+    r"^hatchet/util/.*\.py$",
     # hatchet vis
     r"^hatchet/vis/.*\.py$",
 ]
