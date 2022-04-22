@@ -25,8 +25,8 @@ licensed_files = [
     # hatchet source
     r"^hatchet\/[^\/]*\.py$",
     r"^hatchet/cython_modules/.*\.pyx$",
-    # hatchet external (ignore console.py)
-    r"^(?:(?!hatchet/external/console.py)hatchet/external/.*\.py)*$",
+    # hatchet external
+    r"^hatchet/external/__init__.py",
     # hatchet readers and writers
     r"^hatchet/readers/.*\.py$",
     r"^hatchet/writers/.*\.py$",
