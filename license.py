@@ -174,7 +174,7 @@ def verify(root):
         sys.exit(1)
     else:
         print("No license issues found.")
-        sys.exit(1)
+        return
 
 
 if __name__ == "__main__":
