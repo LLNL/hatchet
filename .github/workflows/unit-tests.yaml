@@ -63,6 +63,10 @@ jobs:
         black --diff --check .
         flake8
 
+    - name: Check License Headers
+      run: |
+        python license.py verify
+
     - name: Update Coverage
       if: ${{ matrix.python-version == 3.8 }}
       run: |
@@ -109,7 +113,3 @@ jobs:
       uses: "codecov/codecov-action@v1"
       with:
         fail_ci_if_error: true
-
-    - name: Check licensing
-      run: |
-        PYTHONPATH=. coverage run license.py
