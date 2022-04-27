@@ -1255,13 +1255,13 @@ def test_apply_cypher(mock_graph_literal):
 def test_cypher_and_compound_query(mock_graph_literal):
     gf = GraphFrame.from_literal(mock_graph_literal)
     compound_query1 = parse_cypher_query(
-        """
+        u"""
         {MATCH ("*", p) WHERE p."time (inc)" >= 20 AND p."time (inc)" <= 60}
         AND {MATCH ("*", p) WHERE p."time (inc)" >= 60}
         """
     )
     compound_query2 = parse_cypher_query(
-        """
+        u"""
         MATCH ("*", p)
         WHERE {p."time (inc)" >= 20 AND p."time (inc)" <= 60} AND {p."time (inc)" >= 60}
         """
@@ -1278,13 +1278,13 @@ def test_cypher_and_compound_query(mock_graph_literal):
 def test_cypher_or_compound_query(mock_graph_literal):
     gf = GraphFrame.from_literal(mock_graph_literal)
     compound_query1 = parse_cypher_query(
-        """
+        u"""
         {MATCH ("*", p) WHERE p."time (inc)" = 5.0}
         OR {MATCH ("*", p) WHERE p."time (inc)" = 10.0}
         """
     )
     compound_query2 = parse_cypher_query(
-        """
+        u"""
         MATCH ("*", p)
         WHERE {p."time (inc)" = 5.0} OR {p."time (inc)" = 10.0}
         """
@@ -1308,13 +1308,13 @@ def test_cypher_or_compound_query(mock_graph_literal):
 def test_cypher_xor_compound_query(mock_graph_literal):
     gf = GraphFrame.from_literal(mock_graph_literal)
     compound_query1 = parse_cypher_query(
-        """
+        u"""
         {MATCH ("*", p) WHERE p."time (inc)" >= 5.0 AND p."time (inc)" <= 10.0}
         XOR {MATCH ("*", p) WHERE p."time (inc)" = 10.0}
         """
     )
     compound_query2 = parse_cypher_query(
-        """
+        u"""
         MATCH ("*", p)
         WHERE {p."time (inc)" >= 5.0 AND p."time (inc)" <= 10.0} XOR {p."time (inc)" = 10.0}
         """
