@@ -738,27 +738,30 @@ class GraphFrame:
                 for node in self.graph.traverse():
                     # Consider each unique portion of the MultiIndex corresponding to the current node
                     for non_node_idx in self.dataframe.loc[(node)].index.unique():
-                        # Quick sanity-check assertion to make sure our data is in the correct format
-                        assert isinstance(non_node_idx, tuple) or isinstance(
+                        # If there's only 1 index level besides "node", add it to a 1-element list to ensure consistent typing
+                        if not isinstance(non_node_idx, tuple) and not isinstance(
                             non_node_idx, list
-                        ), "MultiIndex iteration is not producing the expected type"
+                        ):
+                            non_node_idx = [non_node_idx]
                         # Build the full index
                         # TODO: Replace the full_idx assignment with the following when 2.7 support
                         # is dropped:
                         # full_idx = (node, *non_node_idx)
-                        full_idx = (node) + tuple(non_node_idx)
+                        full_idx = tuple([node]) + tuple(non_node_idx)
                         # Iterate over the children of the current node and add up
                         # their values for the inclusive metric
                         inc_sum = 0
                         for child in node.children:
                             # TODO: See note about full_idx above
-                            child_idx = (child) + tuple(non_node_idx)
+                            child_idx = tuple([child]) + tuple(non_node_idx)
                             inc_sum += self.dataframe.loc[child_idx, inc]
                         # Subtract the current node's inclusive metric from the previously calculated sum to
                         # get the exclusive metric value for the node
                         new_data[full_idx] = self.dataframe.loc[full_idx, inc] - inc_sum
                 # Add the exclusive metric as a new column in the DataFrame
-                self.dataframe[exc] = pd.Series(data=new_data)
+                self.dataframe = self.dataframe.assign(
+                    **{exc: pd.Series(data=new_data)}
+                )
             else:
                 # Create a basic Node-metric dict for the new exclusive metric
                 new_data = {n: -1 for n in self.dataframe.index.values}
@@ -772,7 +775,9 @@ class GraphFrame:
                     # get the exclusive metric value for the node
                     new_data[node] = self.dataframe.loc[node, inc] - inc_sum
                 # Add the exclusive metric as a new column in the DataFrame
-                self.dataframe[exc] = pd.Series(data=new_data)
+                self.dataframe = self.dataframe.assign(
+                    **{exc: pd.Series(data=new_data)}
+                )
         # Add the newly created metrics to self.exc_metrics
         self.exc_metrics.extend([metric_tuple[0] for metric_tuple in generation_pairs])
         self.exc_metrics = list(set(self.exc_metrics))
