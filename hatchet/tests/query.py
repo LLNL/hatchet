@@ -24,6 +24,7 @@ from hatchet.query import (
     UnionQuery,
     SymDifferenceQuery,
     CypherQuery,
+    parse_cypher_query,
 )
 
 
@@ -1249,3 +1250,86 @@ def test_apply_cypher(mock_graph_literal):
     match = [gf.graph.roots[0]]
     query = CypherQuery(path)
     assert query.apply(gf) == match
+
+
+def test_cypher_and_compound_query(mock_graph_literal):
+    gf = GraphFrame.from_literal(mock_graph_literal)
+    compound_query1 = parse_cypher_query(
+        """
+        {MATCH ("*", p) WHERE p."time (inc)" >= 20 AND p."time (inc)" <= 60}
+        AND {MATCH ("*", p) WHERE p."time (inc)" >= 60}
+        """
+    )
+    compound_query2 = parse_cypher_query(
+        """
+        MATCH ("*", p)
+        WHERE {p."time (inc)" >= 20 AND p."time (inc)" <= 60} AND {p."time (inc)" >= 60}
+        """
+    )
+    roots = gf.graph.roots
+    matches = [
+        roots[0].children[1],
+        roots[0].children[1].children[0],
+    ]
+    assert sorted(compound_query1.apply(gf)) == sorted(matches)
+    assert sorted(compound_query2.apply(gf)) == sorted(matches)
+
+
+def test_cypher_or_compound_query(mock_graph_literal):
+    gf = GraphFrame.from_literal(mock_graph_literal)
+    compound_query1 = parse_cypher_query(
+        """
+        {MATCH ("*", p) WHERE p."time (inc)" = 5.0}
+        OR {MATCH ("*", p) WHERE p."time (inc)" = 10.0}
+        """
+    )
+    compound_query2 = parse_cypher_query(
+        """
+        MATCH ("*", p)
+        WHERE {p."time (inc)" = 5.0} OR {p."time (inc)" = 10.0}
+        """
+    )
+    roots = gf.graph.roots
+    matches = [
+        roots[0].children[0].children[0],
+        roots[0].children[0].children[1],
+        roots[0].children[1].children[0].children[0].children[0].children[0],
+        roots[0].children[1].children[0].children[0].children[0].children[1],
+        roots[0].children[1].children[0].children[0].children[1],
+        roots[0].children[2].children[0].children[0],
+        roots[0].children[2].children[0].children[1].children[0].children[0],
+        roots[1].children[0].children[0],
+        roots[1].children[0].children[1],
+    ]
+    assert sorted(compound_query1.apply(gf)) == sorted(matches)
+    assert sorted(compound_query2.apply(gf)) == sorted(matches)
+
+
+def test_cypher_xor_compound_query(mock_graph_literal):
+    gf = GraphFrame.from_literal(mock_graph_literal)
+    compound_query1 = parse_cypher_query(
+        """
+        {MATCH ("*", p) WHERE p."time (inc)" >= 5.0 AND p."time (inc)" <= 10.0}
+        XOR {MATCH ("*", p) WHERE p."time (inc)" = 10.0}
+        """
+    )
+    compound_query2 = parse_cypher_query(
+        """
+        MATCH ("*", p)
+        WHERE {p."time (inc)" >= 5.0 AND p."time (inc)" <= 10.0} XOR {p."time (inc)" = 10.0}
+        """
+    )
+    roots = gf.graph.roots
+    matches = [
+        roots[0].children[0].children[0],
+        # roots[0].children[0].children[1],
+        roots[0].children[1].children[0].children[0].children[0].children[0],
+        # roots[0].children[1].children[0].children[0].children[0].children[1],
+        # roots[0].children[1].children[0].children[0].children[1],
+        roots[0].children[2].children[0].children[0],
+        roots[0].children[2].children[0].children[1].children[0].children[0],
+        roots[1].children[0].children[0],
+        # roots[1].children[0].children[1],
+    ]
+    assert sorted(compound_query1.apply(gf)) == sorted(matches)
+    assert sorted(compound_query2.apply(gf)) == sorted(matches)
