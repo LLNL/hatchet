@@ -695,6 +695,93 @@ class GraphFrame:
                     function(self.dataframe.loc[(subgraph_nodes), columns])
                 )
 
+    def generate_exclusive_columns(self):
+        """Generates exclusive metrics from available inclusive metrics.
+
+        Currently, this function determines which metrics to generate by looking for one of two things:
+
+        1. An inclusive metric ending in "(inc)" that does not have an exclusive metric with the same name (minus "(inc)")
+        2. An inclusive metric not ending in "(inc)"
+
+        The metrics that are generated will have one of two name formats:
+
+        1. If the corresponding inclusive metric's name ends in "(inc)", the exclusive metric will have the same
+           name, minus "(inc)"
+        2. If the corresponding inclusive metric's name does not end in "(inc)", the exclusive metric will have the same
+           name as the inclusive metric, followed by a "(exc)" suffix
+        """
+        # TODO Change how exclusive-inclusive pairs are determined when inc_metrics and exc_metrics are changed
+        # Iterate over inclusive metrics and collect tuples of (new exclusive metrics name, inclusive metric name)
+        generation_pairs = []
+        for inc in self.inc_metrics:
+            # If the metric isn't numeric, it is really categorical. This means the inclusive/exclusive thing doesn't really apply.
+            if not pd.api.types.is_numeric_dtype(self.dataframe[inc]):
+                continue
+            # Assume that metrics ending in "(inc)" are generated
+            if inc.endswith("(inc)"):
+                possible_exc = inc[: -len("(inc)")].strip()
+                # If a metric with the same name as the inclusive metrics minus the "(inc)" does not exist in exc_metrics,
+                # assume that there is not a corresponding exclusive metric. So, add this new exclusive metric to the generation list.
+                if possible_exc not in self.exc_metrics:
+                    generation_pairs.append((possible_exc, inc))
+            # If there is an inclusive metric without the "(inc)" suffix,
+            # assume that there is no corresponding exclusive metric. So, add this new exclusive metrics (with the "(exc)"
+            # suffix) to the generation list.
+            else:
+                generation_pairs.append((inc + " (exc)", inc))
+        # Consider each new exclusive metric and its corresponding inclusive metric
+        for exc, inc in generation_pairs:
+            # Process of obtaining inclusive data for a node differs if the DataFrame has an Index vs a MultiIndex
+            if isinstance(self.dataframe.index, pd.MultiIndex):
+                new_data = {}
+                # Traverse every node in the Graph
+                for node in self.graph.traverse():
+                    # Consider each unique portion of the MultiIndex corresponding to the current node
+                    for non_node_idx in self.dataframe.loc[(node)].index.unique():
+                        # If there's only 1 index level besides "node", add it to a 1-element list to ensure consistent typing
+                        if not isinstance(non_node_idx, tuple) and not isinstance(
+                            non_node_idx, list
+                        ):
+                            non_node_idx = [non_node_idx]
+                        # Build the full index
+                        # TODO: Replace the full_idx assignment with the following when 2.7 support
+                        # is dropped:
+                        # full_idx = (node, *non_node_idx)
+                        full_idx = tuple([node]) + tuple(non_node_idx)
+                        # Iterate over the children of the current node and add up
+                        # their values for the inclusive metric
+                        inc_sum = 0
+                        for child in node.children:
+                            # TODO: See note about full_idx above
+                            child_idx = tuple([child]) + tuple(non_node_idx)
+                            inc_sum += self.dataframe.loc[child_idx, inc]
+                        # Subtract the current node's inclusive metric from the previously calculated sum to
+                        # get the exclusive metric value for the node
+                        new_data[full_idx] = self.dataframe.loc[full_idx, inc] - inc_sum
+                # Add the exclusive metric as a new column in the DataFrame
+                self.dataframe = self.dataframe.assign(
+                    **{exc: pd.Series(data=new_data)}
+                )
+            else:
+                # Create a basic Node-metric dict for the new exclusive metric
+                new_data = {n: -1 for n in self.dataframe.index.values}
+                # Traverse the graph
+                for node in self.graph.traverse():
+                    # Sum up the inclusive metric values of the current node's children
+                    inc_sum = 0
+                    for child in node.children:
+                        inc_sum += self.dataframe.loc[child, inc]
+                    # Subtract the current node's inclusive metric from the previously calculated sum to
+                    # get the exclusive metric value for the node
+                    new_data[node] = self.dataframe.loc[node, inc] - inc_sum
+                # Add the exclusive metric as a new column in the DataFrame
+                self.dataframe = self.dataframe.assign(
+                    **{exc: pd.Series(data=new_data)}
+                )
+        # Add the newly created metrics to self.exc_metrics
+        self.exc_metrics.extend([metric_tuple[0] for metric_tuple in generation_pairs])
+        self.exc_metrics = list(set(self.exc_metrics))
+
     def update_inclusive_columns(self):
         """Update inclusive columns (typically after operations that rewire the
         graph.
@@ -706,7 +793,15 @@ class GraphFrame:
         # TODO When Python 2.7 support is dropped, change this line to the more idiomatic:
         # old_inc_metrics = self.inc_metrics.copy()
         old_inc_metrics = list(self.inc_metrics)
-        self.inc_metrics = ["%s (inc)" % s for s in self.exc_metrics]
+        # TODO Change this logic when inc_metrics and exc_metrics are changed
+        new_inc_metrics = []
+        for exc in self.exc_metrics:
+            if exc.endswith("(exc)"):
+                new_inc_metrics.append(exc[: -len("(exc)")].strip())
+            else:
+                new_inc_metrics.append("%s (inc)" % exc)
+        self.inc_metrics = new_inc_metrics
+
         self.subgraph_sum(self.exc_metrics, self.inc_metrics)
         self.inc_metrics = list(set(self.inc_metrics + old_inc_metrics))
 
