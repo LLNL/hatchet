@@ -63,6 +63,10 @@ jobs:
         black --diff --check .
         flake8
 
+    - name: Check License Headers
+      run: |
+        python license.py verify
+
     - name: Update Coverage
       if: ${{ matrix.python-version == 3.8 }}
       run: |

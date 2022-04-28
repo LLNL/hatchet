@@ -1,2 +1,7 @@
+# Copyright 2017-2022 Lawrence Livermore National Security, LLC and other
+# Hatchet Project Developers. See the top-level LICENSE file for details.
+#
+# SPDX-License-Identifier: MIT
+
 # flake8: noqa
 from .roundtrip.roundtrip.manager import Roundtrip
