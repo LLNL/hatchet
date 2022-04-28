@@ -271,8 +271,6 @@ class ChartView extends View{
 
         testBBs.sort((bb1, bb2) => bb1.y - bb2.y);
 
-        console.log(testBBs);
-
         let currentBox = null;
         let compareBox = null;
         let curr_d = null;
@@ -459,8 +457,6 @@ class ChartView extends View{
             .attr('id', "mainG")
             .attr("transform", "translate(" + globals.layout.margin.left + "," + globals.layout.margin.top + ")")        
             .on('click', ()=>{
-                console.log("CLICKED: ", self.model.state.menu_active);
-                
                 if(self.model.state.menu_active){
                     self.observers.notify({type: globals.signals.TOGGLEMENU});
                 }
@@ -605,9 +601,6 @@ class ChartView extends View{
 
         //render for any number of trees
         for(var treeIndex = 0; treeIndex < this.model.forest.numberOfTrees; treeIndex++){
-
-            // console.log(`============Tree ${treeIndex}================`);
-
             //retrieve new data from model
             var secondaryMetric = this.model.state.secondaryMetric;
             var source = this.model.forest.getCurrentTree(treeIndex);
@@ -767,15 +760,15 @@ class ChartView extends View{
 
             aggNodeEnter.append("circle")
                     .attr('class', 'aggNodeCircle')
-                    .attr('r', (d) => {return areaToRad(this._nodeScale(d.data.aggregateMetrics[secondaryMetric]));})
+                    .attr('r', (d) => {return Math.min(areaToRad(this._nodeScale(d.data.aggregateMetrics[secondaryMetric])), this._maxNodeRadius);})
                     .attr("fill", (d) =>  {
                         return this.color_managers[treeIndex].calcAggColorScale(d.data);
                     })
                     .style("stroke-width", "1px")
                     .style("stroke", "black")
                     .attr('transform', function (d) {
-                        let r = areaToRad(self._nodeScale(d.data.aggregateMetrics[secondaryMetric]));
-                        return `translate(0, ${r/2})`;
+                        let r = Math.min(areaToRad(self._nodeScale(d.data.aggregateMetrics[secondaryMetric])), self._maxNodeRadius);
+                        return `translate(0, 0)`;
                     });
 
             let arrows = aggNodeEnter.append('path')
@@ -783,7 +776,7 @@ class ChartView extends View{
                         .attr('fill', '#000')
                         .attr('stroke', '#000')
                         .attr('d', (d)=>{
-                                        let rad = areaToRad(self._nodeScale(d.data.aggregateMetrics[secondaryMetric]));
+                                        let rad = Math.min(areaToRad(this._nodeScale(d.data.aggregateMetrics[secondaryMetric])), this._maxNodeRadius);
 
                                         return `m 0,0 
                                         l 0,${rad*2} 
@@ -793,13 +786,14 @@ class ChartView extends View{
                                     });
             
             arrows.attr('transform', function(d){
-                let rad = areaToRad(self._nodeScale(d.data.aggregateMetrics[secondaryMetric]));
-                return `translate(${rad*2},${(-rad/2)})`
+                let rad = Math.min(areaToRad(self._nodeScale(d.data.aggregateMetrics[secondaryMetric])), self._maxNodeRadius);
+                return `translate(${rad*2},${-rad})`;
             });
 
             aggNodeEnter.append("text")
                         .attr("x", (d) => {
-                            return -13;
+                            let rad = Math.min(areaToRad(this._nodeScale(d.data.aggregateMetrics[secondaryMetric])), this._maxNodeRadius);
+                            return -(rad*2);
                         })
                         .attr("dy", ".5em")
                         .attr("text-anchor", (d) => {
@@ -1082,7 +1076,7 @@ class ChartView extends View{
 
             aggNodes
                 .select('.aggNodeCircle')
-                .attr('r', (d) => {return  areaToRad(this._nodeScale(d.data.aggregateMetrics[secondaryMetric]));})
+                .attr('r', (d) => {return  Math.min(areaToRad(self._nodeScale(d.data.aggregateMetrics[secondaryMetric])), self._maxNodeRadius);})
                 .style('stroke-width', (d) => {
                     if (this.model.state['selectedNodes'].includes(d)){
                         return '3px';
@@ -1095,14 +1089,14 @@ class ChartView extends View{
                     return this.color_managers[treeIndex].calcAggColorScale(d.data);
                 })
                 .attr('transform', function (d) {
-                    let r = areaToRad(self._nodeScale(d.data.aggregateMetrics[secondaryMetric]));
-                    return `translate(0, ${r/2})`;
+                    let r = Math.min(areaToRad(self._nodeScale(d.data.aggregateMetrics[secondaryMetric])), self._maxNodeRadius);
+                    return `translate(0, 0)`;
                 });
 
             aggNodes
                 .select('.aggNodeArrow')
                 .attr('d', (d)=>{
-                    let rad = areaToRad(self._nodeScale(d.data.aggregateMetrics[secondaryMetric]))-1;
+                    let rad = Math.min(areaToRad(self._nodeScale(d.data.aggregateMetrics[secondaryMetric])), self._maxNodeRadius)-1;
 
                     return `m 0,0 
                     l 0,${rad*2} 
@@ -1111,8 +1105,8 @@ class ChartView extends View{
                     z`
                 })
                 .attr('transform', function(d){
-                    let rad = areaToRad(self._nodeScale(d.data.aggregateMetrics[secondaryMetric]));
-                    return `translate(${rad*2},${(-rad/2)})`
+                    let rad = Math.min(areaToRad(self._nodeScale(d.data.aggregateMetrics[secondaryMetric])), self._maxNodeRadius);
+                    return `translate(${rad*2},${-rad})`
                 });
 
             
@@ -1125,14 +1119,10 @@ class ChartView extends View{
                 .transition()
                 .duration(globals.duration)
                 .attr("transform", (d) =>  {
-                    // console.log(d.data.name, d.parent.data.name, d.xMainG, d.yMainG, this._treeDepthScale(d.depth), this._getLocalNodeX(d.x, treeIndex), "translate(" + this._treeDepthScale(d.parent.depth) + "," + this._getLocalNodeX(d.parent.x, treeIndex) + ")");
                     return "translate(" + this._treeDepthScale(d.parent.depth) + "," + this._getLocalNodeX(d.parent.x, treeIndex) + ")";
                 })
                 .remove();
 
-            // console.log("EXITED:", nodeExit.size());
-            // console.log("Remaining:", standardNodes.size());
-            // console.log("Entered:", nodeEnter.size());
             
             aggNodes.exit()
                 .remove();

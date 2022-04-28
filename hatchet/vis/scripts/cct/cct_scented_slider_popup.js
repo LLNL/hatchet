@@ -86,7 +86,6 @@ class ScentedSliderPopup extends View{
         let update = false;
 
         if(slider.attr("class").includes('l-slider-grp')){
-            console.log(bin_num);
             if(bin_num < self.bins.length){
                 range_val = self.bins[bin_num].x0;
                 if(bin_num != this.current_l_bin && bin_num <= this.current_r_bin){
@@ -97,7 +96,6 @@ class ScentedSliderPopup extends View{
             }
         }
         else{
-            console.log(bin_num);
             if(bin_num < self.bins.length){
                 range_val = self.bins[bin_num].x1;
                 if(bin_num != this.current_r_bin && bin_num >= this.current_l_bin){

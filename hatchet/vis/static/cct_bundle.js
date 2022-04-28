@@ -23898,7 +23898,6 @@ var ChartView = /*#__PURE__*/function (_View2) {
       testBBs.sort(function (bb1, bb2) {
         return bb1.y - bb2.y;
       });
-      console.log(testBBs);
       var currentBox = null;
       var compareBox = null;
       var curr_d = null;
@@ -24080,8 +24079,6 @@ var ChartView = /*#__PURE__*/function (_View2) {
       var self = this;
       var secondaryMetric = this.model.state.secondaryMetric;
       var mainG = this.svg.append("g").attr('id', "mainG").attr("transform", "translate(" + globals.layout.margin.left + "," + globals.layout.margin.top + ")").on('click', function () {
-        console.log("CLICKED: ", self.model.state.menu_active);
-
         if (self.model.state.menu_active) {
           self.observers.notify({
             type: globals.signals.TOGGLEMENU
@@ -24189,7 +24186,6 @@ var ChartView = /*#__PURE__*/function (_View2) {
 
 
       var _loop = function _loop() {
-        // console.log(`============Tree ${treeIndex}================`);
         //retrieve new data from model
         secondaryMetric = _this8.model.state.secondaryMetric;
         source = _this8.model.forest.getCurrentTree(treeIndex); //will need to optimize this redrawing
@@ -24302,23 +24298,24 @@ var ChartView = /*#__PURE__*/function (_View2) {
         });
         aggNodeEnter.append('rect').attr('fill', 'rgba(255,255,255,1)').attr("visibility", 'visible');
         aggNodeEnter.append("circle").attr('class', 'aggNodeCircle').attr('r', function (d) {
-          return areaToRad(_this8._nodeScale(d.data.aggregateMetrics[secondaryMetric]));
+          return Math.min(areaToRad(_this8._nodeScale(d.data.aggregateMetrics[secondaryMetric])), _this8._maxNodeRadius);
         }).attr("fill", function (d) {
           return _this8.color_managers[treeIndex].calcAggColorScale(d.data);
         }).style("stroke-width", "1px").style("stroke", "black").attr('transform', function (d) {
-          var r = areaToRad(self._nodeScale(d.data.aggregateMetrics[secondaryMetric]));
-          return "translate(0, ".concat(r / 2, ")");
+          var r = Math.min(areaToRad(self._nodeScale(d.data.aggregateMetrics[secondaryMetric])), self._maxNodeRadius);
+          return "translate(0, 0)";
         });
         var arrows = aggNodeEnter.append('path').attr('class', 'aggNodeArrow').attr('fill', '#000').attr('stroke', '#000').attr('d', function (d) {
-          var rad = areaToRad(self._nodeScale(d.data.aggregateMetrics[secondaryMetric]));
+          var rad = Math.min(areaToRad(_this8._nodeScale(d.data.aggregateMetrics[secondaryMetric])), _this8._maxNodeRadius);
           return "m 0,0 \n                                        l 0,".concat(rad * 2, " \n                                        l ").concat(rad, ", ").concat(-rad, ", \n                                        l ").concat(-rad, ",0 \n                                        z");
         });
         arrows.attr('transform', function (d) {
-          var rad = areaToRad(self._nodeScale(d.data.aggregateMetrics[secondaryMetric]));
-          return "translate(".concat(rad * 2, ",").concat(-rad / 2, ")");
+          var rad = Math.min(areaToRad(self._nodeScale(d.data.aggregateMetrics[secondaryMetric])), self._maxNodeRadius);
+          return "translate(".concat(rad * 2, ",").concat(-rad, ")");
         });
         aggNodeEnter.append("text").attr("x", function (d) {
-          return -13;
+          var rad = Math.min(areaToRad(_this8._nodeScale(d.data.aggregateMetrics[secondaryMetric])), _this8._maxNodeRadius);
+          return -(rad * 2);
         }).attr("dy", ".5em").attr("text-anchor", function (d) {
           return "end";
         }).text(function (d) {
@@ -24503,7 +24500,7 @@ var ChartView = /*#__PURE__*/function (_View2) {
           return "translate(".concat(self._treeDepthScale(d.depth), ", ").concat(self._getLocalNodeX(d.x, treeIndex), ")");
         });
         aggNodes.select('.aggNodeCircle').attr('r', function (d) {
-          return areaToRad(_this8._nodeScale(d.data.aggregateMetrics[secondaryMetric]));
+          return Math.min(areaToRad(self._nodeScale(d.data.aggregateMetrics[secondaryMetric])), self._maxNodeRadius);
         }).style('stroke-width', function (d) {
           if (_this8.model.state['selectedNodes'].includes(d)) {
             return '3px';
@@ -24513,27 +24510,23 @@ var ChartView = /*#__PURE__*/function (_View2) {
         }).style('fill', function (d) {
           return _this8.color_managers[treeIndex].calcAggColorScale(d.data);
         }).attr('transform', function (d) {
-          var r = areaToRad(self._nodeScale(d.data.aggregateMetrics[secondaryMetric]));
-          return "translate(0, ".concat(r / 2, ")");
+          var r = Math.min(areaToRad(self._nodeScale(d.data.aggregateMetrics[secondaryMetric])), self._maxNodeRadius);
+          return "translate(0, 0)";
         });
         aggNodes.select('.aggNodeArrow').attr('d', function (d) {
-          var rad = areaToRad(self._nodeScale(d.data.aggregateMetrics[secondaryMetric])) - 1;
+          var rad = Math.min(areaToRad(self._nodeScale(d.data.aggregateMetrics[secondaryMetric])), self._maxNodeRadius) - 1;
           return "m 0,0 \n                    l 0,".concat(rad * 2, " \n                    l ").concat(rad, ", ").concat(-rad, ", \n                    l ").concat(-rad, ",0 \n                    z");
         }).attr('transform', function (d) {
-          var rad = areaToRad(self._nodeScale(d.data.aggregateMetrics[secondaryMetric]));
-          return "translate(".concat(rad * 2, ",").concat(-rad / 2, ")");
+          var rad = Math.min(areaToRad(self._nodeScale(d.data.aggregateMetrics[secondaryMetric])), self._maxNodeRadius);
+          return "translate(".concat(rad * 2, ",").concat(-rad, ")");
         }); // ---------------------------------------------
         // Exit
         // ---------------------------------------------
         // Transition exiting nodes to the parent's new position.
 
         nodeExit = standardNodes.exit().transition().duration(globals.duration).attr("transform", function (d) {
-          // console.log(d.data.name, d.parent.data.name, d.xMainG, d.yMainG, this._treeDepthScale(d.depth), this._getLocalNodeX(d.x, treeIndex), "translate(" + this._treeDepthScale(d.parent.depth) + "," + this._getLocalNodeX(d.parent.x, treeIndex) + ")");
           return "translate(" + _this8._treeDepthScale(d.parent.depth) + "," + _this8._getLocalNodeX(d.parent.x, treeIndex) + ")";
-        }).remove(); // console.log("EXITED:", nodeExit.size());
-        // console.log("Remaining:", standardNodes.size());
-        // console.log("Entered:", nodeEnter.size());
-
+        }).remove();
         aggNodes.exit().remove(); // Transition exiting links to the parent's new position.
 
         links.exit().transition().duration(globals.duration).attr("d", function (d) {
@@ -24756,8 +24749,6 @@ var ScentedSliderPopup = /*#__PURE__*/function (_View) {
       var update = false;
 
       if (slider.attr("class").includes('l-slider-grp')) {
-        console.log(bin_num);
-
         if (bin_num < self.bins.length) {
           range_val = self.bins[bin_num].x0;
 
@@ -24768,8 +24759,6 @@ var ScentedSliderPopup = /*#__PURE__*/function (_View) {
           }
         }
       } else {
-        console.log(bin_num);
-
         if (bin_num < self.bins.length) {
           range_val = self.bins[bin_num].x1;
 
@@ -24840,7 +24829,7 @@ var ScentedSliderPopup = /*#__PURE__*/function (_View) {
 
       this._svg.append('text').text("Prune over \"".concat(this.model.state.primaryMetric, "\" metric distribution.")).attr('id', 'slider-header').attr('fill', 'rgba(0,0,0,1)').attr('y', 20).attr('x', 5);
 
-      this._svg.append('text').text('i').attr('fill', 'rgba(0,0,0,1)').attr('y', 20).attr('x', this.popup_dims['width'] - 10);
+      this._svg.append('text').text('').attr('fill', 'rgba(0,0,0,1)').attr('y', 20).attr('x', this.popup_dims['width'] - 10);
 
       this._svg.append('g').attr('class', 'hist-grp').attr('height', this.hist_height).attr('width', this.popup_dims['width']).attr('transform', "translate(".concat(this.popup_dims.left_padding, ", ").concat(this.popup_dims.top_padding + 5, ")"));
 
