@@ -1267,6 +1267,8 @@ def parse_cypher_query(query_str):
     # If there are no curly brace-delimited regions, just pass the query
     # off to the CypherQuery constructor
     if num_curly_brace_elems == 0:
+        if sys.version_info[0] == 2:
+            query_str = query_str.decode("utf-8")
         return CypherQuery(query_str)
     # Create an iterator over the curly brace-delimited regions
     curly_brace_iter = re.finditer(r"\{(.*?)\}", query_str)
@@ -1354,11 +1356,15 @@ def parse_cypher_query(query_str):
             # first curly brace-delimited region
             if i == 0:
                 query1 = "MATCH {} WHERE {}".format(match_comp, condition_list[i])
+                if sys.version_info[0] == 2:
+                    query1 = query1.decode("utf-8")
                 full_query = CypherQuery(query1)
             # Get the next query as a CypherQuery where
             # the MATCH clause is the shared match clause and the WHERE clause is the
             # next curly brace-delimited region
             next_query = "MATCH {} WHERE {}".format(match_comp, condition_list[i + 1])
+            if sys.version_info[0] == 2:
+                next_query = next_query.decode("utf-8")
             next_query = CypherQuery(next_query)
             # Add the next query to the full query using the compound operator
             # currently being considered
