@@ -1,4 +1,4 @@
-# Copyright 2020-2021 University of Maryland and other Hatchet Project
+# Copyright 2020-2022 University of Maryland and other Hatchet Project
 # Developers. See the top-level LICENSE file for details.
 #
 # SPDX-License-Identifier: MIT
