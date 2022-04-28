@@ -1,2 +1,5 @@
+numpy
+pandas
 beautifulsoup4
-pycountry_convert
+ipython
+pathlib

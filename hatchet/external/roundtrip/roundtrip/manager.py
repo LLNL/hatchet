@@ -1,4 +1,3 @@
-from sqlite3 import DataError
 from IPython.display import Javascript, HTML, display
 from IPython import get_ipython
 from bs4 import BeautifulSoup
@@ -7,7 +6,8 @@ import io
 import tokenize
 import json
 import inspect
-import pathlib
+import os
+import sys
 
 
 def _default_converter(data):
@@ -58,7 +58,7 @@ class RoundTrip:
     to the roundtrip object in roundtrip.js.
     """
 
-    def __init__(self, ipy_shell=get_ipython()):
+    def __init__(self, ipy_shell=get_ipython(), test=False):
         """
         Initialize our singelton roundtrip instance.
 
@@ -66,6 +66,14 @@ class RoundTrip:
 
         TODO: Throw an error if attempting to run outside of a Jupyter notebook.
         """
+
+        if sys.version_info[0] < 3:
+            print(
+                "Warning: Your Roundtrip visualizations may not load properly. Roundtrip only supports Python v3.x.x. You are using Python v{}.{}.{}".format(
+                    sys.version_info[0], sys.version_info[1], sys.version_info[2]
+                )
+            )
+
         self.shell = ipy_shell
         self.tags = {
             "script": "<script src='{src}'></script>",
@@ -77,14 +85,19 @@ class RoundTrip:
         self.watched = {}
         self.scrid = 0
         self.relative_html_caches = {}
+        self.istest = test
 
-        js_directory = pathlib.Path(__file__).parent.resolve()
+        js_directory = os.path.dirname(os.path.realpath(__file__))
 
         # Load the javascript roundtrip object upon creation of the python object
-        with open(js_directory.joinpath("roundtrip.js"), "r") as f:
+        with open(os.path.join(js_directory, "roundtrip.js"), "r") as f:
             script = f.read()
 
-        display(Javascript(script))
+        if test is not True:
+            display(Javascript(script))
+        else:
+            self.rt_js = Javascript(script)
+            display(self.rt_js)
 
     script_map = {"csv": "text/csv", "json": "text/json"}
 
@@ -148,7 +161,7 @@ class RoundTrip:
         )
         output_html = scope_var + output_html
 
-        bdg = Bridge(output_html, ipy_shell=self.shell)
+        bdg = Bridge(output_html, ipy_shell=self.shell, test=self.istest)
 
         self.scrid += 1
 
@@ -339,14 +352,6 @@ class RoundTrip:
                             }})();\n"""
         code = ""
 
-        # TODO: FIX BUG WHICH MAKES THIS CODE BLOCK READ AS AN ASSIGNMENT
-        """
-        subselection = []
-        rng = ranges
-        for r in rng:
-            subselection += rng[r]
-        subselection = np.array(subselection)
-        """
         for var in self.watched.keys():
             for i, token in enumerate(tokens):
                 if token.string == var:
@@ -371,14 +376,14 @@ class RoundTrip:
         if code != "":
             display(Javascript(code))
 
-    def fetch_data(self, js_var, ipy_var):
+    def fetch_data(self, js_var, ipy_var, converter=_default_from_converter):
         """
         Retrieves data from the javascript Roundtrip object.
 
         :param js_var: String containing the key in the Javascript roundtrip object where the desired data can be found
         :param ipy_var: A String containing the name of a variable in the Jupyter notebook namespace where the retrieved data can be stored
         """
-        self.bridges[self.last_id].retrieve_from_js(js_var, ipy_var)
+        self.bridges[self.last_id].retrieve_from_js(js_var, ipy_var, converter)
 
     def initialize(self):
         """
@@ -389,29 +394,49 @@ class RoundTrip:
 
 
 class Bridge:
-    def __init__(self, html, js=None, ipy_shell=get_ipython()):
+    def __init__(self, html, js=None, ipy_shell=get_ipython(), test=False):
         self.html = html
         self.scripts = js
         self.shell = ipy_shell
         self.display = display(HTML(""), display_id=True)
         self.id = self.display.display_id
         self.converter = _default_converter
+        self.istest = test
+
+        if self.istest:
+            self.active_scripts = []
+            self.active_html = None
 
     def _extract_simple_dt(self, dt_str):
         return dt_str.split("'")[1]
 
     def run(self):
-        self.display.update(HTML(self.html))
+        if not self.istest:
+            display(HTML(self.html))
+        else:
+            new_HTML = HTML(self.html)
+            self.active_html = new_HTML
+            self.display.update(new_HTML)
 
         if self.scripts is not None:
             js_exe = ""
             for script in self.scripts:
                 js_exe += script
 
-            display(Javascript(js_exe))
+            if not self.istest:
+                display(Javascript(js_exe))
+            else:
+                new_Javascript = Javascript(js_exe)
+                self.active_scripts.append(new_Javascript)
+                display(new_Javascript)
 
     def add_javascript(self, code):
-        display(Javascript(code))
+        if not self.istest:
+            display(Javascript(code))
+        else:
+            new_Javascript = Javascript(code)
+            self.active_scripts.append(new_Javascript)
+            display(new_Javascript)
 
     # put down explicit write notification (maybe)
     # watch errors with user documentation
@@ -453,7 +478,7 @@ class Bridge:
             else:
                 data = py_to_js_converter(data)
                 self.converter = py_to_js_converter
-        except DataError:
+        except Exception:
             pass
 
         # Patch: Ensure all ' and " are escaped
@@ -478,18 +503,41 @@ class Bridge:
             )
         )
 
-    def retrieve_from_js(self, js_variable, notebook_var):
+    def retrieve_from_js(self, js_variable, notebook_var, converter):
         # TODO: add validator(s)
+
         hook_template = """
             (function(){{
                     var holder = Roundtrip['{src}'];
                     holder = `\'${{holder}}\'`;
-                    var code = `{dest} = ${{holder}}`;
-                    IPython.notebook.kernel.execute(code);
+                    var code = {converter_code};
+                    code += `\n{dest} = {converter_name}(${{holder}})`;
+                    IPython.notebook.kernel.execute(code, {{
+                                                            shell:{{
+                                                                reply: function(r){{
+                                                                    //consider putting this in a reserved jupyter variable
+                                                                    if(r.content.status == \'error\'){{
+                                                                        console.error(`${{r.content.ename}} in JS->Python coversion: \n ${{r.content.evalue}}`);
+                                                                    }}
+                                                                }}
+                                                            }}
+                                                        }}
+                                                    );
                     }})()
                """
-        hook = hook_template.format(src=str(js_variable), dest=str(notebook_var))
-        display(Javascript(hook))
+        hook = hook_template.format(
+            src=str(js_variable),
+            dest=str(notebook_var),
+            converter_code=json.dumps(inspect.getsource(converter)),
+            converter_name=converter.__name__,
+        )
+
+        if not self.istest:
+            display(Javascript(hook))
+        else:
+            new_Javascript = Javascript(hook)
+            self.active_scripts.append(new_Javascript)
+            display(new_Javascript)
         # self.add_javascript(hook)
 
 

@@ -26,9 +26,6 @@ setup(
     license="MIT",
     keywords="",
     packages=["roundtrip"],
-    install_requires=[
-        "numpy",
-        "pandas",
-    ],
+    install_requires=["numpy", "pandas", "beautifulsoup4", "ipython", "pathlib"],
     include_package_data=True,
 )
