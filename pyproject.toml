@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "llnl-hatchet"
-version = "1.3.1a0"
+version = "2022.1.0"
 description = "A Python library for analyzing hierarchical performance data."
 authors = [
     "Abhinav Bhatele <bhatele@cs.umd.edu>",

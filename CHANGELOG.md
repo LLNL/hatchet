@@ -1,3 +1,44 @@
+# 2022.1.0 (2022-05-01)
+
+Version `2022.1.0` is a major release.
+
+### New features
+* 3 new readers: TAU, SpotDB, and Caliper python reader
+* Query language extensions: compound queries, not query, and middle-level API
+* Adds GraphFrame checkpoints in HDF5 format
+* Roundtrip enhancements: pan and zoom, module encoding, multivariate encoding
+  and adjustable mass pruning on large datasets
+* HPCToolkit: extend for GPU stream data
+* New color maps for terminal tree visualization
+
+### Other notable new features
+
+### Changes to existing APIs
+* Precision parameter applied to second metric in terminal tree visualization
+  (e.g., `gf.tree(precision=3)`)
+* Deprecates `from_caliper_json()`, augments existing `from_caliper()` to
+  accept optional cali-query parameter and cali file or just a json file
+* Metadata now stored on the GraphFrame
+* New interface for calling the Hatchet calling context tree from Roundtrip:
+  `%cct <graphframe or list>`. Deprecated interface: `%loadVisualization
+  <roundtrip_path> <literal_tree>`
+
+### Tutorials and documentation
+* New tutorial material from the ECP Annual Meeting 2021
+* New developer and contributor guides
+* Added section on how to generate datasets for Hatchet and expanded
+* documentation on the query language
+
+### Internal updates
+* Extend update_inclusive_columns() for multi-indexed trees
+* Moves CI from Travis to GitHub Actions
+* Roundtrip refactor
+
+### Bugfixes
+* Return default_metric and metadata in filter(), squash(), copy(), and
+  deepcopy()
+* flamegraph: extract name from dataframe column instead of frame
+
 # v1.3.1a0 (2021-04-02)
 
 This release extends the query language to support querying nodes that

@@ -35,9 +35,9 @@ copyright = "2017-2022, Lawrence Livermore National Security, LLC"
 author = "Abhinav Bhatele"
 
 # The short X.Y version
-version = "1.3.1"
+version = "2022.1.0"
 # The full version, including alpha/beta/rc tags
-release = "1.3.1a0"
+release = "2022.1.0"
 
 
 # -- General configuration ---------------------------------------------------
