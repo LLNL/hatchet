@@ -183,6 +183,11 @@ def verify(root):
 
 if __name__ == "__main__":
     valid_options = ["list-files", "verify"]
+
+    if len(sys.argv) != 2:
+        print("Please specify a valid option: {}".format(valid_options))
+        sys.exit()
+
     cmd = sys.argv[1]
     if cmd not in valid_options:
         print("Invalid argument. Valid options are {}".format(valid_options))
