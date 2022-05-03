@@ -8,3 +8,4 @@
 
 from .graphframe import GraphFrame
 from .query import QueryMatcher
+from .util.rcmanager import RcParams

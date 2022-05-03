@@ -1,0 +1,30 @@
+##############################################
+##                                          ##
+##  Global configuration file for hatchet.  ##
+##                                          ##
+##############################################
+
+## If you would like to customize these global configurations
+## please copy it to the following directory and edit there:
+## $HOME/.hatchet/
+##
+## This configurations file is considered in the following order of precedence:
+##      1. $HOME/.hatchet/hatchetrc.yaml (optional)
+##      2. $HATCHET_BASE_DIR/hatchetrc.yaml
+##
+## If no file can be found at $HOME/.hatchet then configurations are drawn from
+## the hatchetrc.yaml file at the root of hatchet's installation location
+
+##
+## Logging configuration
+## 
+
+logging: False
+log_directory: "~"
+
+##
+## Tree Output Configuration
+##
+
+highlight_name: False
+invert_colormap: False
