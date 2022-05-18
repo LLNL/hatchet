@@ -75,12 +75,17 @@ def test_construct_high_level_api():
     assert query2.query_pattern[3][0] == "."
 
     assert query3.query_pattern[0][0] == "."
-    assert query3.query_pattern[1][0] == "+"
+    assert query3.query_pattern[1][0] == "."
+    assert query3.query_pattern[2][0] == "*"
     assert not query3.query_pattern[1][1](mock_node_mpi)
     assert not query3.query_pattern[1][1](mock_node_ibv)
     assert query3.query_pattern[1][1](mock_node_time_true)
     assert not query3.query_pattern[1][1](mock_node_time_false)
-    assert query3.query_pattern[2][0] == "."
+    assert not query3.query_pattern[2][1](mock_node_mpi)
+    assert not query3.query_pattern[2][1](mock_node_ibv)
+    assert query3.query_pattern[2][1](mock_node_time_true)
+    assert not query3.query_pattern[2][1](mock_node_time_false)
+    assert query3.query_pattern[3][0] == "."
 
     assert query4.query_pattern[0][0] == "."
     assert query4.query_pattern[1][0] == "."
@@ -175,12 +180,17 @@ def test_construct_low_level_api():
         filter_func=ibv_filter
     )
     assert query.query_pattern[0][0] == "."
-    assert query.query_pattern[1][0] == "+"
+    assert query.query_pattern[1][0] == "."
+    assert query.query_pattern[2][0] == "*"
     assert not query.query_pattern[1][1](mock_node_mpi)
     assert not query.query_pattern[1][1](mock_node_ibv)
     assert query.query_pattern[1][1](mock_node_time_true)
     assert not query.query_pattern[1][1](mock_node_time_false)
-    assert query.query_pattern[2][0] == "."
+    assert not query.query_pattern[2][1](mock_node_mpi)
+    assert not query.query_pattern[2][1](mock_node_ibv)
+    assert query.query_pattern[2][1](mock_node_time_true)
+    assert not query.query_pattern[2][1](mock_node_time_false)
+    assert query.query_pattern[3][0] == "."
 
     query.match(filter_func=mpi_filter).rel(3, time_eq_filter).rel(
         filter_func=ibv_filter
@@ -214,7 +224,8 @@ def test_node_caching(mock_graph_literal):
 
     assert 0 in query.search_cache[node._hatchet_nid]
     assert 1 in query.search_cache[node._hatchet_nid]
-    assert 2 not in query.search_cache[node._hatchet_nid]
+    assert 2 in query.search_cache[node._hatchet_nid]
+    assert 3 not in query.search_cache[node._hatchet_nid]
 
 
 def test_match_0_or_more_wildcard(mock_graph_literal):
@@ -245,45 +256,6 @@ def test_match_0_or_more_wildcard(mock_graph_literal):
 
     assert sorted(matched_paths, key=len) == sorted(correct_paths, key=len)
     assert query._match_0_or_more(gf, none_node, 1) is None
-
-
-def test_match_1_or_more_wildcard(mock_graph_literal):
-    path = [
-        {"name": "qux"},
-        ("+", {"time (inc)": "> 10"}),
-        {"name": "gr[a-z]+", "time (inc)": "<= 10"},
-    ]
-    gf = GraphFrame.from_literal(mock_graph_literal)
-    node = gf.graph.roots[0].children[1]
-    none_node = gf.graph.roots[0].children[2].children[0].children[1].children[0]
-
-    correct_paths = [
-        [
-            node.children[0],
-            node.children[0].children[0],
-            node.children[0].children[0].children[0],
-        ],
-        [node.children[0], node.children[0].children[0]],
-    ]
-
-    query = QueryMatcher(path)
-    matched_paths = []
-    for child in sorted(node.children, key=traversal_order):
-        match = query._match_1_or_more(gf, child, 1)
-        if match is not None:
-            matched_paths.extend(match)
-
-    assert matched_paths == correct_paths
-    assert query._match_1_or_more(gf, none_node, 1) is None
-
-    zero_match_path = [
-        {"name": "qux"},
-        ("+", {"time (inc)": "> 50"}),
-        {"name": "gr[a-z]+", "time (inc)": "<= 10"},
-    ]
-    zero_match_node = gf.graph.roots[0].children[0]
-    query = QueryMatcher(zero_match_path)
-    assert query._match_1_or_more(gf, zero_match_node, 1) is None
 
 
 def test_match_1(mock_graph_literal):
@@ -885,12 +857,17 @@ def test_construct_cypher_api():
     assert query2.query_pattern[3][0] == "."
 
     assert query3.query_pattern[0][0] == "."
-    assert query3.query_pattern[1][0] == "+"
+    assert query3.query_pattern[1][0] == "."
+    assert query3.query_pattern[2][0] == "*"
     assert not query3.query_pattern[1][1](mock_node_mpi)
     assert not query3.query_pattern[1][1](mock_node_ibv)
     assert query3.query_pattern[1][1](mock_node_time_true)
     assert not query3.query_pattern[1][1](mock_node_time_false)
-    assert query3.query_pattern[2][0] == "."
+    assert not query3.query_pattern[2][1](mock_node_mpi)
+    assert not query3.query_pattern[2][1](mock_node_ibv)
+    assert query3.query_pattern[2][1](mock_node_time_true)
+    assert not query3.query_pattern[2][1](mock_node_time_false)
+    assert query3.query_pattern[3][0] == "."
 
     assert query4.query_pattern[0][0] == "."
     assert query4.query_pattern[1][0] == "."
