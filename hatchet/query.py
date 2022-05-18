@@ -462,8 +462,11 @@ class QueryMatcher(AbstractQuery):
         if isinstance(wildcard_spec, int):
             for i in range(wildcard_spec):
                 self.query_pattern.append((".", filter_func))
+        elif wildcard_spec == "+":
+            self.query_pattern.append((".", filter_func))
+            self.query_pattern.append(("*", filter_func))
         else:
-            assert wildcard_spec == "." or wildcard_spec == "*" or wildcard_spec == "+"
+            assert wildcard_spec == "." or wildcard_spec == "*"# or wildcard_spec == "+"
             self.query_pattern.append((wildcard_spec, filter_func))
 
     def _cache_node(self, gf, node):
