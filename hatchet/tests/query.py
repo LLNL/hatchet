@@ -434,6 +434,36 @@ def test_apply(mock_graph_literal):
     query = QueryMatcher(path)
     assert query.apply(gf) == []
 
+    # Test a former edge case with the + quantifier/wildcard
+    match = [
+        [gf.graph.roots[0].children[0], gf.graph.roots[0].children[0].children[0]],
+        [
+            gf.graph.roots[0].children[1].children[0].children[0].children[0],
+            gf.graph.roots[0]
+            .children[1]
+            .children[0]
+            .children[0]
+            .children[0]
+            .children[0],
+        ],
+        [
+            gf.graph.roots[1].children[0],
+            gf.graph.roots[1].children[0].children[0],
+        ],
+        [
+            gf.graph.roots[0]
+            .children[2]
+            .children[0]
+            .children[1]
+            .children[0]
+            .children[0],
+        ],
+    ]
+    match = list(set().union(*match))
+    path = [("+", {"name": "ba.*"})]
+    query = QueryMatcher(path)
+    assert sorted(query.apply(gf)) == sorted(match)
+
 
 def test_apply_indices(calc_pi_hpct_db):
     gf = GraphFrame.from_hpctoolkit(str(calc_pi_hpct_db))
