@@ -462,8 +462,11 @@ class QueryMatcher(AbstractQuery):
         if isinstance(wildcard_spec, int):
             for i in range(wildcard_spec):
                 self.query_pattern.append((".", filter_func))
+        elif wildcard_spec == "+":
+            self.query_pattern.append((".", filter_func))
+            self.query_pattern.append(("*", filter_func))
         else:
-            assert wildcard_spec == "." or wildcard_spec == "*" or wildcard_spec == "+"
+            assert wildcard_spec == "." or wildcard_spec == "*"
             self.query_pattern.append((wildcard_spec, filter_func))
 
     def _cache_node(self, gf, node):
@@ -531,42 +534,6 @@ class QueryMatcher(AbstractQuery):
                 return [[]]
             return None
 
-    def _match_1_or_more(self, gf, node, wcard_idx):
-        """Process a "+" wildcard in the query on a subgraph.
-
-        Arguments:
-            gf (GraphFrame): the GraphFrame being queried.
-            node (Node): the node being queried against the "+" wildcard.
-            wcard_idx (int): the index associated with the "+" wildcard query.
-
-        Returns:
-            (list): a list of lists representing the paths rooted at "node" that match the "+" wildcard and/or the next query node. Will return None if there is no match for the "+" wildcard or the next query node.
-        """
-        # Cache the node if it's not already cached
-        if node._hatchet_nid not in self.search_cache:
-            self._cache_node(gf, node)
-        # If the current node doesn't match the "+" wildcard, return None.
-        if wcard_idx not in self.search_cache[node._hatchet_nid]:
-            return None
-        # Since a query can't end on a wildcard, return None if the
-        # current node has no children.
-        if len(node.children) == 0:
-            return None
-        # Use _match_0_or_more to collect all additional wildcard matches.
-        matches = []
-        for child in sorted(node.children, key=traversal_order):
-            sub_match = self._match_0_or_more(gf, child, wcard_idx)
-            if sub_match is not None:
-                matches.extend(sub_match)
-        # Since _match_0_or_more will capture the query node that follows
-        # the wildcard, if no paths were retrieved from that function,
-        # the pattern does not continue after the "+" wildcard. Thus,
-        # since a pattern cannot end on a wildcard, the function
-        # returns None.
-        if len(matches) == 0:
-            return None
-        return [[node] + m for m in matches]
-
     def _match_1(self, gf, node, idx):
         """Process a "." wildcard in the query on a subgraph.
 
@@ -606,10 +573,7 @@ class QueryMatcher(AbstractQuery):
         assert isinstance(pattern_root, Node)
         # Starting query node
         pattern_idx = match_idx + 1
-        if (
-            self.query_pattern[match_idx][0] == "*"
-            or self.query_pattern[match_idx][0] == "+"
-        ):
+        if self.query_pattern[match_idx][0] == "*":
             pattern_idx = 0
         # Starting matching pattern
         matches = [[pattern_root]]
@@ -639,19 +603,9 @@ class QueryMatcher(AbstractQuery):
                                 sub_match.append(s)
                             else:
                                 sub_match.extend(s)
-                elif wcard == "+":
-                    if len(m[-1].children) == 0:
-                        sub_match.append(None)
-                    else:
-                        for child in sorted(m[-1].children, key=traversal_order):
-                            s = self._match_1_or_more(gf, child, pattern_idx)
-                            if s is None:
-                                sub_match.append(s)
-                            else:
-                                sub_match.extend(s)
                 else:
                     raise InvalidQueryFilter(
-                        'Query wildcards must be one of ".", "*", or "+"'
+                        'Query wildcards must (internally) be one of "." or "*"'
                     )
                 # Merge the next part of the match path with the
                 # existing part.
