@@ -10,9 +10,11 @@ from os import path
 
 here = path.abspath(path.dirname(__file__))
 
-# Get the long description from the README file
-with open(path.join(here, "README.md"), encoding="utf-8") as f:
-    long_description = f.read()
+def load_readme():
+    # Get the long description from the README file
+    with open(path.join(here, "README.md"), encoding="utf-8") as f:
+        long_description = f.read()
+    return long_description
 
 # Get the version in a safe way which does not refrence hatchet `__init__` file
 # per python docs: https://packaging.python.org/guides/single-sourcing-package-version/
@@ -62,4 +64,7 @@ setup(
             ["hatchet/cython_modules/graphframe_modules.c"],
         ),
     ],
+    long_description=load_readme(),
+    long_description_content_type="text/markdown",
+    download_url='https://pypi.org/project/llnl-hatchet/",
 )
