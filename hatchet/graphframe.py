@@ -969,7 +969,9 @@ class GraphFrame:
                     df_index = hnode
 
                 folded_stack = (
-                    folded_stack + str(self.dataframe.loc[df_index, metric]) + "\n"
+                    folded_stack
+                    + str(round(self.dataframe.loc[df_index, metric]))
+                    + "\n"
                 )
 
         return folded_stack
