@@ -16,6 +16,7 @@ from itertools import groupby
 from numbers import Real
 import re
 import sys
+import warnings
 import pandas as pd
 from pandas import DataFrame
 from pandas.core.indexes.multi import MultiIndex
@@ -1040,6 +1041,22 @@ class CypherQuery(QueryMatcher):
                     "len(df_row.name.children) == 0",
                     None,
                 ]
+            elif obj.val < 0:
+                warnings.warn(
+                    """
+                    The 'depth' property of a Node is strictly non-negative.
+                    This condition will always be false.
+                    The statement that triggered this warning is:
+                    {}
+                    """.format(obj),
+                    RedundantQueryFilterWarning
+                )
+                return [
+                    None,
+                    obj.name,
+                    "False",
+                    "isinstance(df_row.name._depth, Real)",
+                ]
             return [
                 None,
                 obj.name,
@@ -1047,6 +1064,22 @@ class CypherQuery(QueryMatcher):
                 "isinstance(df_row.name._depth, Real)",
             ]
         if obj.prop == "node_id":
+            if obj.val < 0:
+                warnings.warn(
+                    """
+                    The 'node_id' property of a Node is strictly non-negative.
+                    This condition will always be false.
+                    The statement that triggered this warning is:
+                    {}
+                    """.format(obj),
+                    RedundantQueryFilterWarning
+                )
+                return [
+                    None,
+                    obj.name,
+                    "False",
+                    "isinstance(df_row.name._hatchet_nid, Real)",
+                ]
             return [
                 None,
                 obj.name,
@@ -1062,6 +1095,22 @@ class CypherQuery(QueryMatcher):
 
     def _parse_num_lt(self, obj):
         if obj.prop == "depth":
+            if obj.val < 0:
+                warnings.warn(
+                    """
+                    The 'depth' property of a Node is strictly non-negative.
+                    This condition will always be false.
+                    The statement that triggered this warning is:
+                    {}
+                    """.format(obj),
+                    RedundantQueryFilterWarning
+                )
+                return [
+                    None,
+                    obj.name,
+                    "False",
+                    "isinstance(df_row.name._depth, Real)",
+                ]
             return [
                 None,
                 obj.name,
@@ -1069,6 +1118,22 @@ class CypherQuery(QueryMatcher):
                 "isinstance(df_row.name._depth, Real)",
             ]
         if obj.prop == "node_id":
+            if obj.val < 0:
+                warnings.warn(
+                    """
+                    The 'node_id' property of a Node is strictly non-negative.
+                    This condition will always be false.
+                    The statement that triggered this warning is:
+                    {}
+                    """.format(obj),
+                    RedundantQueryFilterWarning
+                )
+                return [
+                    None,
+                    obj.name,
+                    "False",
+                    "isinstance(df_row.name._hatchet_nid, Real)",
+                ]
             return [
                 None,
                 obj.name,
@@ -1084,6 +1149,22 @@ class CypherQuery(QueryMatcher):
 
     def _parse_num_gt(self, obj):
         if obj.prop == "depth":
+            if obj.val < 0:
+                warnings.warn(
+                    """
+                    The 'depth' property of a Node is strictly non-negative.
+                    This condition will always be true.
+                    The statement that triggered this warning is:
+                    {}
+                    """.format(obj),
+                    RedundantQueryFilterWarning
+                )
+                return [
+                    None,
+                    obj.name,
+                    "True",
+                    "isinstance(df_row.name._depth, Real)",
+                ]
             return [
                 None,
                 obj.name,
@@ -1091,6 +1172,22 @@ class CypherQuery(QueryMatcher):
                 "isinstance(df_row.name._depth, Real)",
             ]
         if obj.prop == "node_id":
+            if obj.val < 0:
+                warnings.warn(
+                    """
+                    The 'node_id' property of a Node is strictly non-negative.
+                    This condition will always be true.
+                    The statement that triggered this warning is:
+                    {}
+                    """.format(obj),
+                    RedundantQueryFilterWarning
+                )
+                return [
+                    None,
+                    obj.name,
+                    "True",
+                    "isinstance(df_row.name._hatchet_nid, Real)",
+                ]
             return [
                 None,
                 obj.name,
@@ -1106,6 +1203,22 @@ class CypherQuery(QueryMatcher):
 
     def _parse_num_lte(self, obj):
         if obj.prop == "depth":
+            if obj.val < 0:
+                warnings.warn(
+                    """
+                    The 'depth' property of a Node is strictly non-negative.
+                    This condition will always be false.
+                    The statement that triggered this warning is:
+                    {}
+                    """.format(obj),
+                    RedundantQueryFilterWarning
+                )
+                return [
+                    None,
+                    obj.name,
+                    "False"
+                    "isinstance(df_row.name._depth, Real)",
+                ]
             return [
                 None,
                 obj.name,
@@ -1113,6 +1226,22 @@ class CypherQuery(QueryMatcher):
                 "isinstance(df_row.name._depth, Real)",
             ]
         if obj.prop == "node_id":
+            if obj.val < 0:
+                warnings.warn(
+                    """
+                    The 'node_id' property of a Node is strictly non-negative.
+                    This condition will always be false.
+                    The statement that triggered this warning is:
+                    {}
+                    """.format(obj),
+                    RedundantQueryFilterWarning
+                )
+                return [
+                    None,
+                    obj.name,
+                    "False",
+                    "isinstance(df_row.name._hatchet_nid, Real)",
+                ]
             return [
                 None,
                 obj.name,
@@ -1128,6 +1257,22 @@ class CypherQuery(QueryMatcher):
 
     def _parse_num_gte(self, obj):
         if obj.prop == "depth":
+            if obj.val < 0:
+                warnings.warn(
+                    """
+                    The 'depth' property of a Node is strictly non-negative.
+                    This condition will always be true.
+                    The statement that triggered this warning is:
+                    {}
+                    """.format(obj),
+                    RedundantQueryFilterWarning
+                )
+                return [
+                    None,
+                    obj.name,
+                    "True",
+                    "isinstance(df_row.name._depth, Real)",
+                ]
             return [
                 None,
                 obj.name,
@@ -1135,6 +1280,22 @@ class CypherQuery(QueryMatcher):
                 "isinstance(df_row.name._depth, Real)",
             ]
         if obj.prop == "node_id":
+            if obj.val < 0:
+                warnings.warn(
+                    """
+                    The 'node_id' property of a Node is strictly non-negative.
+                    This condition will always be true.
+                    The statement that triggered this warning is:
+                    {}
+                    """.format(obj),
+                    RedundantQueryFilterWarning
+                )
+                return [
+                    None,
+                    obj.name,
+                    "True",
+                    "isinstance(df_row.name._hatchet_nid, Real)",
+                ]
             return [
                 None,
                 obj.name,
@@ -1539,6 +1700,10 @@ class InvalidQueryPath(Exception):
 
 class InvalidQueryFilter(Exception):
     """Raised when a query filter does not have a valid syntax"""
+
+
+class RedundantQueryFilterWarning(Warning):
+    """Warned when a query filter does nothing or is redundant"""
 
 
 class BadNumberNaryQueryArgs(Exception):
