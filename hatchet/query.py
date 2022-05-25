@@ -178,6 +178,9 @@ class QueryMatcher(AbstractQuery):
                             ) and single_value.lower().startswith(compops):
                                 return eval("{} {}".format(node._depth, single_value))
                             if isinstance(single_value, Real):
+                                # If the value for "depth" is -1, check if the node is a leaf
+                                if single_value == -1:
+                                    return len(node.children) == 0
                                 return node._depth == single_value
                             raise InvalidQueryFilter(
                                 "Attribute {} has a numeric type. Valid filters for this attribute are a string starting with a comparison operator or a real number.".format(
@@ -675,9 +678,11 @@ AndCond: 'AND' subcond=UnaryCond;
 OrCond: 'OR' subcond=UnaryCond;
 UnaryCond: NotCond | SingleCond;
 NotCond: 'NOT' subcond=SingleCond;
-SingleCond: StringCond | NumberCond | NoneCond | NotNoneCond;
+SingleCond: StringCond | NumberCond | NoneCond | NotNoneCond | LeafCond | NotLeafCond;
 NoneCond: name=ID '.' prop=STRING 'IS NONE';
 NotNoneCond: name=ID '.' prop=STRING 'IS NOT NONE';
+LeafCond: name=ID 'IS LEAF';
+NotLeafCond: name=ID 'IS NOT LEAF';
 StringCond: StringEq | StringStartsWith | StringEndsWith | StringContains | StringMatch;
 StringEq: name=ID '.' prop=STRING '=' val=STRING;
 StringStartsWith: name=ID '.' prop=STRING 'STARTS WITH' val=STRING;
@@ -860,6 +865,10 @@ class CypherQuery(QueryMatcher):
             return self._parse_none(obj)
         if cname(obj) == "NotNoneCond":
             return self._parse_not_none(obj)
+        if cname(obj) == "LeafCond":
+            return self._parse_leaf(obj)
+        if cname(obj) == "NotLeafCond":
+            return self._parse_not_leaf(obj)
         raise RuntimeError("Bad Single Condition")
 
     def _parse_none(self, obj):
@@ -903,6 +912,22 @@ class CypherQuery(QueryMatcher):
             None,
             obj.name,
             'df_row["{}"] is not None'.format(obj.prop),
+            None,
+        ]
+
+    def _parse_leaf(self, obj):
+        return [
+            None,
+            obj.name,
+            "len(df_row.name.children) == 0",
+            None,
+        ]
+
+    def _parse_not_leaf(self, obj):
+        return [
+            None,
+            obj.name,
+            "len(df_row.name.children) > 0",
             None,
         ]
 
@@ -1008,6 +1033,13 @@ class CypherQuery(QueryMatcher):
 
     def _parse_num_eq(self, obj):
         if obj.prop == "depth":
+            if obj.val == -1:
+                return [
+                    None,
+                    obj.name,
+                    "len(df_row.name.children) == 0",
+                    None,
+                ]
             return [
                 None,
                 obj.name,
