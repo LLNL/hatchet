@@ -1,4 +1,4 @@
-# Copyright 2017-2021 Lawrence Livermore National Security, LLC and other
+# Copyright 2017-2022 Lawrence Livermore National Security, LLC and other
 # Hatchet Project Developers. See the top-level LICENSE file for details.
 #
 # SPDX-License-Identifier: MIT
@@ -462,8 +462,11 @@ class QueryMatcher(AbstractQuery):
         if isinstance(wildcard_spec, int):
             for i in range(wildcard_spec):
                 self.query_pattern.append((".", filter_func))
+        elif wildcard_spec == "+":
+            self.query_pattern.append((".", filter_func))
+            self.query_pattern.append(("*", filter_func))
         else:
-            assert wildcard_spec == "." or wildcard_spec == "*" or wildcard_spec == "+"
+            assert wildcard_spec == "." or wildcard_spec == "*"
             self.query_pattern.append((wildcard_spec, filter_func))
 
     def _cache_node(self, gf, node):
@@ -531,42 +534,6 @@ class QueryMatcher(AbstractQuery):
                 return [[]]
             return None
 
-    def _match_1_or_more(self, gf, node, wcard_idx):
-        """Process a "+" wildcard in the query on a subgraph.
-
-        Arguments:
-            gf (GraphFrame): the GraphFrame being queried.
-            node (Node): the node being queried against the "+" wildcard.
-            wcard_idx (int): the index associated with the "+" wildcard query.
-
-        Returns:
-            (list): a list of lists representing the paths rooted at "node" that match the "+" wildcard and/or the next query node. Will return None if there is no match for the "+" wildcard or the next query node.
-        """
-        # Cache the node if it's not already cached
-        if node._hatchet_nid not in self.search_cache:
-            self._cache_node(gf, node)
-        # If the current node doesn't match the "+" wildcard, return None.
-        if wcard_idx not in self.search_cache[node._hatchet_nid]:
-            return None
-        # Since a query can't end on a wildcard, return None if the
-        # current node has no children.
-        if len(node.children) == 0:
-            return None
-        # Use _match_0_or_more to collect all additional wildcard matches.
-        matches = []
-        for child in sorted(node.children, key=traversal_order):
-            sub_match = self._match_0_or_more(gf, child, wcard_idx)
-            if sub_match is not None:
-                matches.extend(sub_match)
-        # Since _match_0_or_more will capture the query node that follows
-        # the wildcard, if no paths were retrieved from that function,
-        # the pattern does not continue after the "+" wildcard. Thus,
-        # since a pattern cannot end on a wildcard, the function
-        # returns None.
-        if len(matches) == 0:
-            return None
-        return [[node] + m for m in matches]
-
     def _match_1(self, gf, node, idx):
         """Process a "." wildcard in the query on a subgraph.
 
@@ -606,10 +573,7 @@ class QueryMatcher(AbstractQuery):
         assert isinstance(pattern_root, Node)
         # Starting query node
         pattern_idx = match_idx + 1
-        if (
-            self.query_pattern[match_idx][0] == "*"
-            or self.query_pattern[match_idx][0] == "+"
-        ):
+        if self.query_pattern[match_idx][0] == "*":
             pattern_idx = 0
         # Starting matching pattern
         matches = [[pattern_root]]
@@ -639,19 +603,9 @@ class QueryMatcher(AbstractQuery):
                                 sub_match.append(s)
                             else:
                                 sub_match.extend(s)
-                elif wcard == "+":
-                    if len(m[-1].children) == 0:
-                        sub_match.append(None)
-                    else:
-                        for child in sorted(m[-1].children, key=traversal_order):
-                            s = self._match_1_or_more(gf, child, pattern_idx)
-                            if s is None:
-                                sub_match.append(s)
-                            else:
-                                sub_match.extend(s)
                 else:
                     raise InvalidQueryFilter(
-                        'Query wildcards must be one of ".", "*", or "+"'
+                        'Query wildcards must (internally) be one of "." or "*"'
                     )
                 # Merge the next part of the match path with the
                 # existing part.
@@ -704,7 +658,7 @@ class QueryMatcher(AbstractQuery):
             self._apply_impl(gf, child, visited, matches)
 
 
-GRAMMAR = u"""
+CYPHER_GRAMMAR = u"""
 FullQuery: path_expr=MatchExpr(cond_expr=WhereExpr)?;
 MatchExpr: 'MATCH' path=PathQuery;
 PathQuery: '(' nodes=NodeExpr ')'('->' '(' nodes=NodeExpr ')')*;
@@ -738,7 +692,7 @@ NumInf: name=ID '.' prop=STRING 'IS INF';
 NumNotInf: name=ID '.' prop=STRING 'IS NOT INF';
 """
 
-mm = metamodel_from_str(GRAMMAR)
+cypher_query_mm = metamodel_from_str(CYPHER_GRAMMAR)
 
 
 def cname(obj):
@@ -763,7 +717,7 @@ class CypherQuery(QueryMatcher):
             super().__init__()
         model = None
         try:
-            model = mm.model_from_str(cypher_query)
+            model = cypher_query_mm.model_from_str(cypher_query)
         except TextXError as e:
             # TODO Change to a "raise-from" expression when Python 2.7 support is dropped
             raise InvalidQueryPath(
@@ -1245,6 +1199,163 @@ class CypherQuery(QueryMatcher):
             'not np.isinf(df_row["{}"])'.format(obj.prop),
             "isinstance(df_row['{}'], Real)".format(obj.prop),
         ]
+
+
+def parse_cypher_query(query_str):
+    """Parse all types of mid-level queries, including multi-queries that leverage
+    the curly brace delimiters.
+
+    Arguments:
+        query_str (str): the mid-level query to be parsed
+
+    Returns:
+        (AbstractQuery): A Hatchet query object representing the mid-level query
+    """
+    # TODO Check if there's a way to prevent curly braces in a string
+    #      from being captured
+
+    # Find the number of curly brace-delimited regions in the query
+    query_str = query_str.strip()
+    curly_brace_elems = re.findall(r"\{(.*?)\}", query_str)
+    num_curly_brace_elems = len(curly_brace_elems)
+    # If there are no curly brace-delimited regions, just pass the query
+    # off to the CypherQuery constructor
+    if num_curly_brace_elems == 0:
+        if sys.version_info[0] == 2:
+            query_str = query_str.decode("utf-8")
+        return CypherQuery(query_str)
+    # Create an iterator over the curly brace-delimited regions
+    curly_brace_iter = re.finditer(r"\{(.*?)\}", query_str)
+    # Will store curly brace-delimited regions in the WHERE clause
+    condition_list = None
+    # Will store curly brace-delimited regions that contain entire
+    # mid-level queries (MATCH clause and WHERE clause)
+    query_list = None
+    # If entire queries are in brace-delimited regions, store the indexes
+    # of the regions here so we don't consider brace-delimited regions
+    # within the already-captured region.
+    query_idxes = None
+    # Store which compound queries to apply to the curly brace-delimited regions
+    compound_ops = []
+    for i, match in enumerate(curly_brace_iter):
+        # Get the substring within curly braces
+        substr = query_str[match.start() + 1 : match.end() - 1]
+        substr = substr.strip()
+        # If an entire query (MATCH + WHERE) is within curly braces,
+        # add the query to "query_list", and add the indexes corresponding
+        # to the query to "query_idxes"
+        if substr.startswith("MATCH"):
+            if query_list is None:
+                query_list = []
+            if query_idxes is None:
+                query_idxes = []
+            query_list.append(substr)
+            query_idxes.append((match.start(), match.end()))
+        # If the curly brace-delimited region contains only parts of a
+        # WHERE clause, first, check if the region is within another
+        # curly brace delimited region. If it is, do nothing (it will
+        # be handled later). Otherwise, add the region to "condition_list"
+        elif re.match(r"[a-zA-Z0-9_]+\..*", substr) is not None:
+            is_encapsulated_region = False
+            if query_idxes is not None:
+                for s, e in query_idxes:
+                    if match.start() >= s or match.end() <= e:
+                        is_encapsulated_region = True
+                        break
+            if is_encapsulated_region:
+                continue
+            if condition_list is None:
+                condition_list = []
+            condition_list.append(substr)
+        # If the curly brace-delimited region is neither a whole query
+        # or part of a WHERE clause, raise an error
+        else:
+            raise ValueError("Invalid grouping (with curly braces) within the query")
+        # If there is a compound operator directly after the curly brace-delimited region,
+        # capture the type of operator, and store the type in "compound_ops"
+        if i + 1 < num_curly_brace_elems:
+            rest_substr = query_str[match.end() :]
+            rest_substr = rest_substr.strip()
+            if rest_substr.startswith("AND"):
+                compound_ops.append("AND")
+            elif rest_substr.startswith("OR"):
+                compound_ops.append("OR")
+            elif rest_substr.startswith("XOR"):
+                compound_ops.append("XOR")
+            else:
+                raise ValueError("Invalid compound operator type found!")
+    # Each call to this function should only consider one of the full query or
+    # WHERE clause versions at a time. If both types were captured, raise an error
+    # because some type of internal logic issue occured.
+    if condition_list is not None and query_list is not None:
+        raise ValueError(
+            "Curly braces must be around either a full mid-level query or a set of conditions in a single mid-level query"
+        )
+    # This branch is for the WHERE clause version
+    if condition_list is not None:
+        # Make sure you correctly gathered curly brace-delimited regions and
+        # compound operators
+        if len(condition_list) != len(compound_ops) + 1:
+            raise ValueError(
+                "Incompatible number of curly brace elements and compound operators"
+            )
+        # Get the MATCH clause that will be shared across the subqueries
+        match_comp_obj = re.search(r"MATCH\s+(?P<match_field>.*)\s+WHERE", query_str)
+        match_comp = match_comp_obj.group("match_field")
+        # Iterate over the compound operators
+        full_query = None
+        for i, op in enumerate(compound_ops):
+            # If in the first iteration, set the initial query as a CypherQuery where
+            # the MATCH clause is the shared match clause and the WHERE clause is the
+            # first curly brace-delimited region
+            if i == 0:
+                query1 = "MATCH {} WHERE {}".format(match_comp, condition_list[i])
+                if sys.version_info[0] == 2:
+                    query1 = query1.decode("utf-8")
+                full_query = CypherQuery(query1)
+            # Get the next query as a CypherQuery where
+            # the MATCH clause is the shared match clause and the WHERE clause is the
+            # next curly brace-delimited region
+            next_query = "MATCH {} WHERE {}".format(match_comp, condition_list[i + 1])
+            if sys.version_info[0] == 2:
+                next_query = next_query.decode("utf-8")
+            next_query = CypherQuery(next_query)
+            # Add the next query to the full query using the compound operator
+            # currently being considered
+            if op == "AND":
+                full_query = full_query & next_query
+            elif op == "OR":
+                full_query = full_query | next_query
+            else:
+                full_query = full_query ^ next_query
+        return full_query
+    # This branch is for the full query version
+    else:
+        # Make sure you correctly gathered curly brace-delimited regions and
+        # compound operators
+        if len(query_list) != len(compound_ops) + 1:
+            raise ValueError(
+                "Incompatible number of curly brace elements and compound operators"
+            )
+        # Iterate over the compound operators
+        full_query = None
+        for i, op in enumerate(compound_ops):
+            # If in the first iteration, set the initial query as the result
+            # of recursively calling this function on the first curly brace-delimited region
+            if i == 0:
+                full_query = parse_cypher_query(query_list[i])
+            # Get the next query by recursively calling this function
+            # on the next curly brace-delimited region
+            next_query = parse_cypher_query(query_list[i + 1])
+            # Add the next query to the full query using the compound operator
+            # currently being considered
+            if op == "AND":
+                full_query = full_query & next_query
+            elif op == "OR":
+                full_query = full_query | next_query
+            else:
+                full_query = full_query ^ next_query
+        return full_query
 
 
 class AndQuery(NaryQuery):

@@ -1,3 +1,8 @@
+# Copyright 2017-2022 Lawrence Livermore National Security, LLC and other
+# Hatchet Project Developers. See the top-level LICENSE file for details.
+#
+# SPDX-License-Identifier: MIT
+
 from IPython.core.magic import Magics, magics_class, line_magic
 from hatchet.external import Roundtrip as RT
 from hatchet import GraphFrame
@@ -10,21 +15,26 @@ vis_dir = dirname(path.abspath(__file__))
 
 def _gf_to_json(data):
     import json
+    from pandas import Series
+
+    def serialize(obj):
+        if isinstance(obj, Series):
+            return obj.to_json
+        return obj.__dict__
 
     try:
-        if type(data) is type(GraphFrame):
-            return json.dumps(data.to_literal())
+        if isinstance(data, GraphFrame):
+            return json.dumps(data.to_literal(), default=serialize)
         else:
-            return json.dumps(data)
-    except TypeError:
+            with open("check", "w") as f:
+                f.write(json.dumps(data, default=serialize))
+            return json.dumps(data, default=serialize)
+    except ValueError:
         raise "Input data is not of type graphframe or json serializable."
 
 
 def _query_to_dict(json_query):
-    import json
-
-    return json.loads(json_query)
-
+    return json_query
 
 @magics_class
 class CCT(Magics):
@@ -37,7 +47,6 @@ class CCT(Magics):
         args = line.split(" ")
 
         RT.load_webpack(path.join(self.vis_dist, "cct_bundle.html"), cache=False)
-
         RT.var_to_js(
             args[0], "hatchet_tree_def", watch=False, to_js_converter=_gf_to_json
         )

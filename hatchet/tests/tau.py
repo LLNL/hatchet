@@ -1,5 +1,5 @@
-# Copyright 2021 University of Maryland and other Hatchet Project
-# Developers. See the top-level LICENSE file for details.
+# Copyright 2017-2022 Lawrence Livermore National Security, LLC and other
+# Hatchet Project Developers. See the top-level LICENSE file for details.
 #
 # SPDX-License-Identifier: MIT
 
@@ -19,7 +19,7 @@ def test_graphframe(tau_profile_dir):
         elif col in ("line"):
             assert gf.dataframe[col].dtype == np.int64
         elif col in ("name", "node"):
-            assert gf.dataframe[col].dtype == np.object
+            assert gf.dataframe[col].dtype == object
 
     # TODO: add tests to confirm values in dataframe
 

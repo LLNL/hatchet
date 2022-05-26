@@ -29,7 +29,6 @@ def _default_converter(data):
         return json.dumps(data)
     elif "DataFrame" in str(type(data)) or "Series" in str(type(data)):
         return data.to_json()
-
     return data
 
 
@@ -211,9 +210,6 @@ class RoundTrip:
                 output_html += self._file_formatter(file)
 
         bdg = Bridge(output_html, scripts, self.shell, self.istest)
-
-        # bdg.add_javascript("cells = Jupyter.notebook.get_cell_elements();")
-
         self.bridges[bdg.id] = bdg
         self.last_id = bdg.id
 
@@ -473,14 +469,17 @@ class Bridge:
             datatype = type(data)
             datatype = self._extract_simple_dt(str(datatype))
 
-        # some default conversion
-        # we may want to push this off to the application
-        # developer
-        if py_to_js_converter is None:
-            data = self._default_converter(data)
-        else:
-            data = py_to_js_converter(data)
-            self.converter = py_to_js_converter
+        try:
+            # some default conversion
+            # we may want to push this off to the application
+            # developer
+            if py_to_js_converter is None:
+                data = self._default_converter(data)
+            else:
+                data = py_to_js_converter(data)
+                self.converter = py_to_js_converter
+        except Exception:
+            pass
 
         # Patch: Ensure all ' and " are escaped
         data = data.replace('"', '\\"').replace("'", "\\'")

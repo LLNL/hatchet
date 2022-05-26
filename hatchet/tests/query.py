@@ -1,4 +1,4 @@
-# Copyright 2017-2021 Lawrence Livermore National Security, LLC and other
+# Copyright 2017-2022 Lawrence Livermore National Security, LLC and other
 # Hatchet Project Developers. See the top-level LICENSE file for details.
 #
 # SPDX-License-Identifier: MIT
@@ -24,6 +24,7 @@ from hatchet.query import (
     UnionQuery,
     SymDifferenceQuery,
     CypherQuery,
+    parse_cypher_query,
 )
 
 
@@ -74,12 +75,17 @@ def test_construct_high_level_api():
     assert query2.query_pattern[3][0] == "."
 
     assert query3.query_pattern[0][0] == "."
-    assert query3.query_pattern[1][0] == "+"
+    assert query3.query_pattern[1][0] == "."
+    assert query3.query_pattern[2][0] == "*"
     assert not query3.query_pattern[1][1](mock_node_mpi)
     assert not query3.query_pattern[1][1](mock_node_ibv)
     assert query3.query_pattern[1][1](mock_node_time_true)
     assert not query3.query_pattern[1][1](mock_node_time_false)
-    assert query3.query_pattern[2][0] == "."
+    assert not query3.query_pattern[2][1](mock_node_mpi)
+    assert not query3.query_pattern[2][1](mock_node_ibv)
+    assert query3.query_pattern[2][1](mock_node_time_true)
+    assert not query3.query_pattern[2][1](mock_node_time_false)
+    assert query3.query_pattern[3][0] == "."
 
     assert query4.query_pattern[0][0] == "."
     assert query4.query_pattern[1][0] == "."
@@ -174,12 +180,17 @@ def test_construct_low_level_api():
         filter_func=ibv_filter
     )
     assert query.query_pattern[0][0] == "."
-    assert query.query_pattern[1][0] == "+"
+    assert query.query_pattern[1][0] == "."
+    assert query.query_pattern[2][0] == "*"
     assert not query.query_pattern[1][1](mock_node_mpi)
     assert not query.query_pattern[1][1](mock_node_ibv)
     assert query.query_pattern[1][1](mock_node_time_true)
     assert not query.query_pattern[1][1](mock_node_time_false)
-    assert query.query_pattern[2][0] == "."
+    assert not query.query_pattern[2][1](mock_node_mpi)
+    assert not query.query_pattern[2][1](mock_node_ibv)
+    assert query.query_pattern[2][1](mock_node_time_true)
+    assert not query.query_pattern[2][1](mock_node_time_false)
+    assert query.query_pattern[3][0] == "."
 
     query.match(filter_func=mpi_filter).rel(3, time_eq_filter).rel(
         filter_func=ibv_filter
@@ -213,7 +224,8 @@ def test_node_caching(mock_graph_literal):
 
     assert 0 in query.search_cache[node._hatchet_nid]
     assert 1 in query.search_cache[node._hatchet_nid]
-    assert 2 not in query.search_cache[node._hatchet_nid]
+    assert 2 in query.search_cache[node._hatchet_nid]
+    assert 3 not in query.search_cache[node._hatchet_nid]
 
 
 def test_match_0_or_more_wildcard(mock_graph_literal):
@@ -244,45 +256,6 @@ def test_match_0_or_more_wildcard(mock_graph_literal):
 
     assert sorted(matched_paths, key=len) == sorted(correct_paths, key=len)
     assert query._match_0_or_more(gf, none_node, 1) is None
-
-
-def test_match_1_or_more_wildcard(mock_graph_literal):
-    path = [
-        {"name": "qux"},
-        ("+", {"time (inc)": "> 10"}),
-        {"name": "gr[a-z]+", "time (inc)": "<= 10"},
-    ]
-    gf = GraphFrame.from_literal(mock_graph_literal)
-    node = gf.graph.roots[0].children[1]
-    none_node = gf.graph.roots[0].children[2].children[0].children[1].children[0]
-
-    correct_paths = [
-        [
-            node.children[0],
-            node.children[0].children[0],
-            node.children[0].children[0].children[0],
-        ],
-        [node.children[0], node.children[0].children[0]],
-    ]
-
-    query = QueryMatcher(path)
-    matched_paths = []
-    for child in sorted(node.children, key=traversal_order):
-        match = query._match_1_or_more(gf, child, 1)
-        if match is not None:
-            matched_paths.extend(match)
-
-    assert matched_paths == correct_paths
-    assert query._match_1_or_more(gf, none_node, 1) is None
-
-    zero_match_path = [
-        {"name": "qux"},
-        ("+", {"time (inc)": "> 50"}),
-        {"name": "gr[a-z]+", "time (inc)": "<= 10"},
-    ]
-    zero_match_node = gf.graph.roots[0].children[0]
-    query = QueryMatcher(zero_match_path)
-    assert query._match_1_or_more(gf, zero_match_node, 1) is None
 
 
 def test_match_1(mock_graph_literal):
@@ -349,20 +322,6 @@ def test_apply(mock_graph_literal):
         root.children[1].children[0],
         root.children[1].children[0].children[0],
         root.children[1].children[0].children[0].children[1],
-        # Old-style return value of apply
-        # [
-        #     root,
-        #     root.children[1],
-        #     root.children[1].children[0],
-        #     root.children[1].children[0].children[0],
-        #     root.children[1].children[0].children[0].children[1],
-        # ],
-        # [
-        #     root.children[1],
-        #     root.children[1].children[0],
-        #     root.children[1].children[0].children[0],
-        #     root.children[1].children[0].children[0].children[1],
-        # ],
     ]
     query = QueryMatcher(path)
 
@@ -375,25 +334,11 @@ def test_apply(mock_graph_literal):
         root.children[1].children[0].children[0].children[0],
         root.children[1].children[0].children[0].children[0].children[0],
         root.children[1].children[0].children[0].children[0].children[1],
-        # Old-style return value of apply
-        # [
-        #     root.children[1].children[0],
-        #     root.children[1].children[0].children[0],
-        #     root.children[1].children[0].children[0].children[0],
-        #     root.children[1].children[0].children[0].children[0].children[0],
-        # ],
-        # [
-        #     root.children[1].children[0],
-        #     root.children[1].children[0].children[0],
-        #     root.children[1].children[0].children[0].children[0],
-        #     root.children[1].children[0].children[0].children[0].children[1],
-        # ],
     ]
     query = QueryMatcher(path)
     assert sorted(query.apply(gf)) == sorted(match)
 
     path = [{"name": "foo"}, {"name": "bar"}, {"time": 5.0}]
-    # match = [[root, root.children[0], root.children[0].children[0]]]
     match = [root, root.children[0], root.children[0].children[0]]
     query = QueryMatcher(path)
     assert sorted(query.apply(gf)) == sorted(match)
@@ -405,20 +350,6 @@ def test_apply(mock_graph_literal):
         root.children[1].children[0],
         root.children[1].children[0].children[0],
         root.children[1].children[0].children[0].children[0],
-        # Old-style return value of apply
-        # [
-        #     root,
-        #     root.children[1],
-        #     root.children[1].children[0],
-        #     root.children[1].children[0].children[0],
-        #     root.children[1].children[0].children[0].children[0],
-        # ],
-        # [
-        #     root,
-        #     root.children[1],
-        #     root.children[1].children[0],
-        #     root.children[1].children[0].children[0],
-        # ],
     ]
     query = QueryMatcher(path)
     assert sorted(query.apply(gf)) == sorted(match)
@@ -503,6 +434,36 @@ def test_apply(mock_graph_literal):
     query = QueryMatcher(path)
     assert query.apply(gf) == []
 
+    # Test a former edge case with the + quantifier/wildcard
+    match = [
+        [gf.graph.roots[0].children[0], gf.graph.roots[0].children[0].children[0]],
+        [
+            gf.graph.roots[0].children[1].children[0].children[0].children[0],
+            gf.graph.roots[0]
+            .children[1]
+            .children[0]
+            .children[0]
+            .children[0]
+            .children[0],
+        ],
+        [
+            gf.graph.roots[1].children[0],
+            gf.graph.roots[1].children[0].children[0],
+        ],
+        [
+            gf.graph.roots[0]
+            .children[2]
+            .children[0]
+            .children[1]
+            .children[0]
+            .children[0],
+        ],
+    ]
+    match = list(set().union(*match))
+    path = [("+", {"name": "ba.*"})]
+    query = QueryMatcher(path)
+    assert sorted(query.apply(gf)) == sorted(match)
+
 
 def test_apply_indices(calc_pi_hpct_db):
     gf = GraphFrame.from_hpctoolkit(str(calc_pi_hpct_db))
@@ -537,7 +498,6 @@ def test_high_level_depth(mock_graph_literal):
     gf = GraphFrame.from_literal(mock_graph_literal)
     query = QueryMatcher([("*", {"depth": 1})])
     roots = gf.graph.roots
-    # matches = [[c] for r in roots for c in r.children]
     matches = [c for r in roots for c in r.children]
     assert sorted(query.apply(gf)) == sorted(matches)
 
@@ -589,7 +549,6 @@ def test_high_level_hatchet_nid(mock_graph_literal):
     assert sorted(query.apply(gf)) == sorted(matches)
 
     query = QueryMatcher([{"node_id": 0}])
-    # assert query.apply(gf) == [[gf.graph.roots[0]]]
     assert query.apply(gf) == [gf.graph.roots[0]]
 
     with pytest.raises(InvalidQueryFilter):
@@ -614,7 +573,6 @@ def test_high_level_depth_index_levels(calc_pi_hpct_db):
     assert sorted(query.apply(gf)) == sorted(matches)
 
     query = QueryMatcher([("*", {"depth": 0})])
-    # matches = [[root]]
     matches = [root]
     assert query.apply(gf) == matches
 
@@ -639,7 +597,6 @@ def test_high_level_node_id_index_levels(calc_pi_hpct_db):
     assert sorted(query.apply(gf)) == sorted(matches)
 
     query = QueryMatcher([("*", {"node_id": 0})])
-    # matches = [[root]]
     matches = [root]
     assert query.apply(gf) == matches
 
@@ -859,14 +816,10 @@ def test_xor_query(mock_graph_literal):
     roots = gf.graph.roots
     matches = [
         roots[0].children[0].children[0],
-        # roots[0].children[0].children[1],
         roots[0].children[1].children[0].children[0].children[0].children[0],
-        # roots[0].children[1].children[0].children[0].children[0].children[1],
-        # roots[0].children[1].children[0].children[0].children[1],
         roots[0].children[2].children[0].children[0],
         roots[0].children[2].children[0].children[1].children[0].children[0],
         roots[1].children[0].children[0],
-        # roots[1].children[0].children[1],
     ]
     assert sorted(compound_query.apply(gf)) == sorted(matches)
 
@@ -879,14 +832,10 @@ def test_sym_diff_query(mock_graph_literal):
     roots = gf.graph.roots
     matches = [
         roots[0].children[0].children[0],
-        # roots[0].children[0].children[1],
         roots[0].children[1].children[0].children[0].children[0].children[0],
-        # roots[0].children[1].children[0].children[0].children[0].children[1],
-        # roots[0].children[1].children[0].children[0].children[1],
         roots[0].children[2].children[0].children[0],
         roots[0].children[2].children[0].children[1].children[0].children[0],
         roots[1].children[0].children[0],
-        # roots[1].children[0].children[1],
     ]
     assert sorted(compound_query.apply(gf)) == sorted(matches)
 
@@ -896,27 +845,15 @@ def test_construct_cypher_api():
     mock_node_ibv = {"name": "ibv_reg_mr"}
     mock_node_time_true = {"time (inc)": 0.1}
     mock_node_time_false = {"time (inc)": 0.001}
-    # path1 = [{"name": "MPI_[_a-zA-Z]*"}, "*", {"name": "ibv[_a-zA-Z]*"}]
     path1 = u"""MATCH (p)->("*")->(q)
     WHERE p."name" STARTS WITH "MPI_" AND q."name" STARTS WITH "ibv"
     """
-    # path2 = [{"name": "MPI_[_a-zA-Z]*"}, 2, {"name": "ibv[_a-zA-Z]*"}]
     path2 = u"""MATCH (p)->(2)->(q)
     WHERE p."name" STARTS WITH "MPI_" AND q."name" STARTS WITH "ibv"
     """
-    # path3 = [
-    #     {"name": "MPI_[_a-zA-Z]*"},
-    #     ("+", {"time (inc)": ">= 0.1"}),
-    #     {"name": "ibv[_a-zA-Z]*"},
-    # ]
     path3 = u"""MATCH (p)->("+", a)->(q)
     WHERE p."name" STARTS WITH "MPI" AND a."time (inc)" >= 0.1 AND q."name" STARTS WITH "ibv"
     """
-    # path4 = [
-    #     {"name": "MPI_[_a-zA-Z]*"},
-    #     (3, {"time (inc)": 0.1}),
-    #     {"name": "ibv[_a-zA-Z]*"},
-    # ]
     path4 = u"""MATCH (p)->(3, a)->(q)
     WHERE p."name" STARTS WITH "MPI" AND a."time (inc)" = 0.1 AND q."name" STARTS WITH "ibv"
     """
@@ -950,12 +887,17 @@ def test_construct_cypher_api():
     assert query2.query_pattern[3][0] == "."
 
     assert query3.query_pattern[0][0] == "."
-    assert query3.query_pattern[1][0] == "+"
+    assert query3.query_pattern[1][0] == "."
+    assert query3.query_pattern[2][0] == "*"
     assert not query3.query_pattern[1][1](mock_node_mpi)
     assert not query3.query_pattern[1][1](mock_node_ibv)
     assert query3.query_pattern[1][1](mock_node_time_true)
     assert not query3.query_pattern[1][1](mock_node_time_false)
-    assert query3.query_pattern[2][0] == "."
+    assert not query3.query_pattern[2][1](mock_node_mpi)
+    assert not query3.query_pattern[2][1](mock_node_ibv)
+    assert query3.query_pattern[2][1](mock_node_time_true)
+    assert not query3.query_pattern[2][1](mock_node_time_false)
+    assert query3.query_pattern[3][0] == "."
 
     assert query4.query_pattern[0][0] == "."
     assert query4.query_pattern[1][0] == "."
@@ -975,11 +917,6 @@ def test_construct_cypher_api():
     assert not query4.query_pattern[3][1](mock_node_time_false)
     assert query4.query_pattern[4][0] == "."
 
-    # invalid_path = [
-    #     {"name": "MPI_[_a-zA-Z]*"},
-    #     ({"bad": "wildcard"}, {"time (inc)": 0.1}),
-    #     {"name": "ibv[_a-zA-Z]*"},
-    # ]
     invalid_path = u"""MATCH (p)->({"bad": "wildcard"}, a)->(q)
     WHERE p."name" STARTS WITH "MPI" AND a."time (inc)" = 0.1 AND
     q."name" STARTS WITH "ibv"
@@ -990,12 +927,6 @@ def test_construct_cypher_api():
 
 def test_apply_cypher(mock_graph_literal):
     gf = GraphFrame.from_literal(mock_graph_literal)
-    # path = [
-    #     {"time (inc)": ">= 30.0"},
-    #     (2, {"name": "[^b][a-z]+"}),
-    #     ("*", {"name": "[^b][a-z]+"}),
-    #     {"name": "gr[a-z]+"},
-    # ]
     path = u"""MATCH (p)->(2, q)->("*", r)->(s)
     WHERE p."time (inc)" >= 30.0 AND NOT q."name" STARTS WITH "b"
     AND r."name" =~ "[^b][a-z]+" AND s."name" STARTS WITH "gr"
@@ -1007,26 +938,11 @@ def test_apply_cypher(mock_graph_literal):
         root.children[1].children[0],
         root.children[1].children[0].children[0],
         root.children[1].children[0].children[0].children[1],
-        # Old-style return value of apply
-        # [
-        #     root,
-        #     root.children[1],
-        #     root.children[1].children[0],
-        #     root.children[1].children[0].children[0],
-        #     root.children[1].children[0].children[0].children[1],
-        # ],
-        # [
-        #     root.children[1],
-        #     root.children[1].children[0],
-        #     root.children[1].children[0].children[0],
-        #     root.children[1].children[0].children[0].children[1],
-        # ],
     ]
     query = CypherQuery(path)
 
     assert sorted(query.apply(gf)) == sorted(match)
 
-    # path = [{"time (inc)": ">= 30.0"}, ".", {"name": "bar"}, "*"]
     path = u"""MATCH (p)->(".")->(q)->("*")
     WHERE p."time (inc)" >= 30.0 AND q."name" = "bar"
     """
@@ -1036,33 +952,17 @@ def test_apply_cypher(mock_graph_literal):
         root.children[1].children[0].children[0].children[0],
         root.children[1].children[0].children[0].children[0].children[0],
         root.children[1].children[0].children[0].children[0].children[1],
-        # Old-style return value of apply
-        # [
-        #     root.children[1].children[0],
-        #     root.children[1].children[0].children[0],
-        #     root.children[1].children[0].children[0].children[0],
-        #     root.children[1].children[0].children[0].children[0].children[0],
-        # ],
-        # [
-        #     root.children[1].children[0],
-        #     root.children[1].children[0].children[0],
-        #     root.children[1].children[0].children[0].children[0],
-        #     root.children[1].children[0].children[0].children[0].children[1],
-        # ],
     ]
     query = CypherQuery(path)
     assert sorted(query.apply(gf)) == sorted(match)
 
-    # path = [{"name": "foo"}, {"name": "bar"}, {"time": 5.0}]
     path = u"""MATCH (p)->(q)->(r)
     WHERE p."name" = "foo" AND q."name" = "bar" AND r."time" = 5.0
     """
-    # match = [[root, root.children[0], root.children[0].children[0]]]
     match = [root, root.children[0], root.children[0].children[0]]
     query = CypherQuery(path)
     assert sorted(query.apply(gf)) == sorted(match)
 
-    # path = [{"name": "foo"}, {"name": "qux"}, ("+", {"time (inc)": "> 15.0"})]
     path = u"""MATCH (p)->(q)->("+", r)
     WHERE p."name" = "foo" AND q."name" = "qux" AND r."time (inc)" > 15.0
     """
@@ -1072,20 +972,6 @@ def test_apply_cypher(mock_graph_literal):
         root.children[1].children[0],
         root.children[1].children[0].children[0],
         root.children[1].children[0].children[0].children[0],
-        # Old-style return value of apply
-        # [
-        #     root,
-        #     root.children[1],
-        #     root.children[1].children[0],
-        #     root.children[1].children[0].children[0],
-        #     root.children[1].children[0].children[0].children[0],
-        # ],
-        # [
-        #     root,
-        #     root.children[1],
-        #     root.children[1].children[0],
-        #     root.children[1].children[0].children[0],
-        # ],
     ]
     query = CypherQuery(path)
     assert sorted(query.apply(gf)) == sorted(match)
@@ -1103,7 +989,6 @@ def test_apply_cypher(mock_graph_literal):
     query = CypherQuery(path)
     assert sorted(query.apply(gf)) == sorted(match)
 
-    # path = [{"name": "this"}, ("*", {"name": "is"}), {"name": "nonsense"}]
     path = u"""MATCH (p)->("*", q)->(r)
     WHERE p."name" = "this" AND q."name" = "is" AND r."name" = "nonsense"
     """
@@ -1111,7 +996,6 @@ def test_apply_cypher(mock_graph_literal):
     query = CypherQuery(path)
     assert query.apply(gf) == []
 
-    # path = [{"name": 5}, "*", {"name": "whatever"}]
     path = u"""MATCH (p)->("*")->(q)
     WHERE p."name" = 5 AND q."name" = "whatever"
     """
@@ -1119,7 +1003,6 @@ def test_apply_cypher(mock_graph_literal):
         query = CypherQuery(path)
         query.apply(gf)
 
-    # path = [{"time": "badstring"}, "*", {"name": "whatever"}]
     path = u"""MATCH (p)->("*")->(q)
     WHERE p."time" = "badstring" AND q."name" = "whatever"
     """
@@ -1138,7 +1021,6 @@ def test_apply_cypher(mock_graph_literal):
         "list"
     ] = DummyType()
     gf = GraphFrame.from_literal(bad_field_test_dict)
-    # path = [{"name": "foo"}, {"name": "bar"}, {"list": DummyType()}]
     path = u"""MATCH (p)->(q)->(r)
     WHERE p."name" = "foo" AND q."name" = "bar" AND p."list" = DummyType()
     """
@@ -1146,7 +1028,6 @@ def test_apply_cypher(mock_graph_literal):
         query = CypherQuery(path)
         query.apply(gf)
 
-    # path = ["*", {"name": "bar"}, {"name": "grault"}, "*"]
     path = u"""MATCH ("*")->(p)->(q)->("*")
     WHERE p."name" = "bar" AND q."name" = "grault"
     """
@@ -1194,7 +1075,6 @@ def test_apply_cypher(mock_graph_literal):
     query = CypherQuery(path)
     assert sorted(query.apply(gf)) == sorted(match)
 
-    # path = ["*", {"name": "bar"}, {"name": "grault"}, "+"]
     path = u"""MATCH ("*")->(p)->(q)->("+")
     WHERE p."name" = "bar" AND q."name" = "grault"
     """
@@ -1249,3 +1129,82 @@ def test_apply_cypher(mock_graph_literal):
     match = [gf.graph.roots[0]]
     query = CypherQuery(path)
     assert query.apply(gf) == match
+
+
+def test_cypher_and_compound_query(mock_graph_literal):
+    gf = GraphFrame.from_literal(mock_graph_literal)
+    compound_query1 = parse_cypher_query(
+        u"""
+        {MATCH ("*", p) WHERE p."time (inc)" >= 20 AND p."time (inc)" <= 60}
+        AND {MATCH ("*", p) WHERE p."time (inc)" >= 60}
+        """
+    )
+    compound_query2 = parse_cypher_query(
+        u"""
+        MATCH ("*", p)
+        WHERE {p."time (inc)" >= 20 AND p."time (inc)" <= 60} AND {p."time (inc)" >= 60}
+        """
+    )
+    roots = gf.graph.roots
+    matches = [
+        roots[0].children[1],
+        roots[0].children[1].children[0],
+    ]
+    assert sorted(compound_query1.apply(gf)) == sorted(matches)
+    assert sorted(compound_query2.apply(gf)) == sorted(matches)
+
+
+def test_cypher_or_compound_query(mock_graph_literal):
+    gf = GraphFrame.from_literal(mock_graph_literal)
+    compound_query1 = parse_cypher_query(
+        u"""
+        {MATCH ("*", p) WHERE p."time (inc)" = 5.0}
+        OR {MATCH ("*", p) WHERE p."time (inc)" = 10.0}
+        """
+    )
+    compound_query2 = parse_cypher_query(
+        u"""
+        MATCH ("*", p)
+        WHERE {p."time (inc)" = 5.0} OR {p."time (inc)" = 10.0}
+        """
+    )
+    roots = gf.graph.roots
+    matches = [
+        roots[0].children[0].children[0],
+        roots[0].children[0].children[1],
+        roots[0].children[1].children[0].children[0].children[0].children[0],
+        roots[0].children[1].children[0].children[0].children[0].children[1],
+        roots[0].children[1].children[0].children[0].children[1],
+        roots[0].children[2].children[0].children[0],
+        roots[0].children[2].children[0].children[1].children[0].children[0],
+        roots[1].children[0].children[0],
+        roots[1].children[0].children[1],
+    ]
+    assert sorted(compound_query1.apply(gf)) == sorted(matches)
+    assert sorted(compound_query2.apply(gf)) == sorted(matches)
+
+
+def test_cypher_xor_compound_query(mock_graph_literal):
+    gf = GraphFrame.from_literal(mock_graph_literal)
+    compound_query1 = parse_cypher_query(
+        u"""
+        {MATCH ("*", p) WHERE p."time (inc)" >= 5.0 AND p."time (inc)" <= 10.0}
+        XOR {MATCH ("*", p) WHERE p."time (inc)" = 10.0}
+        """
+    )
+    compound_query2 = parse_cypher_query(
+        u"""
+        MATCH ("*", p)
+        WHERE {p."time (inc)" >= 5.0 AND p."time (inc)" <= 10.0} XOR {p."time (inc)" = 10.0}
+        """
+    )
+    roots = gf.graph.roots
+    matches = [
+        roots[0].children[0].children[0],
+        roots[0].children[1].children[0].children[0].children[0].children[0],
+        roots[0].children[2].children[0].children[0],
+        roots[0].children[2].children[0].children[1].children[0].children[0],
+        roots[1].children[0].children[0],
+    ]
+    assert sorted(compound_query1.apply(gf)) == sorted(matches)
+    assert sorted(compound_query2.apply(gf)) == sorted(matches)

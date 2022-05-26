@@ -4,7 +4,9 @@
   "description": "Notebook-based VIS for Hatchet",
   "main": "main.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "npx webpack build",
+    "watch": "npx webpack build --watch"
   },
   "repository": {
     "type": "git",
@@ -27,6 +29,10 @@
     "@babel/preset-env": "^7.16.0",
     "@babel/preset-react": "^7.16.0",
     "babel-loader": "^8.2.3",
+    "eslint": "^7.32.0",
+    "eslint-plugin-import": "^2.25.3",
+    "eslint-plugin-node": "^11.1.0",
+    "eslint-plugin-promise": "^5.2.0",
     "html-webpack-plugin": "^5.3.2",
     "webpack": "^5.58.2",
     "webpack-cli": "^4.9.0"
@@ -34,6 +40,8 @@
   "dependencies": {
     "css-loader": "^6.5.0",
     "d3": "^7.0.4",
+    "d3-flextree": "^2.1.2",
+    "d3-quadtree": "^3.0.1",
     "d3v4": "^4.2.2",
     "style-loader": "^3.3.1"
   }

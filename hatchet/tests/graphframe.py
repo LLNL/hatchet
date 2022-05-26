@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2017-2021 Lawrence Livermore National Security, LLC and other
+# Copyright 2017-2022 Lawrence Livermore National Security, LLC and other
 # Hatchet Project Developers. See the top-level LICENSE file for details.
 #
 # SPDX-License-Identifier: MIT
@@ -31,6 +31,8 @@ def test_copy(mock_graph_literal):
     assert gf.dataframe.equals(other.dataframe)
     assert gf.inc_metrics == other.inc_metrics
     assert gf.exc_metrics == other.exc_metrics
+    assert gf.default_metric == other.default_metric
+    assert gf.metadata == other.metadata
 
 
 def test_deepcopy(mock_graph_literal):
@@ -41,6 +43,8 @@ def test_deepcopy(mock_graph_literal):
     assert gf.dataframe is not other.dataframe
     assert gf.inc_metrics == other.inc_metrics
     assert gf.exc_metrics == other.exc_metrics
+    assert gf.default_metric == other.default_metric
+    assert gf.metadata == other.metadata
 
 
 def test_drop_index_levels(calc_pi_hpct_db):
@@ -163,6 +167,8 @@ def check_filter_no_squash(gf, filter_func, num_rows):
     assert filtered.graph is gf.graph
     assert filtered.graph == orig_graph
     assert len(filtered.dataframe) == num_rows
+    assert filtered.default_metric == gf.default_metric
+    assert filtered.metadata == gf.metadata
 
     # parallel versions of the same test
     orig_graph = gf.graph.copy()
@@ -172,6 +178,8 @@ def check_filter_no_squash(gf, filter_func, num_rows):
     assert filtered.graph is gf.graph
     assert filtered.graph == orig_graph
     assert len(filtered.dataframe) == num_rows
+    assert filtered.default_metric == gf.default_metric
+    assert filtered.metadata == gf.metadata
 
 
 def check_filter_squash(gf, filter_func, expected_graph, expected_inc_time):
@@ -206,6 +214,9 @@ def check_filter_squash(gf, filter_func, expected_graph, expected_inc_time):
     assert expected_inc_time == [
         filtered_squashed.dataframe.loc[node, "time (inc)"] for node in nodes
     ]
+
+    assert filtered_squashed.default_metric == gf.default_metric
+    assert filtered_squashed.metadata == gf.metadata
 
     # parallel versions
     filtered_squashed = gf.filter(filter_func)
@@ -1176,3 +1187,60 @@ def test_hdf_load_store(mock_graph_literal):
 
     if os.path.exists("test_gframe.hdf"):
         os.remove("test_gframe.hdf")
+
+
+def test_preserve_inc_metrics(mock_graph_literal_time_as_line):
+    gf = GraphFrame.from_literal(mock_graph_literal_time_as_line)
+
+    assert sorted(gf.exc_metrics) == ["line"]
+    assert sorted(gf.inc_metrics) == ["time (inc)"]
+
+    gf.update_inclusive_columns()
+    assert sorted(gf.inc_metrics) == sorted(["time (inc)", "line (inc)"])
+    assert gf.dataframe["time (inc)"].equals(gf.dataframe["line (inc)"])
+
+
+def test_generate_exclusive_columns_w_index(mock_graph_literal):
+    gf = GraphFrame.from_literal(mock_graph_literal)
+
+    assert isinstance(gf.dataframe.index, pd.Index)
+
+    gf_time_inc = gf.copy()
+    gf_time_inc.dataframe.drop(columns=["time"], inplace=True)
+    gf_time_inc.exc_metrics.remove("time")
+    gf_time_inc.generate_exclusive_columns()
+    assert "time" in gf_time_inc.exc_metrics
+    assert gf.dataframe["time"].equals(gf_time_inc.dataframe["time"])
+
+    gf_time = gf.copy()
+    gf_time.dataframe.drop(columns=["time"], inplace=True)
+    gf_time.exc_metrics.remove("time")
+    gf_time.dataframe.rename(columns={"time (inc)": "time"}, inplace=True)
+    gf_time.inc_metrics.remove("time (inc)")
+    gf_time.inc_metrics.append("time")
+    gf_time.generate_exclusive_columns()
+    assert "time (exc)" in gf_time.exc_metrics
+    assert gf.dataframe["time"].equals(gf_time.dataframe["time (exc)"])
+
+
+def test_generate_exclusive_columns_w_multi_index(calc_pi_hpct_db):
+    gf = GraphFrame.from_hpctoolkit(str(calc_pi_hpct_db))
+
+    assert isinstance(gf.dataframe.index, pd.MultiIndex)
+
+    gf_time_inc = gf.copy()
+    gf_time_inc.dataframe.drop(columns=["time"], inplace=True)
+    gf_time_inc.exc_metrics.remove("time")
+    gf_time_inc.generate_exclusive_columns()
+    assert "time" in gf_time_inc.exc_metrics
+    assert gf.dataframe["time"].equals(gf_time_inc.dataframe["time"])
+
+    gf_time = gf.copy()
+    gf_time.dataframe.drop(columns=["time"], inplace=True)
+    gf_time.exc_metrics.remove("time")
+    gf_time.dataframe.rename(columns={"time (inc)": "time"}, inplace=True)
+    gf_time.inc_metrics.remove("time (inc)")
+    gf_time.inc_metrics.append("time")
+    gf_time.generate_exclusive_columns()
+    assert "time (exc)" in gf_time.exc_metrics
+    assert gf.dataframe["time"].equals(gf_time.dataframe["time (exc)"])

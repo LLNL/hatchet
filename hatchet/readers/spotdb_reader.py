@@ -1,9 +1,8 @@
-# Copyright 2021 Lawrence Livermore National Security, LLC and other
+# Copyright 2017-2022 Lawrence Livermore National Security, LLC and other
 # Hatchet Project Developers. See the top-level LICENSE file for details.
 #
 # SPDX-License-Identifier: MIT
 
-from numpy import string_
 import pandas as pd
 
 import hatchet.graphframe
@@ -101,6 +100,12 @@ class SpotDatasetReader:
                 inc_metrics.append(m)
             else:
                 exc_metrics.append(m)
+
+        if default_metric not in dataframe.columns:
+            if len(inc_metrics) > 0:
+                default_metric = inc_metrics[0]
+            elif len(exc_metrics) > 0:
+                default_metric = exc_metrics[0]
 
         return hatchet.graphframe.GraphFrame(
             graph,

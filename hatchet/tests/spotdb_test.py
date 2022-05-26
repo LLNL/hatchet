@@ -1,4 +1,4 @@
-# Copyright 2021 Lawrence Livermore National Security, LLC and other
+# Copyright 2017-2022 Lawrence Livermore National Security, LLC and other
 # Hatchet Project Developers. See the top-level LICENSE file for details.
 #
 # SPDX-License-Identifier: MIT
@@ -8,11 +8,7 @@ import pytest
 from hatchet import GraphFrame
 from hatchet.readers.spotdb_reader import SpotDatasetReader, SpotDBReader
 
-spotdb_avail = True
-try:
-    import spotdb
-except ImportError:
-    spotdb_avail = False
+spotdb = pytest.importorskip("spotdb")
 
 
 def test_spot_dataset_reader():
@@ -39,7 +35,7 @@ def test_spot_dataset_reader():
     assert gf.default_metric == "M Alias (inc)"
 
 
-@pytest.mark.skipif(not spotdb_avail, reason="spotdb module not available")
+@pytest.mark.skipif(not spotdb, reason="spotdb module not available")
 def test_spotdb_reader(spotdb_data):
     """Sanity check for the SpotDB reader"""
 
@@ -60,7 +56,7 @@ def test_spotdb_reader(spotdb_data):
     assert "launchdate" in gfs[0].metadata.keys()
 
 
-@pytest.mark.skipif(not spotdb_avail, reason="spotdb module not available")
+@pytest.mark.skipif(not spotdb, reason="spotdb module not available")
 def test_from_spotdb(spotdb_data):
     """Sanity check for GraphFrame.from_spotdb"""
 

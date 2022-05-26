@@ -1,5 +1,5 @@
-# Copyright 2021 University of Maryland and other Hatchet Project
-# Developers. See the top-level LICENSE file for details.
+# Copyright 2017-2022 Lawrence Livermore National Security, LLC and other
+# Hatchet Project Developers. See the top-level LICENSE file for details.
 #
 # SPDX-License-Identifier: MIT
 
@@ -95,7 +95,7 @@ class ColorMaps:
         "\033[38;5;26m",  # Dark Blue
     ]
 
-    def __init(self):
+    def __init__(self):
         self.colors = []
 
     def get_colors(self, colormap, invert_colormap):
@@ -104,25 +104,25 @@ class ColorMaps:
         """
 
         if colormap == "RdYlGn":
-            self.colors = self.RdYlGn
+            self.colors = self.RdYlGn.copy()
         elif colormap == "BrBG":
-            self.colors = self.BrBG
+            self.colors = self.BrBG.copy()
         elif colormap == "PiYG":
-            self.colors = self.PiYG
+            self.colors = self.PiYG.copy()
         elif colormap == "PRGn":
-            self.colors = self.PRGn
+            self.colors = self.PRGn.copy()
         elif colormap == "PiYG":
-            self.colors = self.PiYG
+            self.colors = self.PiYG.copy()
         elif colormap == "PuOr":
-            self.colors = self.PuOr
+            self.colors = self.PuOr.copy()
         elif colormap == "RdBu":
-            self.colors = self.RdBu
+            self.colors = self.RdBu.copy()
         elif colormap == "RdGy":
-            self.colors = self.RdGy
+            self.colors = self.RdGy.copy()
         elif colormap == "RdYlBu":
-            self.colors = self.RdYlBu
+            self.colors = self.RdYlBu.copy()
         elif colormap == "Spectral":
-            self.colors = self.Spectral
+            self.colors = self.Spectral.copy()
         else:
             raise ValueError(
                 self.colormap

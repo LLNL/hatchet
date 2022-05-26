@@ -1,5 +1,5 @@
-# Copyright 2020-2021 University of Maryland and other Hatchet Project
-# Developers. See the top-level LICENSE file for details.
+# Copyright 2017-2022 Lawrence Livermore National Security, LLC and other
+# Hatchet Project Developers. See the top-level LICENSE file for details.
 #
 # SPDX-License-Identifier: MIT
 
@@ -70,7 +70,7 @@ def test_graphframe(hatchet_pyinstrument_json):
         elif col in ("is_application_code"):
             assert gf.dataframe[col].dtype == bool
         elif col in ("name", "type", "file", "node"):
-            assert gf.dataframe[col].dtype == np.object
+            assert gf.dataframe[col].dtype == object
 
 
 def test_tree(hatchet_pyinstrument_json):

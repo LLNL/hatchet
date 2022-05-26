@@ -1,4 +1,4 @@
-# Copyright 2017-2021 Lawrence Livermore National Security, LLC and other
+# Copyright 2017-2022 Lawrence Livermore National Security, LLC and other
 # Hatchet Project Developers. See the top-level LICENSE file for details.
 #
 # SPDX-License-Identifier: MIT
@@ -74,7 +74,7 @@ def test_graphframe(data_dir, calc_pi_hpct_db):
         elif col in ("nid", "rank", "line"):
             assert gf.dataframe[col].dtype == np.int64
         elif col in ("name", "type", "file", "module", "node"):
-            assert gf.dataframe[col].dtype == np.object
+            assert gf.dataframe[col].dtype == object
 
     # add tests to confirm values in dataframe
     df = pd.read_csv(str(os.path.join(data_dir, "hpctoolkit-cpi-graphframe.csv")))
@@ -171,7 +171,7 @@ def test_allgather(data_dir, osu_allgather_hpct_db):
         elif col in ("nid", "rank", "thread", "line"):
             assert gf.dataframe[col].dtype == np.int64
         elif col in ("name", "type", "file", "module", "node"):
-            assert gf.dataframe[col].dtype == np.object
+            assert gf.dataframe[col].dtype == object
 
     # add tests to confirm values in dataframe
     df = pd.read_csv(str(os.path.join(data_dir, "hpctoolkit-allgather-graphframe.csv")))

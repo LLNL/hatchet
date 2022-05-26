@@ -1,4 +1,4 @@
-# Copyright 2017-2021 Lawrence Livermore National Security, LLC and other
+# Copyright 2017-2022 Lawrence Livermore National Security, LLC and other
 # Hatchet Project Developers. See the top-level LICENSE file for details.
 #
 # SPDX-License-Identifier: MIT
@@ -31,13 +31,13 @@ sys.path.insert(0, os.path.abspath("../hatchet"))
 # -- Project information -----------------------------------------------------
 
 project = "hatchet"
-copyright = "2017-2021, Lawrence Livermore National Security, LLC"
+copyright = "2017-2022, Lawrence Livermore National Security, LLC"
 author = "Abhinav Bhatele"
 
 # The short X.Y version
-version = "1.3.1"
+version = "2022.1.0"
 # The full version, including alpha/beta/rc tags
-release = "1.3.1a0"
+release = "2022.1.0"
 
 
 # -- General configuration ---------------------------------------------------

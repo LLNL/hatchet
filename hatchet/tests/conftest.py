@@ -1,4 +1,4 @@
-# Copyright 2017-2021 Lawrence Livermore National Security, LLC and other
+# Copyright 2017-2022 Lawrence Livermore National Security, LLC and other
 # Hatchet Project Developers. See the top-level LICENSE file for details.
 #
 # SPDX-License-Identifier: MIT
@@ -337,6 +337,176 @@ def mock_graph_literal():
                         {
                             "frame": {"name": "grault"},
                             "metrics": {"time (inc)": 10.0, "time": 10.0},
+                        },
+                    ],
+                }
+            ],
+        },
+    ]
+
+    return graph_dict
+
+
+@pytest.fixture
+def mock_graph_literal_time_as_line():
+    """Same as mock_graph_literal, but the "time"
+    metric is renamed to "line"
+    """
+    graph_dict = [
+        {
+            "frame": {"name": "foo", "type": "function"},
+            "metrics": {"time (inc)": 135.0, "line": 0.0},
+            "children": [
+                {
+                    "frame": {"name": "bar"},
+                    "metrics": {"time (inc)": 20.0, "line": 5.0},
+                    "children": [
+                        {
+                            "frame": {"name": "baz", "type": "function"},
+                            "metrics": {"time (inc)": 5.0, "line": 5.0},
+                        },
+                        {
+                            "frame": {"name": "grault"},
+                            "metrics": {"time (inc)": 10.0, "line": 10.0},
+                        },
+                    ],
+                },
+                {
+                    "frame": {"name": "qux", "type": "function"},
+                    "metrics": {"time (inc)": 60.0, "line": 0.0},
+                    "children": [
+                        {
+                            "frame": {"name": "quux"},
+                            "metrics": {"time (inc)": 60.0, "line": 5.0},
+                            "children": [
+                                {
+                                    "frame": {"name": "corge", "type": "function"},
+                                    "metrics": {"time (inc)": 55.0, "line": 10.0},
+                                    "children": [
+                                        {
+                                            "frame": {"name": "bar"},
+                                            "metrics": {
+                                                "time (inc)": 20.0,
+                                                "line": 5.0,
+                                            },
+                                            "children": [
+                                                {
+                                                    "frame": {
+                                                        "name": "baz",
+                                                        "type": "function",
+                                                    },
+                                                    "metrics": {
+                                                        "time (inc)": 5.0,
+                                                        "line": 5.0,
+                                                    },
+                                                },
+                                                {
+                                                    "frame": {"name": "grault"},
+                                                    "metrics": {
+                                                        "time (inc)": 10.0,
+                                                        "line": 10.0,
+                                                    },
+                                                },
+                                            ],
+                                        },
+                                        {
+                                            "frame": {"name": "grault"},
+                                            "metrics": {
+                                                "time (inc)": 10.0,
+                                                "line": 10.0,
+                                            },
+                                        },
+                                        {
+                                            "frame": {
+                                                "name": "garply",
+                                                "type": "function",
+                                            },
+                                            "metrics": {
+                                                "time (inc)": 15.0,
+                                                "line": 15.0,
+                                            },
+                                        },
+                                    ],
+                                }
+                            ],
+                        }
+                    ],
+                },
+                {
+                    "frame": {"name": "waldo", "type": "function"},
+                    "metrics": {"time (inc)": 55.0, "line": 0.0},
+                    "children": [
+                        {
+                            "frame": {"name": "fred", "type": "function"},
+                            "metrics": {"time (inc)": 40.0, "line": 5.0},
+                            "children": [
+                                {
+                                    "frame": {"name": "plugh", "type": "function"},
+                                    "metrics": {"time (inc)": 5.0, "line": 5.0},
+                                },
+                                {
+                                    "frame": {"name": "xyzzy", "type": "function"},
+                                    "metrics": {"time (inc)": 30.0, "line": 5.0},
+                                    "children": [
+                                        {
+                                            "frame": {
+                                                "name": "thud",
+                                                "type": "function",
+                                            },
+                                            "metrics": {
+                                                "time (inc)": 25.0,
+                                                "line": 5.0,
+                                            },
+                                            "children": [
+                                                {
+                                                    "frame": {
+                                                        "name": "baz",
+                                                        "type": "function",
+                                                    },
+                                                    "metrics": {
+                                                        "time (inc)": 5.0,
+                                                        "line": 5.0,
+                                                    },
+                                                },
+                                                {
+                                                    "frame": {
+                                                        "name": "garply",
+                                                        "type": "function",
+                                                    },
+                                                    "metrics": {
+                                                        "time (inc)": 15.0,
+                                                        "line": 15.0,
+                                                    },
+                                                },
+                                            ],
+                                        }
+                                    ],
+                                },
+                            ],
+                        },
+                        {
+                            "frame": {"name": "garply", "type": "function"},
+                            "metrics": {"time (inc)": 15.0, "line": 15.0},
+                        },
+                    ],
+                },
+            ],
+        },
+        {
+            "frame": {"name": "waldo", "type": "function"},
+            "metrics": {"time (inc)": 30.0, "line": 10.0},
+            "children": [
+                {
+                    "frame": {"name": "bar"},
+                    "metrics": {"time (inc)": 20.0, "line": 5.0},
+                    "children": [
+                        {
+                            "frame": {"name": "baz", "type": "function"},
+                            "metrics": {"time (inc)": 5.0, "line": 5.0},
+                        },
+                        {
+                            "frame": {"name": "grault"},
+                            "metrics": {"time (inc)": 10.0, "line": 10.0},
                         },
                     ],
                 }

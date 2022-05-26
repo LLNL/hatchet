@@ -32,6 +32,36 @@ See the [Getting Started](https://llnl-hatchet.readthedocs.io/en/latest/getting_
 
 Examples of performance analysis using hatchet are available [here](https://llnl-hatchet.readthedocs.io/en/latest/analysis_examples.html).
 
+
+### Interactive Visualization
+
+Hatchet now provides an interactive visualization which can be run inside of your Jupyter notebooks. It is dependant on different mechanisms for building which we describe here:
+
+
+The software in the `hatchet/vis` subdirectory requires [Node.js and Node Package Manager](https://nodejs.org/en/download/) for the development and building of javascript code.
+
+#### Installing node packages
+
+One you have Node and NPM installed on your system, you can install all necessary node packages by running the following line in your terminal from the `hatchet/vis/` directory:
+
+```
+npm install
+```
+
+#### Building out javascript code with webpack
+
+To build out javascript into the static bundles used by the Jupyter visualizations, run the following line from the `hatchet/vis` directory in your terminal:
+
+```
+npm run build
+```
+
+Alterntinatively if you are developing a visualization, you can run the following line to force bundles to automatically update when you change the javascript source code:
+
+```
+npm run watch
+```
+
 ### Contributing
 
 Hatchet is an open source project. We welcome contributions via pull requests,

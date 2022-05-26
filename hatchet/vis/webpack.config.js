@@ -32,7 +32,6 @@ module.exports = {
     },
     plugins:[
         new HtmlWebpackPlugin({
-            template: path.resolve(__dirname, 'templates/cct.html'),
             chunks: ['cct'],
             filename: 'cct_bundle.html'
         })
