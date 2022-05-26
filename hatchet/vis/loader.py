@@ -36,6 +36,7 @@ def _gf_to_json(data):
 def _query_to_dict(json_query):
     return json_query
 
+
 @magics_class
 class CCT(Magics):
     def __init__(self, shell):
