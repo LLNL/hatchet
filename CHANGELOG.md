@@ -1,3 +1,12 @@
+# 2022.1.1 (2022-06-01)
+
+This is a minor release on the `2022.1` series. It addresses a bug fix in
+Hatchet's query language and Hatchet's flamegraph output:
+
+* flamegraph: change count to be an int instead of a float
+* query language: fix edge cases with + wildcard/quantifier by replacing it
+  with `.` followed by `*`
+
 # 2022.1.0 (2022-05-01)
 
 Version `2022.1.0` is a major release.

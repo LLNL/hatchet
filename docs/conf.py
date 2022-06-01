@@ -32,12 +32,12 @@ sys.path.insert(0, os.path.abspath("../hatchet"))
 
 project = "hatchet"
 copyright = "2017-2022, Lawrence Livermore National Security, LLC"
-author = "Abhinav Bhatele"
+author = "LLNL Developerss"
 
 # The short X.Y version
-version = "2022.1.0"
+version = "2022.1.1"
 # The full version, including alpha/beta/rc tags
-release = "2022.1.0"
+release = "2022.1.1"
 
 
 # -- General configuration ---------------------------------------------------
@@ -176,7 +176,7 @@ latex_elements = {
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-    (master_doc, "hatchet.tex", "hatchet Documentation", "Abhinav Bhatele", "manual")
+    (master_doc, "hatchet.tex", "hatchet Documentation", "LLNL Developers", "manual")
 ]
 
 
