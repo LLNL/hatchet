@@ -1,0 +1,30 @@
+cff-version: 1.2.0
+title: Hatchet
+message: "If you use Hatchet, please cite it as below."
+repository-code: https://github.com/LLNL/hatchet
+preferred-citation:
+  type: conference-paper
+  doi: 10.1145/3295500.3356219
+  url: https://github.com/LLNL/hatchet
+  authors:
+  - family-names: Bhatele
+    given-names: Abhinav
+  - family-names: Brink
+    given-names: Stephanie
+  - family-names: Gamblin
+    given-names: Todd
+  title: "Hatchet: Pruning the Overgrowth in Parallel Profiles"
+  conference:
+    name: "International Conference for High Performance Computing, Networking, Storage and Analysis (SC '19)"
+    city: "Denver"
+    region: "Colorado"
+    country: "USA"
+    date-start: 2019-11-17
+    date-end: 2019-11-22
+  year: 2019
+  notes: LLNL-CODE-741008
+  publisher:
+    name: ACM
+    city: "New York"
+    region: "New York"
+    country: "USA"
