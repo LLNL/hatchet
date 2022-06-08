@@ -32,6 +32,7 @@ See the [Getting Started](https://llnl-hatchet.readthedocs.io/en/latest/getting_
 
 Examples of performance analysis using hatchet are available [here](https://llnl-hatchet.readthedocs.io/en/latest/analysis_examples.html).
 
+The [hatchet tutorial](https://github.com/llnl/hatchet-tutorial) provides a step by step introduction to hatchet features through a live interactive environment in BinderHub.
 
 ### Interactive Visualization
 
