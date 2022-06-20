@@ -213,6 +213,9 @@ def test_construct_low_level_api():
     assert not query.query_pattern[3][1](mock_node_time_false)
     assert query.query_pattern[4][0] == "."
 
+    with pytest.raises(InvalidQueryPath):
+        _ = QueryMatcher().rel(".", lambda row: True)
+
 
 def test_node_caching(mock_graph_literal):
     path = [{"name": "fr[a-z]+"}, ("+", {"time (inc)": ">= 25.0"}), {"name": "baz"}]
