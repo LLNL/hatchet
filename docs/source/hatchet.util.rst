@@ -1,13 +1,16 @@
-.. Copyright 2017-2022 Lawrence Livermore National Security, LLC and other
-   Hatchet Project Developers. See the top-level LICENSE file for details.
-
-   SPDX-License-Identifier: MIT
-
 hatchet.util package
 ====================
 
 Submodules
 ----------
+
+hatchet.util.colormaps module
+-----------------------------
+
+.. automodule:: hatchet.util.colormaps
+   :members:
+   :undoc-members:
+   :show-inheritance:
 
 hatchet.util.config module
 --------------------------
@@ -56,7 +59,6 @@ hatchet.util.timer module
    :members:
    :undoc-members:
    :show-inheritance:
-
 
 Module contents
 ---------------
