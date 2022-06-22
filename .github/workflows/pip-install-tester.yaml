@@ -45,6 +45,10 @@ jobs:
       run: |
         python -m pip install tables
 
+    - name: Show packages
+      run: |
+        python -m pip list
+
     - name: Install Hatchet
       env:
         HATCHET_VERSION: ${{ matrix.hatchet-version }}
