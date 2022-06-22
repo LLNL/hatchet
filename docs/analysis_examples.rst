@@ -33,7 +33,7 @@ output is the `cali <http://llnl.github.io/Caliper/OutputFormats.html#cali>`_.
 The cali format can be read by ``cali-query``, which transforms the raw data into
 JSON format.
 
-.. literalinclude:: examples/read/caliper_cali.py
+.. literalinclude:: examples/read/caliper_cali_query.py
     :language: python
 
 Read in a Caliper JSON stream or file
