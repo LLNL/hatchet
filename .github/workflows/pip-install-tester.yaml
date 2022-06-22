@@ -38,10 +38,12 @@ jobs:
       if: ${{ matrix.python-version == 2.7 }}
       run: |
         python -m pip install --upgrade numexpr==2.7.3
-
-    - name: Build optional dependencies for HDF
-      run: |
         python -m pip install tables==3.5.2 # Last version of tables to support Python 2.7
+
+    - name: Build Python 3 dependencies
+      if: ${{ matrix.python-version != 2.7 }}
+      run: |
+        python -m pip install tables
 
     - name: Install Hatchet
       env:
