@@ -15,6 +15,7 @@ jobs:
 
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
         os: [ubuntu-latest]
         python-version: [2.7, 3.5, 3.6, 3.7, 3.8]
@@ -45,16 +46,41 @@ jobs:
       run: |
         python -m pip install tables
 
-    - name: Show packages
-      run: |
-        python -m pip list
-
     - name: Install Hatchet
       env:
         HATCHET_VERSION: ${{ matrix.hatchet-version }}
       run: |
+        curr_dir=$(pwd)
+        cd ~
         python -m pip install llnl-hatchet==$HATCHET_VERSION
+        cd $curr_dir
+
+    - name: Show packages
+      run: |                                                                
+        python -m pip list                                                  
+                                                                            
+    - name: Prep tests                                                      
+      env:                                                                  
+        HATCHET_VERSION: ${{ matrix.hatchet-version }}                      
+        PYTHON_VERSION: ${{ matrix.python-version }}                        
+      run: |
+        cp -r ./hatchet/tests ~
+        test_dir="tests-$HATCHET_VERSION-$PYTHON_VERSION"
+        mv ~/tests ~/$test_dir
+        cat > ~/$test_dir/pytest.ini << EOF
+        [pytest]
+        addopts = --durations=20 -ra
+        testpaths = .
+        python_files = *.py
+        EOF
 
     - name: Test Hatchet
+      env:
+        HATCHET_VERSION: ${{ matrix.hatchet-version }}
+        PYTHON_VERSION: ${{ matrix.python-version }}
       run: |
-        pytest -vv .
+        curr_dir=$(pwd)
+        cd ~
+        test_dir="tests-$HATCHET_VERSION-$PYTHON_VERSION"
+        pytest -vv $test_dir
+        cd $curr_dir
