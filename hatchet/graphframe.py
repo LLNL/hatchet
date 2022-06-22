@@ -118,7 +118,7 @@ class GraphFrame:
 
     @staticmethod
     def from_caliperreader(filename_or_caliperreader):
-        """Read in a native Caliper `cali' file using Caliper's python reader.
+        """Read in a native Caliper `cali` file using Caliper's python reader.
 
         Args:
             filename_or_caliperreader (str or CaliperReader): name of a Caliper
@@ -136,7 +136,8 @@ class GraphFrame:
         Args:
             db_key (str or SpotDB object): locator for SpotDB instance
                 This can be a SpotDB object directly, or a locator for a spot
-                database, which is a string with either
+                database, which is a string with either:
+
                     * A directory for .cali files,
                     * A .sqlite file name
                     * A SQL database URL (e.g., "mysql://hostname/db")

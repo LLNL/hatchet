@@ -44,21 +44,21 @@ helper threads, you can set this environment variable: ``export
 HPCRUN_IGNORE_THREAD=1,2,..``.
 
 More information information about HPCToolkit can be found at HPCToolkit's
-`documentation page <http://hpctoolkit.org/documentation.html>`_.
+`documentation page <http://hpctoolkit.org/documentation.html>`__.
 
 
 Caliper
 =======
 Caliper can be installed using `Spack <https://spack.io>`_ or manually from its
-`GitHub repository <https://github.com/LLNL/Caliper>`_. Instructions to build
+`GitHub repository <https://github.com/LLNL/Caliper>`__. Instructions to build
 Caliper manually can be found in its `documentation
-<https://software.llnl.gov/Caliper/build.html>`_.
+<https://software.llnl.gov/Caliper/build.html>`__.
 
 To record performance profiles using Caliper, you need to include ``cali.h``
 and call the ``cali_init()`` function in your source code.  You also need to
 link the Caliper library in your executable or load it using ``LD_PRELOAD``.
 Information about basic Caliper usage can be found in the `Caliper
-documentation <https://software.llnl.gov/Caliper/CaliperBasics.html>`_.
+documentation <https://software.llnl.gov/Caliper/CaliperBasics.html>`__.
 
 To generate profiling data, you can use Caliper's `built-in profiling
 configurations <https://software.llnl.gov/Caliper/BuiltinConfigurations.htm>`_ customized for Hatchet: ``hatchet-region-profile`` or
@@ -73,7 +73,7 @@ caliper.config).  If you create your own .config file, you can set the
 CALI_CONFIG_FILE environment variable to point to it.  Two sample
 caliper.config files are presented below.  Other example configuration files
 can be found in the Caliper `GitHub repository
-<https://github.com/LLNL/Caliper/tree/master/examples/configs>`_.
+<https://github.com/LLNL/Caliper/tree/master/examples/configs>`__.
 
 .. code-block:: console
 
@@ -98,7 +98,7 @@ can be found in the Caliper `GitHub repository
    CALI_MPIREPORT_FILENAME="cpi-sample-callpathprofile.json"
 
 You can read more about Caliper services in the `Caliper documentation
-<https://software.llnl.gov/Caliper/services.html>`_. Hatchet can read two Caliper outputs: the native .cali files and the split-JSON format (.json files).
+<https://software.llnl.gov/Caliper/services.html>`__. Hatchet can read two Caliper outputs: the native .cali files and the split-JSON format (.json files).
 
 
 TAU
@@ -140,7 +140,7 @@ timemory
 ========
 Timemory can be installed using `Spack <https://spack.io>`_ or manually as
 suggested in its `documentation
-<https://timemory.readthedocs.io/en/develop/installation.html>`_.
+<https://timemory.readthedocs.io/en/develop/installation.html>`__.
 
 Timemory can perform both runtime instrumentation and binary rewriting, but
 recommends using binary rewriting for distributed memory parallelism.  To use

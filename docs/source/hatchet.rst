@@ -1,8 +1,3 @@
-.. Copyright 2017-2022 Lawrence Livermore National Security, LLC and other
-   Hatchet Project Developers. See the top-level LICENSE file for details.
-
-   SPDX-License-Identifier: MIT
-
 hatchet package
 ===============
 
@@ -16,6 +11,8 @@ Subpackages
    hatchet.external
    hatchet.readers
    hatchet.util
+   hatchet.vis
+   hatchet.writers
 
 Submodules
 ----------
@@ -53,13 +50,20 @@ hatchet.node module
    :show-inheritance:
 
 hatchet.query module
------------------------------
+--------------------
 
 .. automodule:: hatchet.query
    :members:
    :undoc-members:
    :show-inheritance:
 
+hatchet.version module
+----------------------
+
+.. automodule:: hatchet.version
+   :members:
+   :undoc-members:
+   :show-inheritance:
 
 Module contents
 ---------------

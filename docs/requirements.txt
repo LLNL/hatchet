@@ -1,0 +1,9 @@
+matplotlib
+pandas
+pydot
+numpy
+PyYAML
+cython
+multiprocess
+textX
+caliper-reader
