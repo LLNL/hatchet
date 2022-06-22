@@ -55,9 +55,31 @@ jobs:
         cd $curr_dir
 
     - name: Show packages
+      run: |                                                                
+        python -m pip list                                                  
+                                                                            
+    - name: Prep tests                                                      
+      env:                                                                  
+        HATCHET_VERSION: ${{ matrix.hatchet-version }}                      
+        PYTHON_VERSION: ${{ matrix.python-version }}                        
       run: |
-        python -m pip list
+        cp -r ./hatchet/tests ~
+        test_dir="tests-$HATCHET_VERSION-$PYTHON_VERSION"
+        mv ~/tests ~/$test_dir
+        cat > ~/$test_dir/pytest.ini << EOF
+        [pytest]
+        addopts = --durations=20 -ra
+        testpaths = .
+        python_files = *.py
+        EOF
 
     - name: Test Hatchet
+      env:
+        HATCHET_VERSION: ${{ matrix.hatchet-version }}
+        PYTHON_VERSION: ${{ matrix.python-version }}
       run: |
-        pytest -vv .
+        curr_dir=$(pwd)
+        cd ~
+        test_dir="tests-$HATCHET_VERSION-$PYTHON_VERSION"
+        pytest -vv $test_dir
+        cd $curr_dir
