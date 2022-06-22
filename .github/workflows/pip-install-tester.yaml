@@ -45,15 +45,18 @@ jobs:
       run: |
         python -m pip install tables
 
-    - name: Show packages
-      run: |
-        python -m pip list
-
     - name: Install Hatchet
       env:
         HATCHET_VERSION: ${{ matrix.hatchet-version }}
       run: |
+        curr_dir=$(pwd)
+        cd ~
         python -m pip install llnl-hatchet==$HATCHET_VERSION
+        cd $curr_dir
+
+    - name: Show packages
+      run: |
+        python -m pip list
 
     - name: Test Hatchet
       run: |
