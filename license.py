@@ -19,11 +19,10 @@ mit_spdx = "MIT"
 #: regular expressions for licensed files.
 licensed_files = [
     # hatchet docs
-    r"^docs/.*\.rst$",
+    r"^docs\/[^\/]*\.rst$",
     r"^docs/conf.py$",
     r"^docs/Makefile$",
-    r"^docs/example/.*\.rst$",
-    r"^docs/source/.*\.rst$",
+    r"^docs\/examples\/.*\.py$",
     # hatchet source
     r"^pytest.ini",
     r"^hatchet\/[^\/]*\.py$",
