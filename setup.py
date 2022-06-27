@@ -37,6 +37,7 @@ setup(
     packages=[
         "hatchet",
         "hatchet.readers",
+        "hatchet.writers",
         "hatchet.util",
         "hatchet.external",
         "hatchet.tests",
