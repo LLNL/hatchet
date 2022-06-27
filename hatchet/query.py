@@ -429,6 +429,10 @@ class QueryMatcher(AbstractQuery):
         Returns:
             (QueryMatcher): The instance of the class that called this function (enables fluent design).
         """
+        if len(self.query_pattern) == 0:
+            raise InvalidQueryPath(
+                "Queries in the base Query Language must start with a call to 'match'"
+            )
         self._add_node(wildcard_spec, filter_func)
         return self
 
