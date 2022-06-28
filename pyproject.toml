@@ -27,3 +27,6 @@ exclude = '''
   | dist
 )/
 '''
+
+[build-system]
+requires = ["setuptools", "wheel", "numpy", "pandas", "Cython"]
