@@ -33,6 +33,10 @@ or install it using pip:
 
   $ pip install llnl-hatchet
 
+For Lawrence Livermore National Laboratory users, we recommend using the
+hatchet installation directly. For more information, see :doc:`Using Hatchet
+on LLNL Systems <llnl>`.
+
 If you are new to hatchet and want to start using it, see :doc:`Getting Started
 <getting_started>`, or refer to the full :doc:`User Guide <user_guide>` below.
 
