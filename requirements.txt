@@ -11,3 +11,4 @@ cython
 multiprocess
 textX
 caliper-reader
+beautifulsoup4
