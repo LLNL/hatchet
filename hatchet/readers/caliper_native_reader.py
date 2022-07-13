@@ -53,54 +53,54 @@ class CaliperNativeReader:
         for record in records:
             node_dict = {}
             if ctx in record:
-                # get the node label and callpath for the record
-                if isinstance(record[ctx], list):
-                    # specify how to parse cupti records
-                    if "cupti.activity.kind" in record:
-                        if record["cupti.activity.kind"] == "kernel":
-                            node_label = record["cupti.kernel.name"]
-                            node_callpath = tuple(record[ctx] + [node_label])
-                        elif record["cupti.activity.kind"] == "memcpy":
-                            node_label = record["cupti.activity.kind"]
-                            node_callpath = tuple(record[ctx] + [node_label])
-                    else:
-                        node_label = record[ctx][-1]
-                        node_callpath = tuple(record[ctx])
-                else:
-                    node_label = record[ctx][-1]
-                    node_callpath = tuple([record[ctx]])
-
-                # get node nid based on callpath
-                node_dict["nid"] = self.callpath_to_idx.get(node_callpath)
-
-                for item in record.keys():
-                    if item != ctx:
-                        if item not in self.record_data_cols:
-                            self.record_data_cols.append(item)
-
-                        if (
-                            self.filename_or_caliperreader.attribute(
-                                item
-                            ).attribute_type()
-                            == "double"
-                        ):
-                            node_dict[item] = float(record[item])
-                        elif (
-                            self.filename_or_caliperreader.attribute(
-                                item
-                            ).attribute_type()
-                            == "int"
-                        ):
-                            node_dict[item] = int(record[item])
-                        elif item == "function":
-                            if isinstance(record[item], list):
-                                node_dict[item] = record[item][-1]
-                            else:
-                                node_dict[item] = record[item]
+                # only parse records that have spot.channel=regionprofile or no
+                # spot.channel attribute
+                if ("spot.channel" in record and record["spot.channel"] == "regionprofile") or "spot.channel" not in record:
+                    # get the node label and callpath for the record
+                    if isinstance(record[ctx], list):
+                        # specify how to parse cupti records
+                        if "cupti.activity.kind" in record:
+                            if record["cupti.activity.kind"] == "kernel":
+                                node_label = record["cupti.kernel.name"]
+                                node_callpath = tuple(record[ctx] + [node_label])
+                            elif record["cupti.activity.kind"] == "memcpy":
+                                node_label = record["cupti.activity.kind"]
+                                node_callpath = tuple(record[ctx] + [node_label])
                         else:
-                            node_dict[item] = record[item]
+                            node_label = record[ctx][-1]
+                            node_callpath = tuple(record[ctx])
+                    else:
+                        node_label = record[ctx]
+                        node_callpath = tuple([record[ctx]])
 
-                all_metrics.append(node_dict)
+                    if "spot.channel" in record:
+                        node_dict["spot.channel"] = record["spot.channel"]
+
+                    # get node nid based on callpath
+                    node_dict["nid"] = self.callpath_to_idx.get(node_callpath)
+
+                    for item in record.keys():
+                        if item != ctx:
+                            if (
+                                self.filename_or_caliperreader.attribute(
+                                    item
+                                ).attribute_type()
+                                == "double"
+                            ):
+                                node_dict[item] = float(record[item])
+                                if item not in self.record_data_cols:
+                                    self.record_data_cols.append(item)
+                            elif (
+                                self.filename_or_caliperreader.attribute(
+                                    item
+                                ).attribute_type()
+                                == "int"
+                            ):
+                                node_dict[item] = int(record[item])
+                                if item not in self.record_data_cols:
+                                    self.record_data_cols.append(item)
+
+                    all_metrics.append(node_dict)
 
         # make list of metric columns
         for col in self.record_data_cols:
@@ -155,78 +155,79 @@ class CaliperNativeReader:
         for record in records:
             node_label = ""
             if ctx in record:
-                # if it's a list, then it's a callpath
-                if isinstance(record[ctx], list):
-                    # specify how to parse cupti records
-                    if "cupti.activity.kind" in record:
-                        if record["cupti.activity.kind"] == "kernel":
-                            node_label = record["cupti.kernel.name"]
-                            node_callpath = tuple(record[ctx] + [node_label])
-                            parent_callpath = node_callpath[:-1]
-                            node_type = "kernel"
-                        elif record["cupti.activity.kind"] == "memcpy":
-                            node_label = record["cupti.activity.kind"]
-                            node_callpath = tuple(record[ctx] + [node_label])
-                            parent_callpath = node_callpath[:-1]
-                            node_type = "memcpy"
+                if ("spot.channel" in record and record["spot.channel"] == "regionprofile") or "spot.channel" not in record:
+                    # if it's a list, then it's a callpath
+                    if isinstance(record[ctx], list):
+                        # specify how to parse cupti records
+                        if "cupti.activity.kind" in record:
+                            if record["cupti.activity.kind"] == "kernel":
+                                node_label = record["cupti.kernel.name"]
+                                node_callpath = tuple(record[ctx] + [node_label])
+                                parent_callpath = node_callpath[:-1]
+                                node_type = "kernel"
+                            elif record["cupti.activity.kind"] == "memcpy":
+                                node_label = record["cupti.activity.kind"]
+                                node_callpath = tuple(record[ctx] + [node_label])
+                                parent_callpath = node_callpath[:-1]
+                                node_type = "memcpy"
+                            else:
+                                Exception("Haven't seen this activity kind yet")
                         else:
-                            Exception("Haven't seen this activity kind yet")
+                            node_label = record[ctx][-1]
+                            node_callpath = tuple(record[ctx])
+                            parent_callpath = node_callpath[:-1]
+                            node_type = "function"
+
+                        hnode = self.callpath_to_node.get(node_callpath)
+
+                        if not hnode:
+                            frame = Frame({"type": node_type, "name": node_label})
+                            hnode = Node(frame, None)
+                            self.callpath_to_node[node_callpath] = hnode
+
+                            # get parent from node callpath
+                            parent_hnode = self.callpath_to_node.get(parent_callpath)
+
+                            # create parent if it doesn't exist
+                            # else if parent already exists, add child-parent
+                            if not parent_hnode:
+                                _create_parent(hnode, parent_callpath)
+                            else:
+                                parent_hnode.add_child(hnode)
+                                hnode.add_parent(parent_hnode)
+
+                            self.callpath_to_idx[node_callpath] = self.global_nid
+                            node_dict = dict(
+                                {"name": node_label, "node": hnode, "nid": self.global_nid},
+                            )
+                            self.idx_to_node[self.global_nid] = node_dict
+                            self.global_nid += 1
+
+                    # if it's a string, then it's a root
                     else:
-                        node_label = record[ctx][-1]
-                        node_callpath = tuple(record[ctx])
-                        parent_callpath = node_callpath[:-1]
-                        node_type = "function"
+                        root_label = record[ctx]
+                        root_callpath = tuple([root_label])
 
-                    hnode = self.callpath_to_node.get(node_callpath)
+                        if root_callpath not in self.callpath_to_node:
+                            # create the root since it doesn't exist
+                            frame = Frame({"type": "function", "name": root_label})
+                            graph_root = Node(frame, None)
 
-                    if not hnode:
-                        frame = Frame({"type": node_type, "name": node_label})
-                        hnode = Node(frame, None)
-                        self.callpath_to_node[node_callpath] = hnode
+                            # store callpaths to identify the root
+                            self.callpath_to_node[root_callpath] = graph_root
+                            self.callpath_to_idx[root_callpath] = self.global_nid
+                            list_roots.append(graph_root)
 
-                        # get parent from node callpath
-                        parent_hnode = self.callpath_to_node.get(parent_callpath)
+                            node_dict = dict(
+                                {
+                                    "name": root_label,
+                                    "node": graph_root,
+                                    "nid": self.global_nid,
+                                }
+                            )
 
-                        # create parent if it doesn't exist
-                        # else if parent already exists, add child-parent
-                        if not parent_hnode:
-                            _create_parent(hnode, parent_callpath)
-                        else:
-                            parent_hnode.add_child(hnode)
-                            hnode.add_parent(parent_hnode)
-
-                        self.callpath_to_idx[node_callpath] = self.global_nid
-                        node_dict = dict(
-                            {"name": node_label, "node": hnode, "nid": self.global_nid},
-                        )
-                        self.idx_to_node[self.global_nid] = node_dict
-                        self.global_nid += 1
-
-                # if it's a string, then it's a root
-                else:
-                    root_label = record[ctx]
-                    root_callpath = tuple([root_label])
-
-                    if root_callpath not in self.callpath_to_node:
-                        # create the root since it doesn't exist
-                        frame = Frame({"type": "function", "name": root_label})
-                        graph_root = Node(frame, None)
-
-                        # store callpaths to identify the root
-                        self.callpath_to_node[root_callpath] = graph_root
-                        self.callpath_to_idx[root_callpath] = self.global_nid
-                        list_roots.append(graph_root)
-
-                        node_dict = dict(
-                            {
-                                "name": root_label,
-                                "node": graph_root,
-                                "nid": self.global_nid,
-                            }
-                        )
-
-                        self.idx_to_node[self.global_nid] = node_dict
-                        self.global_nid += 1
+                            self.idx_to_node[self.global_nid] = node_dict
+                            self.global_nid += 1
 
         return list_roots
 
