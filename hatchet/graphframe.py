@@ -331,7 +331,7 @@ class GraphFrame:
         """
         return GraphFrame(
             self.graph,
-            self.dataframe.copy(deep=False),  # copy to prevent dataframe mutation operations from modifying the original.
+            self.dataframe.copy(deep=False),
             copy.copy(self.exc_metrics),
             copy.copy(self.inc_metrics),
             self.default_metric,
