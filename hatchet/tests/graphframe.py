@@ -23,28 +23,39 @@ from hatchet.external.console import ConsoleRenderer
 
 
 def test_copy(mock_graph_literal):
-    gf = GraphFrame.from_literal(mock_graph_literal)
-    other = gf.copy()
+    self = GraphFrame.from_literal(mock_graph_literal)
+    other = self.copy()
 
-    assert gf.graph is other.graph
-    assert gf.dataframe is not other.dataframe
-    assert gf.dataframe.equals(other.dataframe)
-    assert gf.inc_metrics == other.inc_metrics
-    assert gf.exc_metrics == other.exc_metrics
-    assert gf.default_metric == other.default_metric
-    assert gf.metadata == other.metadata
+    assert self is not other
+    assert self.graph is other.graph
+    assert self.graph == other.graph
+    assert self.dataframe is not other.dataframe
+    assert self.dataframe.equals(other.dataframe)
+    assert self.exc_metrics is not other.exc_metrics
+    assert self.exc_metrics == other.exc_metrics
+    assert self.inc_metrics is not other.inc_metrics
+    assert self.inc_metrics == other.inc_metrics
+    assert self.default_metric == other.default_metric
+    assert self.metadata is not other.metadata
+    assert self.metadata == other.metadata
 
 
 def test_deepcopy(mock_graph_literal):
     gf = GraphFrame.from_literal(mock_graph_literal)
     other = gf.deepcopy()
 
-    assert gf.graph == other.graph
-    assert gf.dataframe is not other.dataframe
-    assert gf.inc_metrics == other.inc_metrics
-    assert gf.exc_metrics == other.exc_metrics
-    assert gf.default_metric == other.default_metric
-    assert gf.metadata == other.metadata
+    assert self is not other
+    assert self.graph is not other.graph
+    assert self.graph == other.graph
+    assert self.dataframe is not other.dataframe
+    assert self.dataframe.equals(other.dataframe)
+    assert self.exc_metrics is not other.exc_metrics
+    assert self.exc_metrics == other.exc_metrics
+    assert self.inc_metrics is not other.inc_metrics
+    assert self.inc_metrics == other.inc_metrics
+    assert self.default_metric == other.default_metric
+    assert self.metadata is not other.metadata
+    assert self.metadata == other.metadata
 
 
 def test_drop_index_levels(calc_pi_hpct_db):
