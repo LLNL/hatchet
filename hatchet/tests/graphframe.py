@@ -41,8 +41,8 @@ def test_copy(mock_graph_literal):
 
 
 def test_deepcopy(mock_graph_literal):
-    gf = GraphFrame.from_literal(mock_graph_literal)
-    other = gf.deepcopy()
+    self = GraphFrame.from_literal(mock_graph_literal)
+    other = self.deepcopy()
 
     assert self is not other
     assert self.graph is not other.graph
