@@ -204,7 +204,11 @@ class CaliperNativeReader:
 
                             self.callpath_to_idx[node_callpath] = self.global_nid
                             node_dict = dict(
-                                {"name": node_label, "node": hnode, "nid": self.global_nid},
+                                {
+                                    "name": node_label,
+                                    "node": hnode,
+                                    "nid": self.global_nid,
+                                },
                             )
                             self.idx_to_node[self.global_nid] = node_dict
                             self.global_nid += 1
