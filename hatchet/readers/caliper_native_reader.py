@@ -55,7 +55,10 @@ class CaliperNativeReader:
             if ctx in record:
                 # only parse records that have spot.channel=regionprofile or no
                 # spot.channel attribute
-                if ("spot.channel" in record and record["spot.channel"] == "regionprofile") or "spot.channel" not in record:
+                if (
+                    "spot.channel" in record
+                    and record["spot.channel"] == "regionprofile"
+                ) or "spot.channel" not in record:
                     # get the node label and callpath for the record
                     if isinstance(record[ctx], list):
                         # specify how to parse cupti records
@@ -155,7 +158,10 @@ class CaliperNativeReader:
         for record in records:
             node_label = ""
             if ctx in record:
-                if ("spot.channel" in record and record["spot.channel"] == "regionprofile") or "spot.channel" not in record:
+                if (
+                    "spot.channel" in record
+                    and record["spot.channel"] == "regionprofile"
+                ) or "spot.channel" not in record:
                     # if it's a list, then it's a callpath
                     if isinstance(record[ctx], list):
                         # specify how to parse cupti records
