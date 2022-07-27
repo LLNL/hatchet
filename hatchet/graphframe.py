@@ -3,6 +3,7 @@
 #
 # SPDX-License-Identifier: MIT
 
+import copy
 import sys
 import traceback
 
@@ -313,22 +314,46 @@ class GraphFrame:
         HDF5Writer(filename).write(self, key=key, **kwargs)
 
     def copy(self):
-        """Return a shallow copy of the graphframe.
+        """Return a partially shallow copy of the graphframe.
 
-        This copies the DataFrame, but the Graph is shared between self and
-        the new GraphFrame.
+        This copies the DataFrame object, but the data is comprised of references. The Graph is shared between self and the new GraphFrame.
+
+        Arguments:
+            self (GraphFrame): Object to make a copy of.
+
+        Returns:
+            other (GraphFrame): Copy of self
+                graph (graph): Reference to self's graph
+                dataframe (DataFrame): Pandas "non-deep" copy of dataframe
+                exc_metrics (list): Copy of self's exc_metrics
+                inc_metrics (list): Copy of self's inc_metrics
+                default_metric (str): N/A
+                metadata (dict): Copy of self's metadata
         """
         return GraphFrame(
             self.graph,
-            self.dataframe.copy(),
-            list(self.exc_metrics),
-            list(self.inc_metrics),
+            self.dataframe.copy(deep=False),
+            copy.copy(self.exc_metrics),
+            copy.copy(self.inc_metrics),
             self.default_metric,
-            self.metadata,
+            copy.copy(self.metadata),
         )
 
     def deepcopy(self):
-        """Return a copy of the graphframe."""
+        """Return a deep copy of the graphframe.
+
+        Arguments:
+            self (GraphFrame): Object to make a copy of.
+
+        Returns:
+            other (GraphFrame): Copy of self
+                graph (graph): Deep copy of self's graph
+                dataframe (DataFrame): Pandas "deep" copy with node objects updated to match graph from "node_clone"
+                exc_metrics (list): Copy of self's exc_metrics
+                inc_metrics (list): Copy of self's inc_metrics
+                default_metric (str): N/A
+                metadata (dict): Copy of self's metadata
+        """
         node_clone = {}
         graph_copy = self.graph.copy(node_clone)
         dataframe_copy = self.dataframe.copy()
@@ -343,10 +368,10 @@ class GraphFrame:
         return GraphFrame(
             graph_copy,
             dataframe_copy,
-            list(self.exc_metrics),
-            list(self.inc_metrics),
+            copy.deepcopy(self.exc_metrics),
+            copy.deepcopy(self.inc_metrics),
             self.default_metric,
-            self.metadata,
+            copy.deepcopy(self.metadata),
         )
 
     def drop_index_levels(self, function=np.mean):
