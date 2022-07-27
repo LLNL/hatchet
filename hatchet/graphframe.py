@@ -359,7 +359,9 @@ class GraphFrame:
 
         index_names = dataframe_copy.index.names
         dataframe_copy.reset_index(inplace=True)
+
         dataframe_copy["node"] = dataframe_copy["node"].apply(lambda x: node_clone[x])
+
         dataframe_copy.set_index(index_names, inplace=True)
 
         return GraphFrame(
