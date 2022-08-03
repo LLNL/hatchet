@@ -482,7 +482,8 @@ class Bridge:
             pass
 
         # Patch: Ensure all ' and " are escaped
-        data = data.replace('"', '\\"').replace("'", "\\'")
+        if data is not None:
+            data = data.replace('"', '\\"').replace("'", "\\'")
 
         conv_spec = None
 
