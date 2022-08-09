@@ -9,3 +9,15 @@ max-line-length = 88
 select = C,E,F,W,B,B950
 ignore = E501,W503,E203
 builtins = IPython
+exclude =
+  .eggs
+  .git
+  .hg
+  .mypy_cache
+  .tox
+  .venv
+  _build
+  build
+  buck-out
+  dist
+  hatchet/tests/spotdb_test.py
