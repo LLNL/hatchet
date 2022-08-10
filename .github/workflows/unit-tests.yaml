@@ -31,7 +31,7 @@ jobs:
     - name: Install Python2.7 dependencies
       if: ${{ matrix.python-version == 2.7 }}
       run: |
-        python -m pip install --upgrade flake8 pytest numexpr==2.7.3
+        python -m pip install --upgrade pytest numexpr==2.7.3
         pip install -r requirements.txt
         # Optional Dependency for HDF Checkpointing
         pip install tables
@@ -42,7 +42,7 @@ jobs:
     - name: Install Python3 dependencies
       if: ${{ matrix.python-version != 2.7 }}
       run: |
-        python -m pip install --upgrade pip flake8 pytest
+        python -m pip install --upgrade pip pytest
         pip install -r requirements.txt
         # Optional Dependency for HDF Checkpointing
         pip install tables
@@ -56,6 +56,7 @@ jobs:
         pip install flake8-pytest-importorskip
         pip install --upgrade click==8.0.4
         pip install black==21.12b0
+        pip install flake8==4.0.1
 
     - name: Lint and Format Check with Flake8 and Black
       if: ${{ matrix.python-version == 3.7 }}
