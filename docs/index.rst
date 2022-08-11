@@ -46,6 +46,7 @@ If you are new to hatchet and want to start using it, see :doc:`Getting Started
    :caption: User Docs
 
    getting_started
+   llnl
    user_guide
    query_lang
    data_generation
