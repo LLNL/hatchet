@@ -33,7 +33,7 @@ dependencies.
 
 
 .. code-block:: python
-  :caption: Load single SPOT file into hatchet
+  :caption: Python script to load a single SPOT file into hatchet
 
   import sys
   import platform
@@ -68,7 +68,7 @@ dependencies.
 
 
 .. code-block:: python
-  :caption: Load multiple SPOT files into hatchet
+  :caption: Python script to load multiple SPOT files into hatchet
 
   import sys
   import platform
