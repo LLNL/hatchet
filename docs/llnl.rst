@@ -10,8 +10,8 @@ Using Hatchet on LLNL Systems
 Hatchet installations are available on both Intel and IBM systems at Lawrence
 Livermore National Laboratory.
 
-To use one of these global installations, please add the following to your
-Python script or Jupyter notebook. This code allows you to use hatchet and its
+To use one of these global installations, add the following to your Python
+script or Jupyter notebook. This code allows you to use hatchet and its
 dependencies.
 
 .. code-block:: python
@@ -31,6 +31,10 @@ dependencies.
   import hatchet
   import spotdb
 
+
+The following Python script loads a single SPOT/cali file into hatchet using
+Hatchet's ``from_spotdb()``. This returns a list of hatchet ``GraphFrames``,
+and we use ``pop()`` to access the single ``GraphFrame`` in the list.
 
 .. code-block:: python
   :caption: Python script to load a single SPOT file into hatchet
@@ -66,6 +70,12 @@ dependencies.
   print(gf.tree())
   display(HTML(gf.dataframe.to_html()))
 
+
+The following Python script loads multiple SPOT/cali files (most likely
+contained in the same directory) into hatchet using Hatchet's
+``from_spotdb()``. The files are specified as a single string, and commas
+delineate each file. The result is a list of hatchet ``GraphFrames``, one for
+each file.
 
 .. code-block:: python
   :caption: Python script to load multiple SPOT files into hatchet
