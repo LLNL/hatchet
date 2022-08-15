@@ -22117,6 +22117,7 @@ var Model = /*#__PURE__*/function () {
       "pruneEnabled": false,
       "metricUpdated": true
     }; //setup model
+    //secret vis state loading >:D
 
     RT.jsNodeSelected = 'MATCH (\\"*\\")->(a) WHERE a.\\"name\\" IS NOT NONE';
 
@@ -22144,6 +22145,19 @@ var Model = /*#__PURE__*/function () {
     }; //prunes away non-internal zero nodes
 
     this.forest.initializePrunedTrees(this.state.primaryMetric);
+    console.log(RT.visualization_state);
+
+    if (RT.visualization_state == '{}') {
+      RT.visualization_state = JSON.stringify({
+        "primaryMetric": this.state.primaryMetric,
+        "secondaryMetric": this.state.secondaryMetric
+      });
+    } else {
+      var cached_state = JSON.parse(RT.visualization_state); //got to make sure the cached metric is present, otherwise default
+
+      if (cached_state.primaryMetric in this.forest.metricColumns) this.state.primaryMetric = cached_state.primaryMetric;
+      if (cached_state.primaryMetric in this.forest.metricColumns) this.state.secondaryMetric = cached_state.secondaryMetric;
+    }
   } // --------------------------------------------
   // Node selection helper functions
   // --------------------------------------------
@@ -22743,6 +22757,11 @@ var Model = /*#__PURE__*/function () {
       } else if (source.includes("secondary")) {
         this.state.secondaryMetric = newMetric;
       }
+
+      RT.visualization_state = JSON.stringify({
+        "primaryMetric": this.state.primaryMetric,
+        "secondaryMetric": this.state.secondaryMetric
+      });
 
       if (source.includes("primary")) {
         if (this.state.pruneEnabled) {

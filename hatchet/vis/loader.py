@@ -60,6 +60,11 @@ class CCT(Magics):
             RT.var_to_js(
                 args[1], "node_query", watch=True, from_js_converter=_query_to_dict
             )
+        
+        #secret configuration var
+        RT.var_to_js(
+            "?vis_state", "visualization_state", watch=True, from_js_converter=_query_to_dict
+        )
 
         RT.initialize()
 
