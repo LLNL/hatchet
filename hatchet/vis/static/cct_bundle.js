@@ -22128,6 +22128,10 @@ var Model = /*#__PURE__*/function () {
       });
     }
 
+    if ("json_def" in RT) {
+      var jsonTree = RT.json_def;
+    }
+
     var cleanTree = RT.hatchet_tree_def;
 
     var _forestData = JSON.parse(cleanTree);
@@ -22153,10 +22157,16 @@ var Model = /*#__PURE__*/function () {
         "secondaryMetric": this.state.secondaryMetric
       });
     } else {
-      var cached_state = JSON.parse(RT.visualization_state); //got to make sure the cached metric is present, otherwise default
+      var cached_state = JSON.parse(RT.visualization_state);
+      console.log(cached_state.primaryMetric, this.forest.metricColumns); //got to make sure the cached metric is present, otherwise default
 
-      if (cached_state.primaryMetric in this.forest.metricColumns) this.state.primaryMetric = cached_state.primaryMetric;
-      if (cached_state.primaryMetric in this.forest.metricColumns) this.state.secondaryMetric = cached_state.secondaryMetric;
+      if (this.forest.metricColumns.includes(cached_state.primaryMetric)) {
+        this.state.primaryMetric = cached_state.primaryMetric;
+      }
+
+      if (this.forest.metricColumns.includes(cached_state.primaryMetric)) {
+        this.state.secondaryMetric = cached_state.secondaryMetric;
+      }
     }
   } // --------------------------------------------
   // Node selection helper functions

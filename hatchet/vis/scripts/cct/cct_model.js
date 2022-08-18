@@ -68,9 +68,15 @@ class Model{
             RT['visualization_state'] = JSON.stringify({"primaryMetric": this.state.primaryMetric, "secondaryMetric": this.state.secondaryMetric});
         } else {
             let cached_state = JSON.parse(RT['visualization_state']);
+
+            console.log(cached_state.primaryMetric, this.forest.metricColumns);
             //got to make sure the cached metric is present, otherwise default
-            if( cached_state.primaryMetric in this.forest.metricColumns) this.state.primaryMetric = cached_state.primaryMetric;
-            if( cached_state.primaryMetric in this.forest.metricColumns) this.state.secondaryMetric = cached_state.secondaryMetric;
+            if(this.forest.metricColumns.includes(cached_state.primaryMetric)){
+                this.state.primaryMetric = cached_state.primaryMetric;
+            }
+            if( this.forest.metricColumns.includes(cached_state.primaryMetric)){
+                this.state.secondaryMetric = cached_state.secondaryMetric;
+            }
         }
 
     }
