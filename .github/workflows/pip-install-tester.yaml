@@ -18,8 +18,8 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest]
-        python-version: [2.7, 3.5, 3.6, 3.7, 3.8]
-        hatchet-version: ['2022.1.0', '2022.1.1']
+        python-version: [3.5, 3.6, 3.7, 3.8, 3.9]
+        hatchet-version: ['2022.1.0', '2022.1.1', "2022.2.0"]
 
     steps:
     - uses: actions/checkout@v2
