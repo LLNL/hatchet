@@ -35,10 +35,25 @@ def _gf_to_json(data):
 def _pass_through(json_query):
     return json_query
 
-
 def _query_to_dict(json_query):
     import json
     return json.loads(json_query)
+
+def _to_js(data):
+    if data is None:
+        return "{}"
+    return data.to_json()
+
+def _selection_to_js(data):
+    if data is None:
+        return "{}"
+    return data['selection']
+
+def _from_js(data):
+    import json
+    import pandas as pd
+    data = json.loads(data)
+    return pd.DataFrame(data)
 
 
 @magics_class
@@ -64,6 +79,42 @@ class CCT(Magics):
         #secret configuration var
         RT.var_to_js(
             "?vis_state", "visualization_state", watch=True, from_js_converter=_query_to_dict
+        )
+
+        RT.initialize()
+
+    @line_magic
+    def table(self, line):
+        args = line.split(" ")
+
+        RT.load_webpack(path.join(self.vis_dist, "table_bundle.html"), cache=False)
+
+        self.shell.user_ns[args[0][1:]].drop_index_levels()
+        if(len(args) > 1 and self.shell.user_ns[args[1][1:]]):
+            self.shell.user_ns['df'] = self.shell.user_ns[args[0][1:]].filter(self.shell.user_ns[args[1][1:]]['selection']).dataframe
+        elif(len(args) == 1):
+            self.shell.user_ns['df'] = self.shell.user_ns[args[0][1:]].dataframe
+
+
+        RT.var_to_js(
+            'df',
+            "table_src",
+            watch=True,
+            to_js_converter=_to_js
+        )
+
+        RT.var_to_js(
+            args[0],
+            "reload_watcher",
+            watch=True,
+            to_js_converter=_gf_to_json
+        )
+
+        RT.var_to_js(
+            args[1],
+            "query_watcher",
+            watch=True,
+            to_js_converter=_selection_to_js
         )
 
         RT.initialize()
