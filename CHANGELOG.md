@@ -1,3 +1,14 @@
+# 2022.2.0 (2022-08-19)
+
+Version `2022.2.0` is a major release.
+
+* Adds writers module to installed modules to resolve package install
+* CaliperReader bug fixes: filter records to parse, ignore function metadata
+  field
+* Modify graphframe copy/deepcopy
+* Adds beautiful soup 4 to requirements.txt
+* Add new page on using hatchet on LLNL systems
+
 # 2022.1.1 (2022-06-01)
 
 This is a minor release on the `2022.1` series. It addresses a bug fix in
