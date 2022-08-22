@@ -19,7 +19,7 @@ jobs:
       matrix:
         os: [ubuntu-latest]
         python-version: [3.5, 3.6, 3.7, 3.8, 3.9]
-        hatchet-version: ['2022.1.0', '2022.1.1', "2022.2.0"]
+        hatchet-version: ["2022.2.0"]
 
     steps:
     - uses: actions/checkout@v2
