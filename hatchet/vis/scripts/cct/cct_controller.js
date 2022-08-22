@@ -63,6 +63,8 @@ class Controller{
                     break;
                 case(globals.signals.PRUNERANGEUPDATE):
                     this.model.updatePruneRange(evt.low, evt.high);
+                    this.model.storeSnapshotQuery();
+
                     break;
                 case(globals.signals.SNAPSHOT):
                     this.model.storeSnapshotQuery();

@@ -730,7 +730,7 @@ class Model{
             full_query=`{${path_query}} AND {${ex_query}}`
         }
 
-        console.log(full_query);
+        console.log("Store snapshot query: ", full_query);
 
         RT['jsNodeSelected'] = full_query;
         if('node_query' in RT){

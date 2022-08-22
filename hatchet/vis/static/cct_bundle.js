@@ -16472,6 +16472,8 @@ var Controller = /*#__PURE__*/function () {
           case globals.signals.PRUNERANGEUPDATE:
             _this.model.updatePruneRange(evt.low, evt.high);
 
+            _this.model.storeSnapshotQuery();
+
             break;
 
           case globals.signals.SNAPSHOT:
@@ -22962,7 +22964,7 @@ var Model = /*#__PURE__*/function () {
         full_query = "{".concat(path_query, "} AND {").concat(ex_query, "}");
       }
 
-      console.log(full_query);
+      console.log("Store snapshot query: ", full_query);
       RT.jsNodeSelected = full_query;
 
       if ("node_query" in RT) {
@@ -25090,6 +25092,7 @@ var ScentedSliderPopup = /*#__PURE__*/function (_View) {
 
       this._svg.style('visibility', function () {
         if (_this4.model.state.pruneEnabled) return 'visible';
+        self.options_dropdown.style('visibility', 'hidden');
         return 'hidden';
       });
 
@@ -25188,12 +25191,18 @@ var ScentedSliderPopup = /*#__PURE__*/function (_View) {
        * 
        */
 
+      this.current_selection_text.text(this.model.state.primaryMetric);
+
       this._svg.select('.selection-button').select('rect').attr('fill', function () {
         if (!self.dropdown_clicked) {
           return 'rgba(255,255,255,1)';
         } else {
           return 'rgba(100,100,200,1)';
         }
+      }).attr('height', function () {
+        return _this4.current_selection_text.node().getBBox().height + 4;
+      }).attr('width', function () {
+        return _this4.current_selection_text.node().getBBox().width + 10;
       });
 
       this._svg.select('.selection-button').select('text').attr('fill', function () {
@@ -25205,7 +25214,6 @@ var ScentedSliderPopup = /*#__PURE__*/function (_View) {
       });
 
       option_rects.attr('width', max_option_width + 10);
-      this.current_selection_text.text(this.model.state.primaryMetric);
       this.hist_grp.select('.left-axis').transition().duration(globals.duration).call(build_d3.axisLeft(this.invert_y_scale).ticks(4));
       this.hist_grp.select('.left-ice-axis').transition().duration(globals.duration).call(build_d3.axisLeft(this.i_y_scale).ticks(4));
       bars.attr('fill', function (_, i) {
