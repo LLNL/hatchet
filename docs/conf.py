@@ -20,9 +20,6 @@
 import sys
 import os
 
-sys.path.append(os.path.abspath("./_pygments"))
-pygments_style = "style.HatchetStyle"
-
 import pkg_resources
 
 # -- Project information -----------------------------------------------------
@@ -85,6 +82,9 @@ sys.path.append(".")  # make 'conf' module findable
 ep = pkg_resources.EntryPoint.parse("hatchet = conf:HatchetStyle", dist=dist)
 dist._ep_map = {"pygments.styles": {"plugin1": ep}}
 pkg_resources.working_set.add(dist)
+
+sys.path.append(os.path.abspath("./_pygments"))
+pygments_style = "style.HatchetStyle"
 
 
 # -- Options for HTML output -------------------------------------------------
