@@ -19,6 +19,7 @@ dependencies.
 
   import sys
   import platform
+  import datetime as dt
   from IPython.display import HTML, display
 
   input_deploy_dir_str = "/usr/gapps/spot/live/"
@@ -28,7 +29,6 @@ dependencies.
   sys.path.append(input_deploy_dir_str + "/hatchet/" + machine)
   sys.path.append(input_deploy_dir_str + "/spotdb")
 
-  import datetime as dt
   import hatchet
   import spotdb
 
@@ -42,6 +42,7 @@ and we use ``pop()`` to access the single ``GraphFrame`` in the list.
 
   import sys
   import platform
+  import datetime as dt
   from IPython.display import HTML, display
 
   input_deploy_dir_str = "/usr/gapps/spot/live/"
@@ -51,7 +52,6 @@ and we use ``pop()`` to access the single ``GraphFrame`` in the list.
   sys.path.append(input_deploy_dir_str + "/hatchet/" + machine)
   sys.path.append(input_deploy_dir_str + "/spotdb")
 
-  import datetime as dt
   import hatchet
   import spotdb
 
@@ -83,6 +83,7 @@ each file.
 
   import sys
   import platform
+  import datetime as dt
   from IPython.display import HTML, display
 
   input_deploy_dir_str = "/usr/gapps/spot/live/"
@@ -92,7 +93,6 @@ each file.
   sys.path.append(input_deploy_dir_str + "/hatchet/" + machine)
   sys.path.append(input_deploy_dir_str + "/spotdb")
 
-  import datetime as dt
   import hatchet
   import spotdb
 
