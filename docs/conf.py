@@ -21,7 +21,7 @@ import sys
 import os
 
 sys.path.append(os.path.abspath("./_pygments"))
-pygments_style = 'style.HatchetStyle'
+pygments_style = "style.HatchetStyle"
 
 import pkg_resources
 
