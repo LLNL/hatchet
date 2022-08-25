@@ -18,10 +18,7 @@
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 
 import sys
-
-# The name of the Pygments (syntax highlighting) style to use.
-from pygments.styles.default import DefaultStyle
-from pygments.token import Generic
+import os
 
 import pkg_resources
 
@@ -80,21 +77,14 @@ master_doc = "index"
 exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 
 
-# modifications to the default style
-class HatchetStyle(DefaultStyle):
-    styles = DefaultStyle.styles.copy()
-    background_color = "#f4f4f8"
-    styles[Generic.Output] = "#355"
-    styles[Generic.Prompt] = "bold #346ec9"
-
-
 dist = pkg_resources.Distribution(__file__)
 sys.path.append(".")  # make 'conf' module findable
 ep = pkg_resources.EntryPoint.parse("hatchet = conf:HatchetStyle", dist=dist)
 dist._ep_map = {"pygments.styles": {"plugin1": ep}}
 pkg_resources.working_set.add(dist)
 
-pygments_style = "hatchet"
+sys.path.append(os.path.abspath("./_pygments"))
+pygments_style = "style.HatchetStyle"
 
 
 # -- Options for HTML output -------------------------------------------------

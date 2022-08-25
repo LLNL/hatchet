@@ -19,15 +19,16 @@ dependencies.
 
   import sys
   import platform
+  import datetime as dt
   from IPython.display import HTML, display
 
+  input_deploy_dir_str = "/usr/gapps/spot/live/"
   machine = platform.uname().machine
 
   sys.path.append(input_deploy_dir_str + "/hatchet-venv/" + machine + "/lib/python3.7/site-packages")
   sys.path.append(input_deploy_dir_str + "/hatchet/" + machine)
   sys.path.append(input_deploy_dir_str + "/spotdb")
 
-  import datetime as dt
   import hatchet
   import spotdb
 
@@ -41,19 +42,19 @@ and we use ``pop()`` to access the single ``GraphFrame`` in the list.
 
   import sys
   import platform
+  import datetime as dt
   from IPython.display import HTML, display
 
+  input_deploy_dir_str = "/usr/gapps/spot/live/"
   machine = platform.uname().machine
 
   sys.path.append(input_deploy_dir_str + "/hatchet-venv/" + machine + "/lib/python3.7/site-packages")
   sys.path.append(input_deploy_dir_str + "/hatchet/" + machine)
   sys.path.append(input_deploy_dir_str + "/spotdb")
 
-  import datetime as dt
   import hatchet
   import spotdb
 
-  input_deploy_dir_str = "/usr/gapps/spot/live/"
   input_db_uri_str = "./mpi"
   input_run_ids_str = "c5UcO9xwAUKNVVFg1_0.cali"
 
@@ -82,19 +83,19 @@ each file.
 
   import sys
   import platform
+  import datetime as dt
   from IPython.display import HTML, display
 
+  input_deploy_dir_str = "/usr/gapps/spot/live/"
   machine = platform.uname().machine
 
   sys.path.append(input_deploy_dir_str + "/hatchet-venv/" + machine + "/lib/python3.7/site-packages")
   sys.path.append(input_deploy_dir_str + "/hatchet/" + machine)
   sys.path.append(input_deploy_dir_str + "/spotdb")
 
-  import datetime as dt
   import hatchet
   import spotdb
 
-  input_deploy_dir_str = "/usr/gapps/spot/live/"
   input_db_uri_str = "./mpi"
   input_run_ids_str = "./mpi/cQ-CGJlYj-uFT2yv-_0.cali,./mpi/cQ-CGJlYj-uFT2yv-_1.cali,./mpi/cQ-CGJlYj-uFT2yv-_2.cali"
 
