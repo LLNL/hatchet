@@ -18,6 +18,7 @@
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 
 import sys
+import os
 
 ## The name of the Pygments (syntax highlighting) style to use.
 #from pygments.styles.default import DefaultStyle
