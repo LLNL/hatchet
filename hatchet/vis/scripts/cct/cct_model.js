@@ -730,8 +730,6 @@ class Model{
             full_query=`{${path_query}} AND {${ex_query}}`
         }
 
-        console.log("Store snapshot query: ", full_query);
-
         RT['jsNodeSelected'] = full_query;
         if('node_query' in RT){
             let existing = JSON.parse(RT['node_query']);
@@ -763,9 +761,6 @@ class Model{
             let existing = JSON.parse(RT['node_query']);
             RT['node_query'] = JSON.stringify({'tree_state':existing['tree_state'], 'selection':path_query});
         }
-        
-        console.log(RT['node_query'])
-
     }
 
 }

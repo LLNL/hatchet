@@ -22964,7 +22964,6 @@ var Model = /*#__PURE__*/function () {
         full_query = "{".concat(path_query, "} AND {").concat(ex_query, "}");
       }
 
-      console.log("Store snapshot query: ", full_query);
       RT.jsNodeSelected = full_query;
 
       if ("node_query" in RT) {
@@ -23014,8 +23013,6 @@ var Model = /*#__PURE__*/function () {
           'selection': path_query
         });
       }
-
-      console.log(RT.node_query);
     }
   }]);
 
