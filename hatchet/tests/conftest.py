@@ -1089,3 +1089,25 @@ def sw4_caliper_cuda_activity_profile_summary_cali(data_dir, tmpdir):
     tmpfile = os.path.join(str(tmpdir), "caliper_cuda_activity_profile_summary_v2.cali")
 
     return tmpfile
+
+
+@pytest.fixture
+def json_graphframe_specification(data_dir, tmpdir):
+    json_dir = os.path.join(data_dir, "json")
+    json_file = os.path.join(json_dir, "literal.json")
+
+    shutil.copy(json_file, str(tmpdir))
+    tmpfile = os.path.join(str(tmpdir), "literal.json")
+
+    return tmpfile
+
+
+@pytest.fixture
+def json_thicket_spec(data_dir, tmpdir):
+    json_dir = os.path.join(data_dir, "json")
+    json_file = os.path.join(json_dir, "data.json")
+
+    shutil.copy(json_file, str(tmpdir))
+    tmpfile = os.path.join(str(tmpdir), "data.json")
+
+    return tmpfile
