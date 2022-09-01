@@ -29,12 +29,3 @@ def test_write_json(json_graphframe_specification):
     assert "".join(sorted("".join(sorted(jgs.split())))) == "".join(
         sorted("".join(json_out.split()))
     )
-
-
-def test_thicket_compatability(json_thicket_spec):
-    jts = ""
-    with open(json_thicket_spec, "r") as f:
-        jts = f.read()
-    GraphFrame.from_json(jts)
-
-    assert True
