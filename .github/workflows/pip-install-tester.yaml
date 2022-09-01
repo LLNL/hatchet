@@ -2,13 +2,13 @@ name: pip install tester
 
 on:
   # Uncomment these lines for testing
-  push:
-    branches: [ develop ]
-  pull_request:
-    branches: [ develop, releases/** ]
+  # push:
+  #   branches: [ develop ]
+  # pull_request:
+  #   branches: [ develop, releases/** ]
   # Uncomment these lines for production
-  # schedule:
-  #   - cron: '0 0 1 JAN,MAY,AUG,NOV *'
+  schedule:
+    - cron: '0 0 1 JAN,MAY,AUG,NOV *'
 
 jobs:
   pip_test:
@@ -34,12 +34,6 @@ jobs:
     - name: Build unit test dependencies
       run: |
         python -m pip install --upgrade pip pytest
-
-    - name: Build Python 2.7 dependencies
-      if: ${{ matrix.python-version == 2.7 }}
-      run: |
-        python -m pip install --upgrade numexpr==2.7.3
-        python -m pip install tables==3.5.2 # Last version of tables to support Python 2.7
 
     - name: Build Python 3 dependencies
       if: ${{ matrix.python-version != 2.7 }}
