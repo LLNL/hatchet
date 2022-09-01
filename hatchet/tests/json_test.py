@@ -31,7 +31,7 @@ def test_write_json(json_graphframe_specification):
     )
 
 
-def test_thicket_compatability(json_thicket_spec):
+def test_thicket_compatibility(json_thicket_spec):
     jts = ""
     with open(json_thicket_spec, "r") as f:
         jts = f.read()

@@ -21,7 +21,7 @@ class JsonReader:
     """
 
     def __init__(self, json_spec):
-        """Read from a json string specifiction of a graphframe
+        """Read from a json string specification of a graphframe
 
         json (string): Json specification of a graphframe.
         """
