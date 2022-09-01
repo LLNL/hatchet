@@ -2,13 +2,13 @@ name: pip install tester
 
 on:
   # Uncomment these lines for testing
-  # push:
-  #   branches: [ develop ]
-  # pull_request:
-  #   branches: [ develop, releases/** ]
+  push:
+    branches: [ develop ]
+  pull_request:
+    branches: [ develop, releases/** ]
   # Uncomment these lines for production
-  schedule:
-    - cron: '0 0 1 JAN,MAY,AUG,NOV *'
+  # schedule:
+  #   - cron: '0 0 1 JAN,MAY,AUG,NOV *'
 
 jobs:
   pip_test:
