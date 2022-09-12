@@ -12,6 +12,7 @@ from collections import defaultdict
 import pandas as pd
 import numpy as np
 import multiprocess as mp
+import json
 
 from .node import Node
 from .graph import Graph
@@ -299,6 +300,12 @@ class GraphFrame:
         gf = GraphFrame(graph, df, ["time"], [])
         gf.update_inclusive_columns()
         return gf
+
+    @staticmethod
+    def from_json(json_spec, **kwargs):
+        from .readers.json_reader import JsonReader
+
+        return JsonReader(json_spec).read(**kwargs)
 
     @staticmethod
     def from_hdf(filename, **kwargs):
@@ -1083,6 +1090,37 @@ class GraphFrame:
             graph_literal.append(add_nodes(root))
 
         return graph_literal
+
+    def to_dict(self):
+        hatchet_dict = {}
+
+        """
+        Nodes: {hatchet_nid: {node data, children:[by-id]}}
+        """
+        graphs = []
+        for root in self.graph.roots:
+            formatted_graph_dict = {}
+            for n in root.traverse():
+                formatted_graph_dict[n._hatchet_nid] = {
+                    "data": n.frame.attrs,
+                    "children": [c._hatchet_nid for c in n.children],
+                }
+            graphs.append(formatted_graph_dict)
+
+        hatchet_dict["graph"] = graphs
+
+        hatchet_dict["dataframe_indices"] = list(self.dataframe.index.names)
+        ef = self.dataframe.reset_index()
+        ef["node"] = ef["node"].apply(lambda n: n._hatchet_nid)
+        hatchet_dict["dataframe"] = ef.replace({np.nan: None}).to_dict("records")
+
+        hatchet_dict["inclusive_metrics"] = self.inc_metrics
+        hatchet_dict["exclusive_metrics"] = self.exc_metrics
+
+        return hatchet_dict
+
+    def to_json(self):
+        return json.dumps(self.to_dict())
 
     def _operator(self, other, op):
         """Generic function to apply operator to two dataframes and store
