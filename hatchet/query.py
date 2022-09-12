@@ -1048,8 +1048,10 @@ class CypherQuery(QueryMatcher):
                     This condition will always be false.
                     The statement that triggered this warning is:
                     {}
-                    """.format(obj),
-                    RedundantQueryFilterWarning
+                    """.format(
+                        obj
+                    ),
+                    RedundantQueryFilterWarning,
                 )
                 return [
                     None,
@@ -1071,8 +1073,10 @@ class CypherQuery(QueryMatcher):
                     This condition will always be false.
                     The statement that triggered this warning is:
                     {}
-                    """.format(obj),
-                    RedundantQueryFilterWarning
+                    """.format(
+                        obj
+                    ),
+                    RedundantQueryFilterWarning,
                 )
                 return [
                     None,
@@ -1102,8 +1106,10 @@ class CypherQuery(QueryMatcher):
                     This condition will always be false.
                     The statement that triggered this warning is:
                     {}
-                    """.format(obj),
-                    RedundantQueryFilterWarning
+                    """.format(
+                        obj
+                    ),
+                    RedundantQueryFilterWarning,
                 )
                 return [
                     None,
@@ -1125,8 +1131,10 @@ class CypherQuery(QueryMatcher):
                     This condition will always be false.
                     The statement that triggered this warning is:
                     {}
-                    """.format(obj),
-                    RedundantQueryFilterWarning
+                    """.format(
+                        obj
+                    ),
+                    RedundantQueryFilterWarning,
                 )
                 return [
                     None,
@@ -1156,8 +1164,10 @@ class CypherQuery(QueryMatcher):
                     This condition will always be true.
                     The statement that triggered this warning is:
                     {}
-                    """.format(obj),
-                    RedundantQueryFilterWarning
+                    """.format(
+                        obj
+                    ),
+                    RedundantQueryFilterWarning,
                 )
                 return [
                     None,
@@ -1179,8 +1189,10 @@ class CypherQuery(QueryMatcher):
                     This condition will always be true.
                     The statement that triggered this warning is:
                     {}
-                    """.format(obj),
-                    RedundantQueryFilterWarning
+                    """.format(
+                        obj
+                    ),
+                    RedundantQueryFilterWarning,
                 )
                 return [
                     None,
@@ -1210,13 +1222,15 @@ class CypherQuery(QueryMatcher):
                     This condition will always be false.
                     The statement that triggered this warning is:
                     {}
-                    """.format(obj),
-                    RedundantQueryFilterWarning
+                    """.format(
+                        obj
+                    ),
+                    RedundantQueryFilterWarning,
                 )
                 return [
                     None,
                     obj.name,
-                    "False"
+                    "False",
                     "isinstance(df_row.name._depth, Real)",
                 ]
             return [
@@ -1233,8 +1247,10 @@ class CypherQuery(QueryMatcher):
                     This condition will always be false.
                     The statement that triggered this warning is:
                     {}
-                    """.format(obj),
-                    RedundantQueryFilterWarning
+                    """.format(
+                        obj
+                    ),
+                    RedundantQueryFilterWarning,
                 )
                 return [
                     None,
@@ -1264,8 +1280,10 @@ class CypherQuery(QueryMatcher):
                     This condition will always be true.
                     The statement that triggered this warning is:
                     {}
-                    """.format(obj),
-                    RedundantQueryFilterWarning
+                    """.format(
+                        obj
+                    ),
+                    RedundantQueryFilterWarning,
                 )
                 return [
                     None,
@@ -1287,8 +1305,10 @@ class CypherQuery(QueryMatcher):
                     This condition will always be true.
                     The statement that triggered this warning is:
                     {}
-                    """.format(obj),
-                    RedundantQueryFilterWarning
+                    """.format(
+                        obj
+                    ),
+                    RedundantQueryFilterWarning,
                 )
                 return [
                     None,

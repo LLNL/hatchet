@@ -1211,3 +1211,39 @@ def test_cypher_xor_compound_query(mock_graph_literal):
     ]
     assert sorted(compound_query1.apply(gf)) == sorted(matches)
     assert sorted(compound_query2.apply(gf)) == sorted(matches)
+
+
+def test_leaf_query(small_mock2):
+    gf = GraphFrame.from_literal(small_mock2)
+    roots = gf.graph.roots
+    matches = [
+        roots[0].children[0].children[0],
+        roots[0].children[0].children[1],
+        roots[0].children[1].children[0],
+        roots[0].children[1].children[1],
+    ]
+    nodes = set(gf.graph.traverse())
+    nonleaves = list(nodes - set(matches))
+    obj_query = QueryMatcher([{"depth": -1}])
+    str_query_numeric = parse_cypher_query(
+        u"""
+        MATCH (p)
+        WHERE p."depth" = -1
+        """
+    )
+    str_query_is_leaf = parse_cypher_query(
+        u"""
+        MATCH (p)
+        WHERE p IS LEAF
+        """
+    )
+    str_query_is_not_leaf = parse_cypher_query(
+        u"""
+        MATCH (p)
+        WHERE p IS NOT LEAF
+        """
+    )
+    assert sorted(obj_query.apply(gf)) == sorted(matches)
+    assert sorted(str_query_numeric.apply(gf)) == sorted(matches)
+    assert sorted(str_query_is_leaf.apply(gf)) == sorted(matches)
+    assert sorted(str_query_is_not_leaf.apply(gf)) == sorted(nonleaves)
