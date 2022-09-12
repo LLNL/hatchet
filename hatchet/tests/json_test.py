@@ -24,8 +24,6 @@ def test_write_json(json_graphframe_specification):
     gf = GraphFrame.from_json(jgs)
     json_out = gf.to_json()
 
-    print("".join(jgs.split()))
-    print("".join(json_out.split()))
     assert "".join(sorted("".join(sorted(jgs.split())))) == "".join(
         sorted("".join(json_out.split()))
     )
