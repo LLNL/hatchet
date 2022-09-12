@@ -820,7 +820,7 @@ class CypherQuery(QueryMatcher):
             cname(obj) == "NotCond"
             or self._is_str_cond(obj)
             or self._is_num_cond(obj)
-            or cname(obj) in ["NoneCond", "NotNoneCond"]
+            or cname(obj) in ["NoneCond", "NotNoneCond", "LeafCond", "NotLeafCond"]
         ):
             return True
         return False
