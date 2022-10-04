@@ -244,10 +244,11 @@ class CaliperNativeReader:
     def _parse_metadata(self, mdata):
         """Convert Caliper Metadata values into correct Python objects.
 
-        :param mdata: the metadata to convert
-        :type mdata: Dict[str, str]
-        :return: the converted metadata
-        :rtype: Dict[str, str]
+        Args:
+            mdata (dict[str: str]): metadata to convert
+
+        Return:
+            (dict[str: str]): modified metadata
         """
         parsed_mdata = {}
         for k, v in mdata.items():
