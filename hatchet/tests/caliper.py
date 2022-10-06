@@ -226,6 +226,9 @@ def test_graphframe_native_lulesh_from_file(lulesh_caliper_cali):
         elif col in ("name", "node"):
             assert gf.dataframe[col].dtype == object
 
+    assert type(gf.metadata["cali.channel"]) == str
+    assert type(gf.metadata["cali.caliper.version"]) == str
+
 
 @pytest.mark.skipif(
     not caliperreader_avail, reason="needs caliper-reader package to be loaded"
@@ -239,6 +242,7 @@ def test_graphframe_native_lulesh_from_caliperreader(lulesh_caliper_cali):
 
     assert len(gf.dataframe.groupby("name")) == 19
     assert "cali.caliper.version" in gf.metadata.keys()
+    assert type(gf.metadata["cali.caliper.version"]) == str
 
     for col in gf.dataframe.columns:
         if col in ("time (inc)", "time"):
@@ -284,6 +288,10 @@ def test_sw4_cuda_from_caliperreader(sw4_caliper_cuda_activity_profile_cali):
     for col in gf.exc_metrics + gf.inc_metrics:
         assert col in gf.dataframe.columns
 
+    assert type(gf.metadata["mpi.world.size"]) == int
+    assert type(gf.metadata["cali.caliper.version"]) == str
+    assert type(gf.metadata["cali.channel"]) == str
+
 
 def test_sw4_cuda_summary_from_caliperreader(
     sw4_caliper_cuda_activity_profile_summary_cali,
@@ -297,3 +305,7 @@ def test_sw4_cuda_summary_from_caliperreader(
 
     for col in gf.exc_metrics + gf.inc_metrics:
         assert col in gf.dataframe.columns
+
+    assert type(gf.metadata["mpi.world.size"]) == int
+    assert type(gf.metadata["cali.caliper.version"]) == str
+    assert type(gf.metadata["cali.channel"]) == str

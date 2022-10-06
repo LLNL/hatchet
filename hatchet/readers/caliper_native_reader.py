@@ -241,6 +241,40 @@ class CaliperNativeReader:
 
         return list_roots
 
+    def _parse_metadata(self, mdata):
+        """Convert Caliper Metadata values into correct Python objects.
+
+        Args:
+            mdata (dict[str: str]): metadata to convert
+
+        Return:
+            (dict[str: str]): modified metadata
+        """
+        parsed_mdata = {}
+        for k, v in mdata.items():
+            # If the value is an int, convert it to an int.
+            try:
+                parsed_mdata[k] = int(v)
+            except ValueError:
+                # If the value is a float, convert it to a float
+                try:
+                    parsed_mdata[k] = float(v)
+                except ValueError:
+                    # If the value is a list or tuple, convert it to a list or
+                    # tuple
+                    if v.startswith("[") and v.endswith("]"):
+                        parsed_mdata[k] = [
+                            elem.strip() for elem in v.strip("][").split(",")
+                        ]
+                    elif v.startswith("(") and v.endswith(")"):
+                        parsed_mdata[k] = [
+                            elem.strip() for elem in v.strip(")(").split(",")
+                        ]
+                    # If the value is a string, just save it as-is
+                    else:
+                        parsed_mdata[k] = v
+        return parsed_mdata
+
     def read(self):
         """Read the caliper records to extract the calling context tree."""
         if isinstance(self.filename_or_caliperreader, str):
@@ -370,6 +404,7 @@ class CaliperNativeReader:
                 self.default_metric = exc_metrics[0]
 
         metadata = self.filename_or_caliperreader.globals
+        parsed_metadata = self._parse_metadata(metadata)
 
         return hatchet.graphframe.GraphFrame(
             graph,
@@ -377,5 +412,5 @@ class CaliperNativeReader:
             exc_metrics,
             inc_metrics,
             self.default_metric,
-            metadata=metadata,
+            metadata=parsed_metadata,
         )
