@@ -897,6 +897,7 @@ class GraphFrame:
         highlight_name=False,
         colormap="RdYlGn",
         invert_colormap=False,
+        render_header=True,
     ):
         """Format this graphframe as a tree and return the resulting string."""
         color = sys.stdout.isatty()
@@ -934,6 +935,7 @@ class GraphFrame:
             highlight_name=highlight_name,
             colormap=colormap,
             invert_colormap=invert_colormap,
+            render_header=render_header,
         )
 
     def to_dot(self, metric=None, name="name", rank=0, thread=0, threshold=0.0):
