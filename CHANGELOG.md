@@ -1,3 +1,19 @@
+# 2022.2.1 (2022-10-17)
+
+This is a minor release on the `2022.2` series.
+
+# Notable Changes
+* updates caliper reader to convert caliper metadata values into correct Python
+* objects
+* adds to_json writer and from_dict and from_json readers
+* adds `render_header` parameter to tree() to toggle the header on/off
+* adds the ability to match leaf nodes in the Query Language
+
+# Other Changes
+* exposes version module to query hatchet version from the command line
+* docs: update to using hatchet at llnl page
+* adds a GitHub Action to test PyPI releases on a regular schedule
+
 # 2022.2.0 (2022-08-19)
 
 Version `2022.2.0` is a major release.
