@@ -44,7 +44,12 @@ class ConsoleRenderer:
         self.visited = []
 
     def render(self, roots, dataframe, **kwargs):
-        result = self.render_preamble()
+        self.render_header = kwargs["render_header"]
+
+        if self.render_header:
+            result = self.render_preamble()
+        else:
+            result = ""
 
         if roots is None:
             result += "The graph is empty.\n\n"

@@ -58,6 +58,7 @@ def test_tree(timemory_json_data):
         highlight_name=False,
         colormap="RdYlGn",
         invert_colormap=False,
+        render_header=True,
     )
 
     print(output)
@@ -76,6 +77,7 @@ def test_tree(timemory_json_data):
         highlight_name=False,
         colormap="RdYlGn",
         invert_colormap=False,
+        render_header=True,
     )
 
     print(output)

@@ -20,6 +20,7 @@ from hatchet.frame import Frame
 from hatchet.graph import Graph
 from hatchet.node import Node
 from hatchet.external.console import ConsoleRenderer
+from hatchet.version import __version__
 
 
 def test_copy(mock_graph_literal):
@@ -721,10 +722,12 @@ def test_tree(mock_graph_literal):
         highlight_name=False,
         colormap="RdYlGn",
         invert_colormap=False,
+        render_header=True,
     )
     assert "0.000 foo" in output
     assert "10.000 waldo" in output
     assert "15.000 garply" in output
+    assert "v" + __version__ in output
 
     output = ConsoleRenderer(unicode=True, color=False).render(
         gf.graph.roots,
@@ -740,9 +743,11 @@ def test_tree(mock_graph_literal):
         highlight_name=False,
         colormap="RdYlGn",
         invert_colormap=False,
+        render_header=False,
     )
     assert "55.000 waldo" in output
     assert "15.000 garply" in output
+    assert "v" + __version__ not in output
 
 
 def test_to_dot(mock_graph_literal):
@@ -798,6 +803,7 @@ def test_sub_decorator(small_mock1, small_mock2, small_mock3):
         highlight_name=False,
         colormap="RdYlGn",
         invert_colormap=False,
+        render_header=True,
     )
     assert "0.000 C" in output
     assert u"nan D ▶" in output
@@ -827,6 +833,7 @@ def test_sub_decorator(small_mock1, small_mock2, small_mock3):
         highlight_name=False,
         colormap="RdYlGn",
         invert_colormap=False,
+        render_header=True,
     )
     assert "15.000 A" in output
     assert u"5.000 C ◀" in output
@@ -861,6 +868,7 @@ def test_div_decorator(small_mock1, small_mock2):
         highlight_name=False,
         colormap="RdYlGn",
         invert_colormap=False,
+        render_header=True,
     )
     assert "1.000 C" in output
     assert "inf B" in output

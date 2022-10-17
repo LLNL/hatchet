@@ -43,6 +43,7 @@ def test_tree(tau_profile_dir):
         highlight_name=False,
         colormap="RdYlGn",
         invert_colormap=False,
+        render_header=True,
     )
     assert "449.000 .TAU application" in output
     assert "4458.000 MPI_Finalize()" in output
@@ -63,6 +64,7 @@ def test_tree(tau_profile_dir):
         highlight_name=False,
         colormap="RdYlGn",
         invert_colormap=False,
+        render_header=True,
     )
     assert "419.000 .TAU application" in output
     assert "4894.000 MPI_Finalize()" in output
