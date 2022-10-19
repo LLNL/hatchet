@@ -114,6 +114,8 @@ class CaliperNativeReader:
         return df_metrics
 
     def create_graph(self, ctx="path"):
+        list_roots = []
+
         def _create_parent(child_node, parent_callpath):
             """We may encounter a parent node in the callpath before we see it
             as a child node. In this case, we need to create a hatchet node for
@@ -131,27 +133,46 @@ class CaliperNativeReader:
                 return
             else:
                 # else create the parent and add parent/child
-                grandparent_callpath = parent_callpath[:-1]
-                parent_name = parent_callpath[-1]
 
-                parent_node = Node(
-                    Frame({"type": "function", "name": parent_name}), None
-                )
+                # if root node, end recursive call to create parent nodes
+                if not parent_callpath:
+                    list_roots.append(child_node)
 
-                self.callpath_to_node[parent_callpath] = parent_node
-                self.callpath_to_idx[parent_callpath] = self.global_nid
+                    node_dict = dict(
+                        {
+                            "name": child_node.frame["name"],
+                            "node": child_node,
+                            "nid": self.global_nid,
+                        }
+                    )
 
-                node_dict = dict(
-                    {"name": parent_name, "node": parent_node, "nid": self.global_nid},
-                )
-                self.idx_to_node[self.global_nid] = node_dict
-                self.global_nid += 1
+                    self.idx_to_node[self.global_nid] = node_dict
+                    self.global_nid += 1
+                else:
+                    grandparent_callpath = parent_callpath[:-1]
+                    parent_name = parent_callpath[-1]
 
-                parent_node.add_child(child_node)
-                child_node.add_parent(parent_node)
-                _create_parent(parent_node, grandparent_callpath)
+                    parent_node = Node(
+                        Frame({"type": "function", "name": parent_name}), None
+                    )
 
-        list_roots = []
+                    self.callpath_to_node[parent_callpath] = parent_node
+                    self.callpath_to_idx[parent_callpath] = self.global_nid
+
+                    node_dict = dict(
+                        {
+                            "name": parent_name,
+                            "node": parent_node,
+                            "nid": self.global_nid,
+                        },
+                    )
+                    self.idx_to_node[self.global_nid] = node_dict
+                    self.global_nid += 1
+
+                    parent_node.add_child(child_node)
+                    child_node.add_parent(parent_node)
+                    _create_parent(parent_node, grandparent_callpath)
+
         parent_hnode = None
         records = self.filename_or_caliperreader.records
 
