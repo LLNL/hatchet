@@ -1,3 +1,8 @@
+# 2022.2.2 (2022-10-24)
+
+This is a hotfix on the `2022.2` series. It addresses a bug fix in Hatchet's
+`from_caliperreader()`.
+
 # 2022.2.1 (2022-10-17)
 
 This is a minor release on the `2022.2` series.
