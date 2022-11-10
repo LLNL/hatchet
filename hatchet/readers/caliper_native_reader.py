@@ -370,13 +370,17 @@ class CaliperNativeReader:
             for col in df_metrics.columns:
                 if col == "nid":
                     continue
-                alias = self.filename_or_caliperreader.attribute(col).get("attribute.alias")
+                alias = self.filename_or_caliperreader.attribute(col).get(
+                    "attribute.alias"
+                )
                 if alias:
                     # update column name in metrics dataframe
                     df_metrics.rename(columns={col: alias}, inplace=True)
 
                     # also update list of metric columns
-                    self.metric_cols = [alias if item == col else item for item in self.metric_cols]
+                    self.metric_cols = [
+                        alias if item == col else item for item in self.metric_cols
+                    ]
 
         # dict mapping old to new column names to make columns consistent with
         # other readers
