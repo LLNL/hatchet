@@ -119,17 +119,18 @@ class GraphFrame:
         return CaliperReader(filename_or_stream, query).read()
 
     @staticmethod
-    def from_caliperreader(filename_or_caliperreader):
+    def from_caliperreader(filename_or_caliperreader, native=False):
         """Read in a native Caliper `cali` file using Caliper's python reader.
 
         Args:
             filename_or_caliperreader (str or CaliperReader): name of a Caliper
                 output file in `.cali` format, or a CaliperReader object
+            native (bool): use native or user-readable metric names (default)
         """
         # import this lazily to avoid circular dependencies
         from .readers.caliper_native_reader import CaliperNativeReader
 
-        return CaliperNativeReader(filename_or_caliperreader).read()
+        return CaliperNativeReader(filename_or_caliperreader, native).read()
 
     @staticmethod
     def from_spotdb(db_key, list_of_ids=None):

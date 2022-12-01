@@ -19,15 +19,17 @@ from hatchet.util.timer import Timer
 class CaliperNativeReader:
     """Read in a native `.cali` file using Caliper's python reader."""
 
-    def __init__(self, filename_or_caliperreader):
+    def __init__(self, filename_or_caliperreader, native):
         """Read in a native cali using Caliper's python reader.
 
         Args:
             filename_or_caliperreader (str or CaliperReader): name of a `cali` file OR
                 a CaliperReader object
+            native (bool): use native metric names or user-readable metric names
         """
         self.filename_or_caliperreader = filename_or_caliperreader
         self.filename_ext = ""
+        self.use_native_metric_names = native
 
         self.df_nodes = {}
         self.metric_cols = []
@@ -362,6 +364,23 @@ class CaliperNativeReader:
 
         df_missing = pd.DataFrame.from_dict(data=missing_nodes)
         df_metrics = pd.concat([df_fixed_data, df_missing], sort=False)
+
+        # rename columns to user-readable metric names (i.e., aliases)
+        if not self.use_native_metric_names:
+            for col in df_metrics.columns:
+                if col == "nid":
+                    continue
+                alias = self.filename_or_caliperreader.attribute(col).get(
+                    "attribute.alias"
+                )
+                if alias:
+                    # update column name in metrics dataframe
+                    df_metrics.rename(columns={col: alias}, inplace=True)
+
+                    # also update list of metric columns
+                    self.metric_cols = [
+                        alias if item == col else item for item in self.metric_cols
+                    ]
 
         # dict mapping old to new column names to make columns consistent with
         # other readers
