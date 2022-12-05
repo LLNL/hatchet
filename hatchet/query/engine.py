@@ -11,16 +11,17 @@ from ..node import (
     Node,
     traversal_order
 )
-from .query import (
-    Query,
-    CompoundQuery
-)
+from .query import Query
+from .compound import CompoundQuery
 from .object_dialect import ObjectQuery
 from .string_dialect import parse_string_dialect
 
 class QueryEngine:
 
     def __init__(self):
+        self.search_cache = {}
+
+    def reset_cache(self):
         self.search_cache = {}
 
     def apply(self, query, graph, dframe):
@@ -33,7 +34,7 @@ class QueryEngine:
             (list): A list representing the set of nodes from paths that match this query.
         """
         if issubclass(type(query), Query):
-            self.search_cache = {}
+            self.reset_cache()
             matches = []
             visited = set()
             for root in sorted(graph.roots, key=traversal_order):

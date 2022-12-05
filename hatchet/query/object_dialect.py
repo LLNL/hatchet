@@ -259,12 +259,13 @@ class ObjectQuery(Query):
                 self._add_node(quantifer=qnode)
             elif isinstance(qnode, tuple):
                 assert isinstance(qnode[1], dict)
-                self._add_node(qnode[0], _process_predicate(qnode[1]))
+                if isinstance(qnode[0], str) or isinstance(qnode[0], int):
+                    self._add_node(qnode[0], _process_predicate(qnode[1]))
+                else:
+                    raise InvalidQueryPath(
+                        "The first value of a tuple entry in a path must be either a string or integer."
+                    )
             else:
                 raise InvalidQueryPath(
-                    "The first value of a tuple entry in a path must be either a string or integer."
+                    "A query path must be a list containing String, Integer, Dict, or Tuple elements"
                 )
-        else:
-            raise InvalidQueryPath(
-                "A query path must be a list containing String, Integer, Dict, or Tuple elements"
-            )

@@ -3,8 +3,8 @@
 #
 # SPDX-License-Identifier: MIT
 
-from .query import (
-    Query,
+from .query import Query
+from .compound import (
     CompoundQuery,
     ConjunctionQuery,
     DisjunctionQuery,
@@ -35,8 +35,38 @@ from .compat import (
     SymDifferenceQuery,
     NotQuery,
     QueryMatcher,
-    CypherQuery
+    CypherQuery,
+    parse_cypher_query
 )
+
+
+def combine_via_conjunction(query0, query1):
+    return ConjunctionQuery(query0, query1)
+
+
+def combine_via_disjunction(query0, query1):
+    return DisjunctionQuery(query0, query1)
+
+
+def combine_via_exclusive_disjunction(query0, query1):
+    return ExclusiveDisjunctionQuery(query0, query1)
+
+
+def negate_query(query):
+    return NegationQuery(query)
+
+
+Query.__and__ = combine_via_conjunction
+Query.__or__ = combine_via_disjunction
+Query.__xor__ = combine_via_exclusive_disjunction
+Query.__not__ = negate_query
+
+
+CompoundQuery.__and__ = combine_via_conjunction
+CompoundQuery.__or__ = combine_via_disjunction
+CompoundQuery.__xor__ = combine_via_exclusive_disjunction
+CompoundQuery.__not__ = negate_query
+
 
 __all__ = [
     "Query",

@@ -5,8 +5,6 @@
 
 from abc import abstractmethod
 
-from hatchet.query import IntersectionQuery, SymDifferenceQuery, UnionQuery
-
 try:
     from abc import ABC
 except ImportError:
@@ -15,8 +13,8 @@ except ImportError:
     ABC = ABCMeta("ABC", (object,), {"__slots__": ()})
 import sys
 
-from .query import (
-    Query,
+from .query import Query
+from .compound import (
     CompoundQuery,
     ConjunctionQuery,
     DisjunctionQuery,
@@ -74,8 +72,8 @@ class NaryQuery(AbstractQuery):
                 self.compat_subqueries.append(query)
             else:
                 raise TypeError(
-                    "Subqueries for NaryQuery must be either a \
-                                high-level query or a subclass of AbstractQuery"
+                    "Subqueries for NaryQuery must be either a\
+                     high-level query or a subclass of AbstractQuery"
                 )
 
     @abstractmethod
@@ -178,15 +176,20 @@ class QueryMatcher(AbstractQuery):
 
     def match(self, wildcard_spec=".", filter_func=lambda row: True):
         self.true_query.match(wildcard_spec, filter_func)
+        return self
 
     def rel(self, wildcard_spec=".", filter_func=lambda row: True):
         self.true_query.rel(wildcard_spec, filter_func)
+        return self
 
     def _apply_impl(self, query, gf):
         return COMPATABILITY_ENGINE.apply(query, gf.graph, gf.dataframe)
 
     def apply(self, gf):
         return self._apply_impl(self.true_query, gf)
+
+    def _get_subqueries(self):
+        return [self.true_query]
 
 
 class CypherQuery(QueryMatcher):
@@ -196,3 +199,10 @@ class CypherQuery(QueryMatcher):
 
     def apply(self, gf):
         return self._apply_impl(self.true_query, gf)
+
+    def _get_subqueries(self):
+        return [self.true_query]
+
+
+def parse_cypher_query(cypher_query):
+    return CypherQuery(cypher_query)
