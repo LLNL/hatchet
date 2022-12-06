@@ -13,7 +13,9 @@ jobs:
     strategy:
       matrix:
         # TODO: add macos-latest
-        os: [ubuntu-latest]
+        # TODO: change ubuntu-20.04 back to ubuntu-latest when the following issue is resolved:
+        #       https://github.com/actions/setup-python/issues/162
+        os: [ubuntu-20.04]
         # TODO: add pypy2, pypy3
         python-version: [2.7, 3.5, 3.6, 3.7, 3.8]
         exclude:

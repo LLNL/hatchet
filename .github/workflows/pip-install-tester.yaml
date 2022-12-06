@@ -17,7 +17,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest]
+        # TODO: change ubuntu-20.04 back to ubuntu-latest when the following issue is resolved:
+        #       https://github.com/actions/setup-python/issues/162
+        os: [ubuntu-20.04]
         python-version: [3.6, 3.7, 3.8, 3.9]
         hatchet-version: ["2022.2.0"]
 
@@ -50,13 +52,13 @@ jobs:
         cd $curr_dir
 
     - name: Show packages
-      run: |                                                                
-        python -m pip list                                                  
-                                                                            
-    - name: Prep tests                                                      
-      env:                                                                  
-        HATCHET_VERSION: ${{ matrix.hatchet-version }}                      
-        PYTHON_VERSION: ${{ matrix.python-version }}                        
+      run: |
+        python -m pip list
+
+    - name: Prep tests
+      env:
+        HATCHET_VERSION: ${{ matrix.hatchet-version }}
+        PYTHON_VERSION: ${{ matrix.python-version }}
       run: |
         cp -r ./hatchet/tests ~
         test_dir="tests-$HATCHET_VERSION-$PYTHON_VERSION"
