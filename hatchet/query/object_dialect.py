@@ -249,7 +249,14 @@ def _process_predicate(attr_filter):
 
 class ObjectQuery(Query):
 
+    """Class for representing and parsing queries using the Object-based dialect."""
+
     def __init__(self, query):
+        """Builds a new ObjectQuery from an instance of the Object-based dialect syntax.
+
+        Arguments:
+            query (list): the Object-based dialect query to parse and store
+        """
         super().__init__()
         assert isinstance(query, list)
         for qnode in query:

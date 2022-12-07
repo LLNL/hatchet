@@ -20,6 +20,7 @@ from .errors import (
 from .query import Query
 
 
+# PEG grammar for the String-based dialect
 CYPHER_GRAMMAR = u"""
 FullQuery: path_expr=MatchExpr(cond_expr=WhereExpr)?;
 MatchExpr: 'MATCH' path=PathQuery;
@@ -56,14 +57,28 @@ NumInf: name=ID '.' prop=STRING 'IS INF';
 NumNotInf: name=ID '.' prop=STRING 'IS NOT INF';
 """
 
+# TextX metamodel for the String-based dialect
 cypher_query_mm = metamodel_from_str(CYPHER_GRAMMAR)
 
 
 def cname(obj):
+    """Utility function to get the name of the rule represented by the input"""
     return obj.__class__.__name__
 
 
 def filter_check_types(type_check, df_row, filt_lambda):
+    """Utility function used in String-based predicates
+       to make sure the node data used in the actual boolean predicate
+       is of the correct type.
+
+    Arguments:
+        type_check (str): a string containing a boolean Python expression used to validate node data typing
+        df_row (pandas.Series or pandas.DataFrame): the row (or sub-DataFrame) representing the data for the current node being tested
+        filt_lambda (Callable): the lambda used to actually confirm whether the node satisfies the predicate
+
+    Returns:
+        (bool): True if the node satisfies the predicate. False otherwise
+    """
     try:
         if type_check == "" or eval(type_check):
             return filt_lambda(df_row)
@@ -74,7 +89,15 @@ def filter_check_types(type_check, df_row, filt_lambda):
 
 
 class StringQuery(Query):
+
+    """Class for representing and parsing queries using the String-based dialect."""
+
     def __init__(self, cypher_query):
+        """Builds a new StringQuery object representing a query in the String-based dialect.
+
+        Arguments:
+            cypher_query (str): a query in the String-based dialect
+        """
         if sys.version_info[0] == 2:
             super(StringQuery, self).__init__()
         else:
@@ -99,6 +122,9 @@ class StringQuery(Query):
         self._build_query()
 
     def _build_query(self):
+        """Builds the entire query using 'match' and 'rel' using
+        the pre-parsed quantifiers and predicates.
+        """
         for i in range(0, len(self.wcards)):
             wcard = self.wcards[i][0]
             # TODO Remove this when Python 2.7 support is dropped.
@@ -117,6 +143,9 @@ class StringQuery(Query):
                     self.rel(quantifier=wcard, predicate=eval(filt_str))
 
     def _build_lambdas(self):
+        """Constructs the final predicate lambdas from the pre-parsed
+        predicate information.
+        """
         for i in range(0, len(self.wcards)):
             n = self.wcards[i]
             if n[1] != "":
@@ -140,6 +169,7 @@ class StringQuery(Query):
                 self.lambda_filters[i] = bool_expr
 
     def _parse_path(self, path_obj):
+        """Parses the MATCH statement of a String-based query."""
         nodes = path_obj.path.nodes
         idx = len(self.wcards)
         for n in nodes:
@@ -152,6 +182,9 @@ class StringQuery(Query):
             idx += 1
 
     def _parse_conditions(self, cond_expr):
+        """Top level function for parsing the WHERE statement of
+        a String-based query.
+        """
         conditions = cond_expr.conditions
         for cond in conditions:
             converted_condition = None
@@ -170,6 +203,7 @@ class StringQuery(Query):
                     self.filters[i][0][0] = None
 
     def _is_unary_cond(self, obj):
+        """Detect whether a predicate is unary or not."""
         if (
             cname(obj) == "NotCond"
             or self._is_str_cond(obj)
@@ -180,11 +214,13 @@ class StringQuery(Query):
         return False
 
     def _is_binary_cond(self, obj):
+        """Detect whether a predicate is binary or not."""
         if cname(obj) in ["AndCond", "OrCond"]:
             return True
         return False
 
     def _parse_binary_cond(self, obj):
+        """Top level function for parsing binary predicates."""
         if cname(obj) == "AndCond":
             return self._parse_and_cond(obj)
         if cname(obj) == "OrCond":
@@ -192,26 +228,31 @@ class StringQuery(Query):
         raise RuntimeError("Bad Binary Condition")
 
     def _parse_or_cond(self, obj):
+        """Top level function for parsing predicates combined with logical OR."""
         converted_subcond = self._parse_unary_cond(obj.subcond)
         converted_subcond[0] = "or"
         return converted_subcond
 
     def _parse_and_cond(self, obj):
+        """Top level function for parsing predicates combined with logical AND."""
         converted_subcond = self._parse_unary_cond(obj.subcond)
         converted_subcond[0] = "and"
         return converted_subcond
 
     def _parse_unary_cond(self, obj):
+        """Top level function for parsing unary predicates."""
         if cname(obj) == "NotCond":
             return self._parse_not_cond(obj)
         return self._parse_single_cond(obj)
 
     def _parse_not_cond(self, obj):
+        """Parse predicates containing the logical NOT operator."""
         converted_subcond = self._parse_single_cond(obj.subcond)
         converted_subcond[2] = "not {}".format(converted_subcond[2])
         return converted_subcond
 
     def _parse_single_cond(self, obj):
+        """Top level function for parsing individual numeric or string predicates."""
         if self._is_str_cond(obj):
             return self._parse_str(obj)
         if self._is_num_cond(obj):
@@ -227,6 +268,7 @@ class StringQuery(Query):
         raise RuntimeError("Bad Single Condition")
 
     def _parse_none(self, obj):
+        """Parses 'property IS NONE'."""
         if obj.prop == "depth":
             return [
                 None,
@@ -249,6 +291,7 @@ class StringQuery(Query):
         ]
 
     def _parse_not_none(self, obj):
+        """Parses 'property IS NOT NONE'."""
         if obj.prop == "depth":
             return [
                 None,
@@ -271,6 +314,7 @@ class StringQuery(Query):
         ]
 
     def _parse_leaf(self, obj):
+        """Parses 'node IS LEAF'."""
         return [
             None,
             obj.name,
@@ -279,6 +323,7 @@ class StringQuery(Query):
         ]
 
     def _parse_not_leaf(self, obj):
+        """Parses 'node IS NOT LEAF'."""
         return [
             None,
             obj.name,
@@ -287,6 +332,7 @@ class StringQuery(Query):
         ]
 
     def _is_str_cond(self, obj):
+        """Determines whether a predicate is for string data."""
         if cname(obj) in [
             "StringEq",
             "StringStartsWith",
@@ -298,6 +344,7 @@ class StringQuery(Query):
         return False
 
     def _is_num_cond(self, obj):
+        """Determines whether a predicate is for numeric data."""
         if cname(obj) in [
             "NumEq",
             "NumLt",
@@ -313,6 +360,9 @@ class StringQuery(Query):
         return False
 
     def _parse_str(self, obj):
+        """Function that redirects processing of string predicates
+        to the correct function.
+        """
         if cname(obj) == "StringEq":
             return self._parse_str_eq(obj)
         if cname(obj) == "StringStartsWith":
@@ -326,6 +376,7 @@ class StringQuery(Query):
         raise RuntimeError("Bad String Op Class")
 
     def _parse_str_eq(self, obj):
+        """Processes string equivalence predicates."""
         return [
             None,
             obj.name,
@@ -334,6 +385,7 @@ class StringQuery(Query):
         ]
 
     def _parse_str_starts_with(self, obj):
+        """Processes string 'startswith' predicates."""
         return [
             None,
             obj.name,
@@ -342,6 +394,7 @@ class StringQuery(Query):
         ]
 
     def _parse_str_ends_with(self, obj):
+        """Processes string 'endswith' predicates."""
         return [
             None,
             obj.name,
@@ -350,6 +403,7 @@ class StringQuery(Query):
         ]
 
     def _parse_str_contains(self, obj):
+        """Processes string 'contains' predicates."""
         return [
             None,
             obj.name,
@@ -358,6 +412,7 @@ class StringQuery(Query):
         ]
 
     def _parse_str_match(self, obj):
+        """Processes string regex match predicates."""
         return [
             None,
             obj.name,
@@ -366,6 +421,9 @@ class StringQuery(Query):
         ]
 
     def _parse_num(self, obj):
+        """Function that redirects processing of numeric predicates
+        to the correct function.
+        """
         if cname(obj) == "NumEq":
             return self._parse_num_eq(obj)
         if cname(obj) == "NumLt":
@@ -387,6 +445,7 @@ class StringQuery(Query):
         raise RuntimeError("Bad Number Op Class")
 
     def _parse_num_eq(self, obj):
+        """Processes numeric equivalence predicates."""
         if obj.prop == "depth":
             if obj.val == -1:
                 return [
@@ -452,6 +511,7 @@ class StringQuery(Query):
         ]
 
     def _parse_num_lt(self, obj):
+        """Processes numeric less-than predicates."""
         if obj.prop == "depth":
             if obj.val < 0:
                 warnings.warn(
@@ -510,6 +570,7 @@ class StringQuery(Query):
         ]
 
     def _parse_num_gt(self, obj):
+        """Processes numeric greater-than predicates."""
         if obj.prop == "depth":
             if obj.val < 0:
                 warnings.warn(
@@ -568,6 +629,7 @@ class StringQuery(Query):
         ]
 
     def _parse_num_lte(self, obj):
+        """Processes numeric less-than-or-equal-to predicates."""
         if obj.prop == "depth":
             if obj.val < 0:
                 warnings.warn(
@@ -626,6 +688,7 @@ class StringQuery(Query):
         ]
 
     def _parse_num_gte(self, obj):
+        """Processes numeric greater-than-or-equal-to predicates."""
         if obj.prop == "depth":
             if obj.val < 0:
                 warnings.warn(
@@ -684,6 +747,7 @@ class StringQuery(Query):
         ]
 
     def _parse_num_nan(self, obj):
+        """Processes predicates that check for NaN."""
         if obj.prop == "depth":
             return [
                 None,
@@ -706,6 +770,7 @@ class StringQuery(Query):
         ]
 
     def _parse_num_not_nan(self, obj):
+        """Processes predicates that check for NaN."""
         if obj.prop == "depth":
             return [
                 None,
@@ -728,6 +793,7 @@ class StringQuery(Query):
         ]
 
     def _parse_num_inf(self, obj):
+        """Processes predicates that check for Infinity."""
         if obj.prop == "depth":
             return [
                 None,
@@ -750,6 +816,7 @@ class StringQuery(Query):
         ]
 
     def _parse_num_not_inf(self, obj):
+        """Processes predicates that check for not-Infinity."""
         if obj.prop == "depth":
             return [
                 None,
@@ -773,14 +840,14 @@ class StringQuery(Query):
 
 
 def parse_string_dialect(query_str):
-    """Parse all types of mid-level queries, including multi-queries that leverage
+    """Parse all types of String-based queries, including multi-queries that leverage
     the curly brace delimiters.
 
     Arguments:
-        query_str (str): the mid-level query to be parsed
+        query_str (str): the String-based query to be parsed
 
     Returns:
-        (AbstractQuery): A Hatchet query object representing the mid-level query
+        (Query or CompoundQuery): A Hatchet query object representing the String-based query
     """
     # TODO Check if there's a way to prevent curly braces in a string
     #      from being captured

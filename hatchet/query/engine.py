@@ -18,20 +18,26 @@ from .string_dialect import parse_string_dialect
 
 class QueryEngine:
 
+    """Class for applying queries to GraphFrames."""
+
     def __init__(self):
+        """Creates the QueryEngine."""
         self.search_cache = {}
 
     def reset_cache(self):
+        """Resets the cache in the QueryEngine."""
         self.search_cache = {}
 
     def apply(self, query, graph, dframe):
         """Apply the query to a GraphFrame.
 
         Arguments:
-            gf (GraphFrame): the GraphFrame on which to apply the query.
+            query (Query or CompoundQuery): the query being applied
+            graph (Graph): the Graph to which the query is being applied
+            dframe (pandas.DataFrame): the DataFrame associated with the graph
 
         Returns:
-            (list): A list representing the set of nodes from paths that match this query.
+            (list): A list representing the set of nodes from paths that match the query
         """
         if issubclass(type(query), Query):
             self.reset_cache()
@@ -60,8 +66,9 @@ class QueryEngine:
         """Cache (Memoize) the parts of the query that the node matches.
 
         Arguments:
-            gf (GraphFrame): the GraphFrame containing the node to be cached.
-            node (Node): the Node to be cached.
+            node (Node): the Node to be cached
+            query (Query): the query being applied
+            dframe (pandas.DataFrame): the DataFrame containing node metrics and other data
         """
         assert isinstance(node, Node)
         matches = []
@@ -79,15 +86,18 @@ class QueryEngine:
         self.search_cache[node._hatchet_nid] = matches
 
     def _match_0_or_more(self, query, dframe, node, wcard_idx):
-        """Process a "*" wildcard in the query on a subgraph.
+        """Process a "*" predicate in the query on a subgraph.
 
         Arguments:
-            gf (GraphFrame): the GraphFrame being queried.
-            node (Node): the node being queried against the "*" wildcard.
-            wcard_idx (int): the index associated with the "*" wildcard query.
+            query (Query): the query being applied
+            dframe (pandas.DataFrame): the DataFrame containing the metrics for the queried GraphFrame
+            node (Node): the node being queried against the "*" predicate
+            wcard_idx (int): the index into the query associated with the "*" predicate
 
         Returns:
-            (list): a list of lists representing the paths rooted at "node" that match the "*" wildcard and/or the next query node. Will return None if there is no match for the "*" wildcard or the next query node.
+            (list): a list of lists representing the paths rooted at "node" that match the "*" predicate
+                    and/or the next query node. Will return None if there is no match for the "*"
+                    predicate or the next query node.
         """
         # Cache the node if it's not already cached
         if node._hatchet_nid not in self.search_cache:
@@ -122,15 +132,17 @@ class QueryEngine:
             return None
 
     def _match_1(self, query, dframe, node, idx):
-        """Process a "." wildcard in the query on a subgraph.
+        """Process a "." predicate in the query on a subgraph.
 
         Arguments:
-            gf (GraphFrame): the GraphFrame being queried.
-            node (Node): the node being queried against the "." wildcard.
-            wcard_idx (int): the index associated with the "." wildcard query.
+            query (Query): the query being applied
+            dframe (pandas.DataFrame): the DataFrame containing the metrics for the queried GraphFrame
+            node (Node): the node being queried against the "." predicate
+            idx (int): the index into the query associated with the "." predicate
 
         Returns:
-            (list): A list of lists representing the children of "node" that match the "." wildcard being considered. Will return None if there are no matches for the "." wildcard.
+            (list): A list of lists representing the children of "node" that match the "." predicate being considered.
+                    Will return None if there are no matches for the "." predicate.
         """
         if node._hatchet_nid not in self.search_cache:
             self._cache_node(node, query, dframe)
@@ -151,11 +163,13 @@ class QueryEngine:
         """Try to match the query pattern starting at the provided root node.
 
         Arguments:
-            gf (GraphFrame): the GraphFrame being queried.
-            pattern_root (Node): the root node of the subgraph that is being queried.
+            query (Query): the query being applied
+            dframe (pandas.DataFrame): the DataFrame containing the metrics for the queried GraphFrame
+            pattern_root (Node): the current node considered in the query
+            match_idx (int): the current index into the query
 
         Returns:
-            (list): A list of lists representing the paths rooted at "pattern_root" that match the query.
+            (list): A list of lists representing the paths rooted at "pattern_root" that match the query
         """
         assert isinstance(pattern_root, Node)
         # Starting query node
@@ -214,10 +228,11 @@ class QueryEngine:
         """Traverse the subgraph with the specified root, and collect all paths that match the query.
 
         Arguments:
-            gf (GraphFrame): the GraphFrame being queried.
-            node (Node): the root node of the subgraph that is being queried.
-            visited (set): a set that keeps track of what nodes have been visited in the traversal to minimize the amount of work that is repeated.
-            matches (list): the list in which the final set of matches are stored.
+            query (Query): the query being applied
+            dframe (pandas.DataFrame): the DataFrame containing the metrics for the queried GraphFrame
+            node (Node): the root node of the subgraph that is being queried
+            visited (set): a set that keeps track of what nodes have been visited in the traversal to minimize the amount of work that is repeated
+            matches (list): the list in which the final set of matches are stored
         """
         # If the node has already been visited (or is None for some
         # reason), skip it.
