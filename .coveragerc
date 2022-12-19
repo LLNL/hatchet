@@ -3,6 +3,7 @@
 [run]
 parallel = True
 branch = True
+data_file = ./.coverage/coverage
 source = .
 omit =
      hatchet/tests/*
