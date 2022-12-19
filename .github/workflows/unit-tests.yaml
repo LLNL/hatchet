@@ -118,3 +118,4 @@ jobs:
         fail_ci_if_error: true
         verbose: true
         env_vars: OS,PYTHON
+        directory: ./.coverage
