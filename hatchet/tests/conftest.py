@@ -1006,7 +1006,7 @@ def timemory_json_data():
         ny = 10
         tol = 5.0e-2
         profl_arr = np.random.rand(nx, ny)
-        trace_arr = np.zeros([nx, ny], dtype=np.float)
+        trace_arr = np.zeros([nx, ny], dtype=np.float64)
         trace_arr[:, :] = profl_arr[:, :]
 
         # restrict the scope of the profiler
