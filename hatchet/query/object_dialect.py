@@ -6,6 +6,10 @@
 from numbers import Real
 import numpy as np
 import pandas as pd
+from pandas.api.types import (
+    is_numeric_dtype,
+    is_string_dtype,
+)
 import re
 import sys
 
@@ -150,7 +154,7 @@ def _process_predicate(attr_filter, multi_index_mode):
                 )
             if key not in df_row.columns:
                 return False
-            if df_row[key].apply(type).eq(str).all():
+            if is_string_dtype(df_row[key]):
                 if not isinstance(single_value, str):
                     raise InvalidQueryFilter(
                         "Value for attribute {} must be a string.".format(key)
@@ -163,7 +167,7 @@ def _process_predicate(attr_filter, multi_index_mode):
                     )
                 )
                 return _process_multi_index_mode(apply_ret, multi_index_mode)
-            if df_row[key].apply(type).eq(Real).all():
+            if is_numeric_dtype(df_row[key]):
                 if isinstance(
                     single_value, str
                 ) and single_value.lower().startswith(compops):

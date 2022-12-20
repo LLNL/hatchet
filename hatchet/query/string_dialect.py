@@ -7,6 +7,7 @@ from numbers import Real
 import re
 import sys
 import pandas as pd  # noqa: F401
+from pandas.api.types import is_numeric_dtype, is_string_dtype # noqa: F401
 import numpy as np  # noqa: F401
 from textx import metamodel_from_str
 from textx.exceptions import TextXError
@@ -479,7 +480,7 @@ class StringQuery(Query):
                     obj.prop, obj.val
                 )
             ),
-            "df_row['{}'].apply(type).eq(str).all()".format(obj.prop),
+            "is_string_dtype(df_row['{}'])".format(obj.prop),
         ]
 
     def _parse_str_starts_with(self, obj):
@@ -500,7 +501,7 @@ class StringQuery(Query):
                     obj.prop, obj.val
                 )
             ),
-            "df_row['{}'].apply(type).eq(str).all()".format(obj.prop),
+            "is_string_dtype(df_row['{}'])".format(obj.prop),
         ]
 
     def _parse_str_ends_with(self, obj):
@@ -521,7 +522,7 @@ class StringQuery(Query):
                     obj.prop, obj.val
                 )
             ),
-            "df_row['{}'].apply(type).eq(str).all()".format(obj.prop),
+            "is_string_dtype(df_row['{}'])".format(obj.prop),
         ]
 
     def _parse_str_contains(self, obj):
@@ -542,7 +543,7 @@ class StringQuery(Query):
                     obj.prop, obj.val
                 )
             ),
-            "df_row['{}'].apply(type).eq(str).all()".format(obj.prop),
+            "is_string_dtype(df_row['{}'])".format(obj.prop),
         ]
 
     def _parse_str_match(self, obj):
@@ -563,7 +564,7 @@ class StringQuery(Query):
                     obj.prop, obj.val
                 )
             ),
-            "df_row['{}'].apply(type).eq(str).all()".format(obj.prop),
+            "is_string_dtype(df_row['{}'])".format(obj.prop),
         ]
 
     def _parse_num(self, obj):
@@ -722,7 +723,7 @@ class StringQuery(Query):
                     obj.prop, obj.val
                 )
             ),
-            "df_row['{}'].apply(type).eq(Real).all()".format(obj.prop)
+            "is_numeric_dtype(df_row['{}'])".format(obj.prop)
         ]
 
     def _parse_num_lt(self, obj):
@@ -843,7 +844,7 @@ class StringQuery(Query):
                     obj.prop, obj.val
                 )
             ),
-            "df_row['{}'].apply(type).eq(Real).all()".format(obj.prop)
+            "is_numeric_dtype(df_row['{}'])".format(obj.prop)
         ]
 
     def _parse_num_gt(self, obj):
@@ -964,7 +965,7 @@ class StringQuery(Query):
                     obj.prop, obj.val
                 )
             ),
-            "df_row['{}'].apply(type).eq(Real).all()".format(obj.prop),
+            "is_numeric_dtype(df_row['{}'])".format(obj.prop),
         ]
 
     def _parse_num_lte(self, obj):
@@ -1085,7 +1086,7 @@ class StringQuery(Query):
                     obj.prop, obj.val
                 )
             ),
-            "df_row['{}'].apply(type).eq(Real).all()".format(obj.prop),
+            "is_numeric_dtype(df_row['{}'])".format(obj.prop),
         ]
 
     def _parse_num_gte(self, obj):
@@ -1206,7 +1207,7 @@ class StringQuery(Query):
                     obj.prop, obj.val
                 )
             ),
-            "df_row['{}'].apply(type).eq(Real).all()".format(obj.prop),
+            "is_numeric_dtype(df_row['{}'])".format(obj.prop),
         ]
 
     def _parse_num_nan(self, obj):
@@ -1255,7 +1256,7 @@ class StringQuery(Query):
                     obj.prop
                 )
             ),
-            "df_row['{}'].apply(type).eq(Real).all()".format(obj.prop),
+            "is_numeric_dtype(df_row['{}'])".format(obj.prop),
         ]
 
     def _parse_num_not_nan(self, obj):
@@ -1304,7 +1305,7 @@ class StringQuery(Query):
                     obj.prop
                 )
             ),
-            "df_row['{}'].apply(type).eq(Real).all()".format(obj.prop),
+            "is_numeric_dtype(df_row['{}'])".format(obj.prop),
         ]
 
     def _parse_num_inf(self, obj):
@@ -1353,7 +1354,7 @@ class StringQuery(Query):
                     obj.prop
                 )
             ),
-            "df_row['{}'].apply(type).eq(Real).all()".format(obj.prop),
+            "is_numeric_dtype(df_row['{}'])".format(obj.prop),
         ]
 
     def _parse_num_not_inf(self, obj):
@@ -1402,11 +1403,11 @@ class StringQuery(Query):
                     obj.prop
                 )
             ),
-            "df_row['{}'].apply(type).eq(Real).all()".format(obj.prop),
+            "is_numeric_dtype(df_row['{}'])".format(obj.prop),
         ]
 
 
-def parse_string_dialect(query_str):
+def parse_string_dialect(query_str, multi_index_mode="off"):
     """Parse all types of String-based queries, including multi-queries that leverage
     the curly brace delimiters.
 
@@ -1428,7 +1429,7 @@ def parse_string_dialect(query_str):
     if num_curly_brace_elems == 0:
         if sys.version_info[0] == 2:
             query_str = query_str.decode("utf-8")
-        return StringQuery(query_str)
+        return StringQuery(query_str, multi_index_mode)
     # Create an iterator over the curly brace-delimited regions
     curly_brace_iter = re.finditer(r"\{(.*?)\}", query_str)
     # Will store curly brace-delimited regions in the WHERE clause
@@ -1517,14 +1518,14 @@ def parse_string_dialect(query_str):
                 query1 = "MATCH {} WHERE {}".format(match_comp, condition_list[i])
                 if sys.version_info[0] == 2:
                     query1 = query1.decode("utf-8")
-                full_query = StringQuery(query1)
+                full_query = StringQuery(query1, multi_index_mode)
             # Get the next query as a CypherQuery where
             # the MATCH clause is the shared match clause and the WHERE clause is the
             # next curly brace-delimited region
             next_query = "MATCH {} WHERE {}".format(match_comp, condition_list[i + 1])
             if sys.version_info[0] == 2:
                 next_query = next_query.decode("utf-8")
-            next_query = StringQuery(next_query)
+            next_query = StringQuery(next_query, multi_index_mode)
             # Add the next query to the full query using the compound operator
             # currently being considered
             if op == "AND":
