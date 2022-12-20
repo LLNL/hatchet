@@ -68,6 +68,14 @@ CompoundQuery.__xor__ = combine_via_exclusive_disjunction
 CompoundQuery.__not__ = negate_query
 
 
+def is_hatchet_query(query_obj):
+    return (
+        issubclass(type(query_obj), Query) or
+        issubclass(type(query_obj), CompoundQuery) or
+        issubclass(type(query_obj), AbstractQuery)
+    )
+
+
 __all__ = [
     "Query",
     "CompoundQuery",
