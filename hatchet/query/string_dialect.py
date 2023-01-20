@@ -6,6 +6,8 @@
 from numbers import Real
 import re
 import sys
+import pandas as pd  # noqa: F401
+import numpy as np  # noqa: F401
 from textx import metamodel_from_str
 from textx.exceptions import TextXError
 import warnings

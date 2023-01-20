@@ -81,7 +81,7 @@ class AbstractQuery(ABC):
         return NotQuery(self)
 
     @abstractmethod
-    def _get_subqueries(self):
+    def _get_new_query(self):
         pass
 
 
@@ -116,11 +116,19 @@ class NaryQuery(AbstractQuery):
                      high-level query or a subclass of AbstractQuery"
                 )
 
-    @abstractmethod
     def apply(self, gf):
-        pass
+        """Applies the query to the specified GraphFrame.
 
-    def _get_subqueries(self):
+        Arguments:
+            gf (GraphFrame): the GraphFramme on which to apply the query
+
+        Results:
+            (list): A list of nodes representing the result of the query
+        """
+        true_query = self._get_new_query()
+        return COMPATABILITY_ENGINE.apply(true_query, gf.graph, gf.dataframe)
+
+    def _get_new_query(self):
         """Gets all the underlying 'new-style' queries in this object.
 
         Returns:
@@ -128,11 +136,15 @@ class NaryQuery(AbstractQuery):
         """
         true_subqueries = []
         for subq in self.compat_subqueries:
-            if issubclass(type(subq), Query) or issubclass(type(subq), CompoundQuery):
-                true_subqueries.append(subq)
-            else:
-                true_subqueries.extend(subq._get_subqueries())
-        return true_subqueries
+            true_subq = subq
+            if issubclass(type(subq), AbstractQuery):
+                true_subq = subq._get_new_query()
+            true_subqueries.append(true_subq)
+        return self._convert_to_new_query(true_subqueries)
+
+    @abstractmethod
+    def _convert_to_new_query(self, subqueries):
+        pass
 
 
 class AndQuery(NaryQuery):
@@ -153,18 +165,8 @@ class AndQuery(NaryQuery):
         if len(self.compat_subqueries) < 2:
             raise BadNumberNaryQueryArgs("AndQuery requires 2 or more subqueries")
 
-    def apply(self, gf):
-        """Applies the query to the specified GraphFrame.
-
-        Arguments:
-            gf (GraphFrame): the GraphFramme on which to apply the query
-
-        Results:
-            (list): A list of nodes representing the result of the query
-        """
-        subqueries = self._get_subqueries()
-        true_query = ConjunctionQuery(*subqueries)
-        return COMPATABILITY_ENGINE.apply(true_query, gf.graph, gf.dataframe)
+    def _convert_to_new_query(self, subqueries):
+        return ConjunctionQuery(*subqueries)
 
 
 """Alias of AndQuery"""
@@ -189,18 +191,8 @@ class OrQuery(NaryQuery):
         if len(self.compat_subqueries) < 2:
             raise BadNumberNaryQueryArgs("OrQuery requires 2 or more subqueries")
 
-    def apply(self, gf):
-        """Applies the query to the specified GraphFrame.
-
-        Arguments:
-            gf (GraphFrame): the GraphFramme on which to apply the query
-
-        Results:
-            (list): A list of nodes representing the result of the query
-        """
-        subqueries = self._get_subqueries()
-        true_query = DisjunctionQuery(*subqueries)
-        return COMPATABILITY_ENGINE.apply(true_query, gf.graph, gf.dataframe)
+    def _convert_to_new_query(self, subqueries):
+        return DisjunctionQuery(*subqueries)
 
 
 """Alias of OrQuery"""
@@ -225,18 +217,8 @@ class XorQuery(NaryQuery):
         if len(self.compat_subqueries) < 2:
             raise BadNumberNaryQueryArgs("XorQuery requires 2 or more subqueries")
 
-    def apply(self, gf):
-        """Applies the query to the specified GraphFrame.
-
-        Arguments:
-            gf (GraphFrame): the GraphFramme on which to apply the query
-
-        Results:
-            (list): A list of nodes representing the result of the query
-        """
-        subqueries = self._get_subqueries()
-        true_query = ExclusiveDisjunctionQuery(*subqueries)
-        return COMPATABILITY_ENGINE.apply(true_query, gf.graph, gf.dataframe)
+    def _convert_to_new_query(self, subqueries):
+        return ExclusiveDisjunctionQuery(*subqueries)
 
 
 """Alias of XorQuery"""
@@ -261,18 +243,8 @@ class NotQuery(NaryQuery):
         if len(self.compat_subqueries) < 1:
             raise BadNumberNaryQueryArgs("NotQuery requires exactly 1 subquery")
 
-    def apply(self, gf):
-        """Applies the query to the specified GraphFrame.
-
-        Arguments:
-            gf (GraphFrame): the GraphFramme on which to apply the query
-
-        Results:
-            (list): A list of nodes representing the result of the query
-        """
-        subqueries = self._get_subqueries()
-        true_query = NegationQuery(*subqueries)
-        return COMPATABILITY_ENGINE.apply(true_query, gf.graph, gf.dataframe)
+    def _convert_to_new_query(self, subqueries):
+        return NegationQuery(*subqueries)
 
 
 class QueryMatcher(AbstractQuery):
@@ -333,13 +305,13 @@ class QueryMatcher(AbstractQuery):
         """
         return COMPATABILITY_ENGINE.apply(self.true_query, gf.graph, gf.dataframe)
 
-    def _get_subqueries(self):
+    def _get_new_query(self):
         """Get all the underlying 'new-style' query in this object.
 
         Returns:
             (Query or ObjectQuery): the underlying 'new-style' query in this object
         """
-        return [self.true_query]
+        return self.true_query
 
 
 class CypherQuery(QueryMatcher):
@@ -354,24 +326,13 @@ class CypherQuery(QueryMatcher):
         """
         self.true_query = parse_string_dialect(cypher_query)
 
-    def apply(self, gf):
-        """Apply the query to a GraphFrame.
-
-        Arguments:
-            gf (GraphFrame): the GraphFrame on which to apply the query
-
-        Returns:
-            (list): A list representing the set of nodes from paths that match this query
-        """
-        return self._apply_impl(self.true_query, gf)
-
-    def _get_subqueries(self):
+    def _get_new_query(self):
         """Gets all the underlying 'new-style' queries in this object.
 
         Returns:
             (List[Union[Query, CompoundQuery]]): a list of all the underlying 'new-style' queries in this object
         """
-        return [self.true_query]
+        return self.true_query
 
 
 def parse_cypher_query(cypher_query):

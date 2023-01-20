@@ -481,7 +481,7 @@ class GraphFrame:
             elif isinstance(filter_obj, str):
                 query = parse_string_dialect(filter_obj)
             elif issubclass(type(filter_obj), AbstractQuery):
-                query = filter_obj._get_subqueries()
+                query = filter_obj._get_new_query()
             query_matches = self.query_engine.apply(query, self.graph, self.dataframe)
             # match_set = list(set().union(*query_matches))
             # filtered_df = dataframe_copy.loc[dataframe_copy["node"].isin(match_set)]
