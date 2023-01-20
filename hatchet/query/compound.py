@@ -13,7 +13,7 @@ from .object_dialect import ObjectQuery
 from .errors import BadNumberNaryQueryArgs
 
 
-class CompoundQuery:
+class CompoundQuery(object):
 
     """Base class for all types of compound queries."""
 

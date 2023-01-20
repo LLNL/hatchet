@@ -6,7 +6,7 @@
 from .errors import InvalidQueryPath
 
 
-class Query:
+class Query(object):
     """Class for representing and building Hatchet Call Path Queries"""
 
     def __init__(self):

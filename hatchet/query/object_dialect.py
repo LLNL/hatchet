@@ -7,6 +7,7 @@ from numbers import Real
 import numpy as np
 import pandas as pd
 import re
+import sys
 
 from .errors import InvalidQueryPath, InvalidQueryFilter
 from .query import Query
@@ -219,7 +220,10 @@ class ObjectQuery(Query):
         Arguments:
             query (list): the Object-based dialect query to parse and store
         """
-        super().__init__()
+        if sys.version_info[0] == 2:
+            super(ObjectQuery, self).__init__()
+        else:
+            super().__init__()
         assert isinstance(query, list)
         for qnode in query:
             if isinstance(qnode, dict):
