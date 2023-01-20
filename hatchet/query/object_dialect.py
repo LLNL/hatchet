@@ -8,11 +8,9 @@ import numpy as np
 import pandas as pd
 import re
 
-from .errors import (
-    InvalidQueryPath,
-    InvalidQueryFilter
-)
+from .errors import InvalidQueryPath, InvalidQueryFilter
 from .query import Query
+
 
 def _process_predicate(attr_filter):
     """Converts high-level API attribute filter to a lambda"""
@@ -31,9 +29,9 @@ def _process_predicate(attr_filter):
         def filter_single_series(df_row, key, single_value):
             if key == "depth":
                 node = df_row.name
-                if isinstance(
-                    single_value, str
-                ) and single_value.lower().startswith(compops):
+                if isinstance(single_value, str) and single_value.lower().startswith(
+                    compops
+                ):
                     return eval("{} {}".format(node._depth, single_value))
                 if isinstance(single_value, Real):
                     # If the value for "depth" is -1, check if the node is a leaf
@@ -47,12 +45,10 @@ def _process_predicate(attr_filter):
                 )
             if key == "node_id":
                 node = df_row.name
-                if isinstance(
-                    single_value, str
-                ) and single_value.lower().startswith(compops):
-                    return eval(
-                        "{} {}".format(node._hatchet_nid, single_value)
-                    )
+                if isinstance(single_value, str) and single_value.lower().startswith(
+                    compops
+                ):
+                    return eval("{} {}".format(node._hatchet_nid, single_value))
                 if isinstance(single_value, Real):
                     return node._hatchet_nid == single_value
                 raise InvalidQueryFilter(
@@ -65,17 +61,13 @@ def _process_predicate(attr_filter):
             if isinstance(df_row[key], str):
                 if not isinstance(single_value, str):
                     raise InvalidQueryFilter(
-                        "Value for attribute {} must be a string.".format(
-                            key
-                        )
+                        "Value for attribute {} must be a string.".format(key)
                     )
-                return (
-                    re.match(single_value + r"\Z", df_row[key]) is not None
-                )
+                return re.match(single_value + r"\Z", df_row[key]) is not None
             if isinstance(df_row[key], Real):
-                if isinstance(
-                    single_value, str
-                ) and single_value.lower().startswith(compops):
+                if isinstance(single_value, str) and single_value.lower().startswith(
+                    compops
+                ):
                     # compare nan metric value to numeric query
                     # (e.g. np.nan > 5)
                     if pd.isnull(df_row[key]):
@@ -83,23 +75,17 @@ def _process_predicate(attr_filter):
                         # compare nan metric value to nan query
                         # (e.g., np.nan == np.nan)
                         if nan_str in single_value:
-                            return eval(
-                                "pd.isnull({}) == True".format(nan_str)
-                            )
+                            return eval("pd.isnull({}) == True".format(nan_str))
                         return eval("{} {}".format(nan_str, single_value))
                     elif np.isinf(df_row[key]):
                         inf_str = "np.inf"
                         # compare inf metric value to inf query
                         # (e.g., np.inf == np.inf)
                         if inf_str in single_value:
-                            return eval(
-                                "np.isinf({}) == True".format(inf_str)
-                            )
+                            return eval("np.isinf({}) == True".format(inf_str))
                         return eval("{} {}".format(inf_str, single_value))
                     else:
-                        return eval(
-                            "{} {}".format(df_row[key], single_value)
-                        )
+                        return eval("{} {}".format(df_row[key], single_value))
 
                 if isinstance(single_value, Real):
                     return df_row[key] == single_value
@@ -125,28 +111,16 @@ def _process_predicate(attr_filter):
                 matches = matches and filter_single_series(df_row, k, v)
             else:
                 for single_value in v:
-                    matches = matches and filter_single_series(
-                        df_row, k, single_value
-                    )
+                    matches = matches and filter_single_series(df_row, k, single_value)
         return matches
 
     def filter_dframe(df_row):
         if first_no_drop_indices["val"]:
-            print(
-                "==================================================================="
-            )
-            print(
-                "WARNING: You are performing a query without dropping index levels."
-            )
-            print(
-                "         This is a valid operation, but it will significantly"
-            )
-            print(
-                "         increase the time it takes for this operation to complete."
-            )
-            print(
-                "         If you don't want the operation to take so long, call"
-            )
+            print("===================================================================")
+            print("WARNING: You are performing a query without dropping index levels.")
+            print("         This is a valid operation, but it will significantly")
+            print("         increase the time it takes for this operation to complete.")
+            print("         If you don't want the operation to take so long, call")
             print("         GraphFrame.drop_index_levels() before calling")
             print("         GraphFrame.filter()")
             print(
@@ -156,9 +130,9 @@ def _process_predicate(attr_filter):
 
         def filter_single_dframe(node, df_row, key, single_value):
             if key == "depth":
-                if isinstance(
-                    single_value, str
-                ) and single_value.lower().startswith(compops):
+                if isinstance(single_value, str) and single_value.lower().startswith(
+                    compops
+                ):
                     return eval("{} {}".format(node._depth, single_value))
                 if isinstance(single_value, Real):
                     return node._depth == single_value
@@ -168,12 +142,10 @@ def _process_predicate(attr_filter):
                     )
                 )
             if key == "node_id":
-                if isinstance(
-                    single_value, str
-                ) and single_value.lower().startswith(compops):
-                    return eval(
-                        "{} {}".format(node._hatchet_nid, single_value)
-                    )
+                if isinstance(single_value, str) and single_value.lower().startswith(
+                    compops
+                ):
+                    return eval("{} {}".format(node._hatchet_nid, single_value))
                 if isinstance(single_value, Real):
                     return node._hatchet_nid == single_value
                 raise InvalidQueryFilter(
@@ -186,33 +158,24 @@ def _process_predicate(attr_filter):
             if df_row[key].apply(type).eq(str).all():
                 if not isinstance(single_value, str):
                     raise InvalidQueryFilter(
-                        "Value for attribute {} must be a string.".format(
-                            key
-                        )
+                        "Value for attribute {} must be a string.".format(key)
                     )
                 return (
                     df_row[key]
-                    .apply(
-                        lambda x: re.match(single_value + r"\Z", x)
-                        is not None
-                    )
+                    .apply(lambda x: re.match(single_value + r"\Z", x) is not None)
                     .any()
                 )
             if df_row[key].apply(type).eq(Real).all():
-                if isinstance(
-                    single_value, str
-                ) and single_value.lower().startswith(compops):
+                if isinstance(single_value, str) and single_value.lower().startswith(
+                    compops
+                ):
                     return (
                         df_row[key]
-                        .apply(
-                            lambda x: eval("{} {}".format(x, single_value))
-                        )
+                        .apply(lambda x: eval("{} {}".format(x, single_value)))
                         .any()
                     )
                 if isinstance(single_value, Real):
-                    return (
-                        df_row[key].apply(lambda x: x == single_value).any()
-                    )
+                    return df_row[key].apply(lambda x: x == single_value).any()
                 raise InvalidQueryFilter(
                     "Attribute {} has a numeric type. Valid filters for this attribute are a string starting with a comparison operator or a real number.".format(
                         key
@@ -230,9 +193,7 @@ def _process_predicate(attr_filter):
                 if isinstance(v, str):
                     raise TypeError
             except TypeError:
-                matches = matches and filter_single_dframe(
-                    node, df_row, k, v
-                )
+                matches = matches and filter_single_dframe(node, df_row, k, v)
             else:
                 for single_value in v:
                     matches = matches and filter_single_dframe(
@@ -246,6 +207,7 @@ def _process_predicate(attr_filter):
         return filter_series(df_row)
 
     return filter_choice if attr_filter != {} else lambda row: True
+
 
 class ObjectQuery(Query):
 

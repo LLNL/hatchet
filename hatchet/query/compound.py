@@ -12,6 +12,7 @@ from .string_dialect import parse_string_dialect
 from .object_dialect import ObjectQuery
 from .errors import BadNumberNaryQueryArgs
 
+
 class CompoundQuery:
 
     """Base class for all types of compound queries."""
@@ -63,7 +64,9 @@ class ConjunctionQuery(CompoundQuery):
         else:
             super().__init__(*queries)
         if len(self.subqueries) < 2:
-            raise BadNumberNaryQueryArgs("ConjunctionQuery requires 2 or more subqueries")
+            raise BadNumberNaryQueryArgs(
+                "ConjunctionQuery requires 2 or more subqueries"
+            )
 
     def _apply_op_to_results(self, subquery_results, graph):
         """Combines the results of the subqueries using set conjunction.
@@ -96,7 +99,9 @@ class DisjunctionQuery(CompoundQuery):
         else:
             super().__init__(*queries)
         if len(self.subqueries) < 2:
-            raise BadNumberNaryQueryArgs("DisjunctionQuery requires 2 or more subqueries")
+            raise BadNumberNaryQueryArgs(
+                "DisjunctionQuery requires 2 or more subqueries"
+            )
 
     def _apply_op_to_results(self, subquery_results, graph):
         """Combines the results of the subqueries using set disjunction.

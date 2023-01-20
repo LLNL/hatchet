@@ -7,14 +7,12 @@ from itertools import groupby
 import pandas as pd
 
 from .errors import InvalidQueryFilter
-from ..node import (
-    Node,
-    traversal_order
-)
+from ..node import Node, traversal_order
 from .query import Query
 from .compound import CompoundQuery
 from .object_dialect import ObjectQuery
 from .string_dialect import parse_string_dialect
+
 
 class QueryEngine:
 

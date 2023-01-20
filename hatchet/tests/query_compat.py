@@ -5,12 +5,9 @@
 
 import pytest
 
-import re
-
 import numpy as np
 
 from hatchet import GraphFrame
-from hatchet.node import traversal_order
 from hatchet.query import (
     QueryMatcher,
     InvalidQueryFilter,

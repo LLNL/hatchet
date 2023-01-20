@@ -3,25 +3,25 @@
 #
 # SPDX-License-Identifier: MIT
 
+# Make flake8 ignore unused names in this file
+# flake8: noqa: F401
+
 from .query import Query
 from .compound import (
     CompoundQuery,
     ConjunctionQuery,
     DisjunctionQuery,
     ExclusiveDisjunctionQuery,
-    NegationQuery
+    NegationQuery,
 )
 from .object_dialect import ObjectQuery
-from .string_dialect import (
-    StringQuery,
-    parse_string_dialect
-)
+from .string_dialect import StringQuery, parse_string_dialect
 from .engine import QueryEngine
 from .errors import (
     InvalidQueryPath,
     InvalidQueryFilter,
     RedundantQueryFilterWarning,
-    BadNumberNaryQueryArgs
+    BadNumberNaryQueryArgs,
 )
 
 from .compat import (
@@ -36,7 +36,7 @@ from .compat import (
     NotQuery,
     QueryMatcher,
     CypherQuery,
-    parse_cypher_query
+    parse_cypher_query,
 )
 
 
@@ -70,9 +70,9 @@ CompoundQuery.__not__ = negate_query
 
 def is_hatchet_query(query_obj):
     return (
-        issubclass(type(query_obj), Query) or
-        issubclass(type(query_obj), CompoundQuery) or
-        issubclass(type(query_obj), AbstractQuery)
+        issubclass(type(query_obj), Query)
+        or issubclass(type(query_obj), CompoundQuery)
+        or issubclass(type(query_obj), AbstractQuery)
     )
 
 
@@ -89,5 +89,5 @@ __all__ = [
     "InvalidQueryFilter",
     "InvalidQueryPath",
     "RedundantQueryFilterWarning",
-    "BadNumberNaryQueryArgs"
+    "BadNumberNaryQueryArgs",
 ]

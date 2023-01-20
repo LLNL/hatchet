@@ -21,7 +21,8 @@ from .query import (
     is_hatchet_query,
     ObjectQuery,
     parse_string_dialect,
-    QueryEngine
+    QueryEngine,
+    AbstractQuery,
 )
 from .external.console import ConsoleRenderer
 from .util.dot import trees_to_dot
@@ -479,6 +480,8 @@ class GraphFrame:
                 query = ObjectQuery(filter_obj)
             elif isinstance(filter_obj, str):
                 query = parse_string_dialect(filter_obj)
+            elif issubclass(type(filter_obj), AbstractQuery):
+                query = filter_obj._get_subqueries()
             query_matches = self.query_engine.apply(query, self.graph, self.dataframe)
             # match_set = list(set().union(*query_matches))
             # filtered_df = dataframe_copy.loc[dataframe_copy["node"].isin(match_set)]

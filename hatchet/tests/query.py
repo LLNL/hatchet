@@ -19,7 +19,6 @@ from hatchet.query import (
     QueryEngine,
     InvalidQueryFilter,
     InvalidQueryPath,
-    BadNumberNaryQueryArgs,
     CompoundQuery,
     ConjunctionQuery,
     DisjunctionQuery,
@@ -176,9 +175,7 @@ def test_construct_base_query():
     assert query.query_pattern[2][1](mock_node_time_false)
     assert query.query_pattern[3][0] == "."
 
-    query.match(predicate=mpi_filter).rel("+", time_ge_filter).rel(
-        predicate=ibv_filter
-    )
+    query.match(predicate=mpi_filter).rel("+", time_ge_filter).rel(predicate=ibv_filter)
     assert query.query_pattern[0][0] == "."
     assert query.query_pattern[1][0] == "."
     assert query.query_pattern[2][0] == "*"
@@ -192,9 +189,7 @@ def test_construct_base_query():
     assert not query.query_pattern[2][1](mock_node_time_false)
     assert query.query_pattern[3][0] == "."
 
-    query.match(predicate=mpi_filter).rel(3, time_eq_filter).rel(
-        predicate=ibv_filter
-    )
+    query.match(predicate=mpi_filter).rel(3, time_eq_filter).rel(predicate=ibv_filter)
     assert query.query_pattern[0][0] == "."
     assert query.query_pattern[1][0] == "."
     assert not query.query_pattern[1][1](mock_node_mpi)
@@ -297,7 +292,7 @@ def test_match(mock_graph_literal):
             root.children[0].children[1],
             root.children[0].children[1].children[0],
             root.children[0].children[1].children[0].children[0],
-       ]
+        ]
     ]
     query0 = ObjectQuery(path0)
     engine = QueryEngine()
@@ -773,7 +768,9 @@ def test_conjunction_query(mock_graph_literal):
         roots[0].children[1],
         roots[0].children[1].children[0],
     ]
-    assert sorted(engine.apply(compound_query, gf.graph, gf.dataframe)) == sorted(matches)
+    assert sorted(engine.apply(compound_query, gf.graph, gf.dataframe)) == sorted(
+        matches
+    )
 
 
 def test_disjunction_query(mock_graph_literal):
@@ -794,7 +791,9 @@ def test_disjunction_query(mock_graph_literal):
         roots[1].children[0].children[0],
         roots[1].children[0].children[1],
     ]
-    assert sorted(engine.apply(compound_query, gf.graph, gf.dataframe)) == sorted(matches)
+    assert sorted(engine.apply(compound_query, gf.graph, gf.dataframe)) == sorted(
+        matches
+    )
 
 
 def test_exc_disjunction_query(mock_graph_literal):
@@ -811,7 +810,9 @@ def test_exc_disjunction_query(mock_graph_literal):
         roots[0].children[2].children[0].children[1].children[0].children[0],
         roots[1].children[0].children[0],
     ]
-    assert sorted(engine.apply(compound_query, gf.graph, gf.dataframe)) == sorted(matches)
+    assert sorted(engine.apply(compound_query, gf.graph, gf.dataframe)) == sorted(
+        matches
+    )
 
 
 def test_construct_string_dialect():
@@ -1126,8 +1127,12 @@ def test_string_conj_compound_query(mock_graph_literal):
         roots[0].children[1],
         roots[0].children[1].children[0],
     ]
-    assert sorted(engine.apply(compound_query1, gf.graph, gf.dataframe)) == sorted(matches)
-    assert sorted(engine.apply(compound_query2, gf.graph, gf.dataframe)) == sorted(matches)
+    assert sorted(engine.apply(compound_query1, gf.graph, gf.dataframe)) == sorted(
+        matches
+    )
+    assert sorted(engine.apply(compound_query2, gf.graph, gf.dataframe)) == sorted(
+        matches
+    )
 
 
 def test_string_disj_compound_query(mock_graph_literal):
@@ -1157,8 +1162,12 @@ def test_string_disj_compound_query(mock_graph_literal):
         roots[1].children[0].children[0],
         roots[1].children[0].children[1],
     ]
-    assert sorted(engine.apply(compound_query1, gf.graph, gf.dataframe)) == sorted(matches)
-    assert sorted(engine.apply(compound_query2, gf.graph, gf.dataframe)) == sorted(matches)
+    assert sorted(engine.apply(compound_query1, gf.graph, gf.dataframe)) == sorted(
+        matches
+    )
+    assert sorted(engine.apply(compound_query2, gf.graph, gf.dataframe)) == sorted(
+        matches
+    )
 
 
 def test_cypher_exc_disj_compound_query(mock_graph_literal):
@@ -1184,8 +1193,12 @@ def test_cypher_exc_disj_compound_query(mock_graph_literal):
         roots[0].children[2].children[0].children[1].children[0].children[0],
         roots[1].children[0].children[0],
     ]
-    assert sorted(engine.apply(compound_query1, gf.graph, gf.dataframe)) == sorted(matches)
-    assert sorted(engine.apply(compound_query2, gf.graph, gf.dataframe)) == sorted(matches)
+    assert sorted(engine.apply(compound_query1, gf.graph, gf.dataframe)) == sorted(
+        matches
+    )
+    assert sorted(engine.apply(compound_query2, gf.graph, gf.dataframe)) == sorted(
+        matches
+    )
 
 
 def test_leaf_query(small_mock2):
@@ -1220,6 +1233,12 @@ def test_leaf_query(small_mock2):
     )
     engine = QueryEngine()
     assert sorted(engine.apply(obj_query, gf.graph, gf.dataframe)) == sorted(matches)
-    assert sorted(engine.apply(str_query_numeric, gf.graph, gf.dataframe)) == sorted(matches)
-    assert sorted(engine.apply(str_query_is_leaf, gf.graph, gf.dataframe)) == sorted(matches)
-    assert sorted(engine.apply(str_query_is_not_leaf, gf.graph, gf.dataframe)) == sorted(nonleaves)
+    assert sorted(engine.apply(str_query_numeric, gf.graph, gf.dataframe)) == sorted(
+        matches
+    )
+    assert sorted(engine.apply(str_query_is_leaf, gf.graph, gf.dataframe)) == sorted(
+        matches
+    )
+    assert sorted(
+        engine.apply(str_query_is_not_leaf, gf.graph, gf.dataframe)
+    ) == sorted(nonleaves)

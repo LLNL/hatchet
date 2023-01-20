@@ -3,6 +3,7 @@
 #
 # SPDX-License-Identifier: MIT
 
+
 class InvalidQueryPath(Exception):
     """Raised when a query does not have the correct syntax"""
 

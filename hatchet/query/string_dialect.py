@@ -4,19 +4,13 @@
 # SPDX-License-Identifier: MIT
 
 from numbers import Real
-import numpy as np
-import pandas as pd
 import re
 import sys
 from textx import metamodel_from_str
 from textx.exceptions import TextXError
 import warnings
 
-from .errors import (
-    InvalidQueryPath,
-    InvalidQueryFilter,
-    RedundantQueryFilterWarning
-)
+from .errors import InvalidQueryPath, InvalidQueryFilter, RedundantQueryFilterWarning
 from .query import Query
 
 
@@ -108,7 +102,7 @@ class StringQuery(Query):
         except TextXError as e:
             # TODO Change to a "raise-from" expression when Python 2.7 support is dropped
             raise InvalidQueryPath(
-                'Invalid String Dialect Query Detected. Parser Error Message: {}'.format(
+                "Invalid String Dialect Query Detected. Parser Error Message: {}".format(
                     e.message
                 )
             )

@@ -19,15 +19,12 @@ from .compound import (
     ConjunctionQuery,
     DisjunctionQuery,
     ExclusiveDisjunctionQuery,
-    NegationQuery
+    NegationQuery,
 )
 from .object_dialect import ObjectQuery
 from .string_dialect import parse_string_dialect
 from .engine import QueryEngine
-from .errors import (
-    BadNumberNaryQueryArgs,
-    InvalidQueryPath
-)
+from .errors import BadNumberNaryQueryArgs, InvalidQueryPath
 
 
 # QueryEngine object for running the legacy "apply" methods
@@ -87,6 +84,7 @@ class AbstractQuery(ABC):
     def _get_subqueries(self):
         pass
 
+
 class NaryQuery(AbstractQuery):
 
     """Base class for all compound queries that act on
@@ -108,7 +106,9 @@ class NaryQuery(AbstractQuery):
                 self.compat_subqueries.append(CypherQuery(query))
             elif issubclass(type(query), AbstractQuery):
                 self.compat_subqueries.append(query)
-            elif issubclass(type(query), Query) or issubclass(type(query), CompoundQuery):
+            elif issubclass(type(query), Query) or issubclass(
+                type(query), CompoundQuery
+            ):
                 self.compat_subqueries.append(query)
             else:
                 raise TypeError(
