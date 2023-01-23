@@ -1,4 +1,4 @@
-# Copyright 2017-2022 Lawrence Livermore National Security, LLC and other
+# Copyright 2017-2023 Lawrence Livermore National Security, LLC and other
 # Hatchet Project Developers. See the top-level LICENSE file for details.
 #
 # SPDX-License-Identifier: MIT
@@ -25,7 +25,7 @@ import pkg_resources
 # -- Project information -----------------------------------------------------
 
 project = "hatchet"
-copyright = "2017-2022, Lawrence Livermore National Security, LLC"
+copyright = "2017-2023, Lawrence Livermore National Security, LLC"
 author = "LLNL Developerss"
 
 # The short X.Y version
