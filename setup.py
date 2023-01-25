@@ -24,16 +24,23 @@ with open("./hatchet/version.py") as fp:
 setup(
     name="llnl-hatchet",
     version=version["__version__"],
+    license="MIT",
     description="A Python library for analyzing hierarchical performance data",
+    long_description=long_description,
+    long_description_content_type="text/markdown",
     url="https://github.com/llnl/hatchet",
+    project_urls={
+        "Source Code": "https://github.com/llnl/hatchet",
+        "Documentation": "https://llnl-hatchet.readthedocs.io/en/latest/",
+    },
     author="Stephanie Brink",
     author_email="brink2@llnl.gov",
-    license="MIT",
     classifiers=[
         "Development Status :: 5 - Production/Stable",
         "License :: OSI Approved :: MIT License",
     ],
     keywords="",
+    python_requires=">=2.7,!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*,!=3.4.*",
     packages=[
         "hatchet",
         "hatchet.readers",
@@ -44,6 +51,7 @@ setup(
         "hatchet.tests",
         "hatchet.cython_modules.libs",
     ],
+    include_package_data=True,
     install_requires=[
         "pydot",
         "PyYAML",
