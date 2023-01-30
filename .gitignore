@@ -10,3 +10,6 @@ hatchet/cython_modules/libs/reader_modules.*.so
 hatchet/vis/*node_modules*
 hatchet/vis/static/*_bundle*
 *package-lock.json
+
+dist/
+llnl_hatchet.egg-info/

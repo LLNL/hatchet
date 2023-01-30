@@ -46,6 +46,7 @@ setup(
         "hatchet.readers",
         "hatchet.writers",
         "hatchet.query",
+        "hatchet.vis",
         "hatchet.util",
         "hatchet.external",
         "hatchet.tests",

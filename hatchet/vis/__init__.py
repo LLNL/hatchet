@@ -34,7 +34,7 @@ def npm_build(vis_directory):
 
 # Get the absolute path to this __init__.py file
 # Store in curr_dir to minimize the number of variables
-curr_dir = os.path.realpath(os.path.extenduser(__file__))
+curr_dir = os.path.realpath(os.path.expanduser(__file__))
 # Get the hatchet/vis directory from the path to this __init__.py file
 curr_dir = os.path.abspath(os.path.join(curr_dir, os.pardir))
 # Get the path to hatchet/vis/package-lock.json
