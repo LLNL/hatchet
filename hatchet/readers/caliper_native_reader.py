@@ -113,7 +113,8 @@ class CaliperNativeReader:
                 self.metric_cols.append(col)
 
         df_metrics = pd.DataFrame.from_dict(data=all_metrics)
-        return df_metrics
+        df_new = df_metrics.groupby(df_metrics["nid"]).aggregate("first").reset_index()
+        return df_new
 
     def create_graph(self, ctx="path"):
         list_roots = []
