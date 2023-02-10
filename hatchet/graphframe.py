@@ -401,7 +401,14 @@ class GraphFrame:
 
         self.dataframe = agg_df
 
-    def filter(self, filter_obj, squash=True, update_inc_cols=True, num_procs=mp.cpu_count(), rec_limit=1000):
+    def filter(
+        self,
+        filter_obj,
+        squash=True,
+        update_inc_cols=True,
+        num_procs=mp.cpu_count(),
+        rec_limit=1000,
+    ):
         """Filter the dataframe using a user-supplied function.
 
         Note: Operates in parallel on user-supplied lambda functions.
