@@ -401,7 +401,7 @@ class GraphFrame:
 
         self.dataframe = agg_df
 
-    def filter(self, filter_obj, squash=True, num_procs=mp.cpu_count(), rec_limit=1000):
+    def filter(self, filter_obj, squash=True, update_inc_cols=True, num_procs=mp.cpu_count(), rec_limit=1000):
         """Filter the dataframe using a user-supplied function.
 
         Note: Operates in parallel on user-supplied lambda functions.
@@ -409,6 +409,7 @@ class GraphFrame:
         Arguments:
             filter_obj (callable, list, or QueryMatcher): the filter to apply to the GraphFrame.
             squash (boolean, optional): if True, automatically call squash for the user.
+            update_inc_cols (boolean, optional): if True, update inclusive columns when performing squash.
             rec_limit: set Python recursion limit, increase if running into
                 recursion depth errors) (default: 1000).
         """
@@ -490,14 +491,17 @@ class GraphFrame:
         filtered_gf.metadata = self.metadata
 
         if squash:
-            return filtered_gf.squash()
+            return filtered_gf.squash(update_inc_cols)
         return filtered_gf
 
-    def squash(self):
+    def squash(self, update_inc_cols=True):
         """Rewrite the Graph to include only nodes present in the DataFrame's rows.
 
         This can be used to simplify the Graph, or to normalize Graph
         indexes between two GraphFrames.
+
+        Arguments:
+            update_inc_cols (boolean, optional): if True, update inclusive columns.
         """
         index_names = self.dataframe.index.names
         self.dataframe.reset_index(inplace=True)
@@ -589,7 +593,8 @@ class GraphFrame:
             self.default_metric,
             self.metadata,
         )
-        new_gf.update_inclusive_columns()
+        if update_inc_cols:
+            new_gf.update_inclusive_columns()
         return new_gf
 
     def _init_sum_columns(self, columns, out_columns):
@@ -830,10 +835,20 @@ class GraphFrame:
         # TODO Change this logic when inc_metrics and exc_metrics are changed
         new_inc_metrics = []
         for exc in self.exc_metrics:
-            if exc.endswith("(exc)"):
-                new_inc_metrics.append(exc[: -len("(exc)")].strip())
+            if isinstance(exc, tuple):
+                if exc[-1].endswith("(exc)"):
+                    temp = list(exc)
+                    temp[-1] = temp[-1][: -len("(exc)")].strip()
+                    new_inc_metrics.append(tuple(temp))
+                else:
+                    temp = list(exc)
+                    temp[-1] = "%s (inc)" % temp[-1]
+                    new_inc_metrics.append(tuple(temp))
             else:
-                new_inc_metrics.append("%s (inc)" % exc)
+                if exc.endswith("(exc)"):
+                    new_inc_metrics.append(exc[: -len("(exc)")].strip())
+                else:
+                    new_inc_metrics.append("%s (inc)" % exc)
         self.inc_metrics = new_inc_metrics
 
         self.subgraph_sum(self.exc_metrics, self.inc_metrics)
