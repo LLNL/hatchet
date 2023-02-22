@@ -76,18 +76,21 @@ def is_hatchet_query(query_obj):
     )
 
 
-__all__ = [
-    "Query",
-    "CompoundQuery",
-    "ConjunctionQuery",
-    "DisjunctionQuery",
-    "ExclusiveDisjunctionQuery",
-    "NegationQuery",
-    "ObjectQuery",
-    "StringQuery",
-    "parse_string_dialect",
-    "InvalidQueryFilter",
-    "InvalidQueryPath",
-    "RedundantQueryFilterWarning",
-    "BadNumberNaryQueryArgs",
-]
+# Uncomment when accessing old-style queries using
+# 'from hatchet.query import *' is removed
+#
+# __all__ = [
+#     "Query",
+#     "CompoundQuery",
+#     "ConjunctionQuery",
+#     "DisjunctionQuery",
+#     "ExclusiveDisjunctionQuery",
+#     "NegationQuery",
+#     "ObjectQuery",
+#     "StringQuery",
+#     "parse_string_dialect",
+#     "InvalidQueryFilter",
+#     "InvalidQueryPath",
+#     "RedundantQueryFilterWarning",
+#     "BadNumberNaryQueryArgs",
+# ]
