@@ -12,6 +12,7 @@ except ImportError:
 
     ABC = ABCMeta("ABC", (object,), {"__slots__": ()})
 import sys
+import warnings
 
 from .query import Query
 from .compound import (
@@ -158,6 +159,13 @@ class AndQuery(NaryQuery):
         Arguments:
             *args (AbstractQuery, str, or list): the subqueries to be performed
         """
+        warnings.warn(
+            "Old-style queries are deprecated and will be removed in the \
+                    future. Please use new-style queries (e.g., \
+                    hatchet.query.ConjunctionQuery) instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         if sys.version_info[0] == 2:
             super(AndQuery, self).__init__(*args)
         else:
@@ -184,6 +192,13 @@ class OrQuery(NaryQuery):
         Arguments:
             *args (AbstractQuery, str, or list): the subqueries to be performed
         """
+        warnings.warn(
+            "Old-style queries are deprecated and will be removed in the \
+                    future. Please use new-style queries (e.g., \
+                    hatchet.query.DisjunctionQuery) instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         if sys.version_info[0] == 2:
             super(OrQuery, self).__init__(*args)
         else:
@@ -210,6 +225,13 @@ class XorQuery(NaryQuery):
         Arguments:
             *args (AbstractQuery, str, or list): the subqueries to be performed
         """
+        warnings.warn(
+            "Old-style queries are deprecated and will be removed in the \
+                    future. Please use new-style queries (e.g., \
+                    hatchet.query.ExclusiveDisjunctionQuery) instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         if sys.version_info[0] == 2:
             super(XorQuery, self).__init__(*args)
         else:
@@ -236,6 +258,13 @@ class NotQuery(NaryQuery):
         Arguments:
             *args (AbstractQuery, str, or list): the subquery to be performed
         """
+        warnings.warn(
+            "Old-style queries are deprecated and will be removed in the \
+                    future. Please use new-style queries (e.g., \
+                    hatchet.query.NegationQuery) instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         if sys.version_info[0] == 2:
             super(NotQuery, self).__init__(*args)
         else:
@@ -258,6 +287,15 @@ class QueryMatcher(AbstractQuery):
             query (list, optional): if provided, convert the Object-based query
                                     into its internal representation
         """
+        warnings.warn(
+            "Old-style queries are deprecated and will be removed in the \
+                    future. Please use new-style queries instead. \
+                    For QueryMatcher, the equivalent new-style queries are \
+                    hatchet.query.Query for base-syntax queries and \
+                    hatchet.query.ObjectQuery for the object-dialect.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         self.true_query = None
         if query is None:
             self.true_query = Query()
@@ -324,6 +362,14 @@ class CypherQuery(QueryMatcher):
         Arguments:
             cypher_query (str): the String-based query
         """
+        warnings.warn(
+            "Old-style queries are deprecated and will be removed in the \
+                    future. Please use new-style queries instead. \
+                    For CypherQuery, the equivalent new-style query is \
+                    hatchet.query.StringQuery.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         self.true_query = parse_string_dialect(cypher_query)
 
     def _get_new_query(self):
@@ -345,4 +391,12 @@ def parse_cypher_query(cypher_query):
     Returns:
         (CypherQuery): a Hatchet query for this String-based query
     """
+    warnings.warn(
+        "Old-style queries are deprecated and will be removed in the \
+                future. Please use new-style queries instead. \
+                For parse_cypher_query, the equivalent new-style function is \
+                hatchet.query.parse_string_dialect.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     return CypherQuery(cypher_query)
