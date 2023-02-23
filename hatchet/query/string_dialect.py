@@ -7,7 +7,7 @@ from numbers import Real
 import re
 import sys
 import pandas as pd  # noqa: F401
-from pandas.api.types import is_numeric_dtype, is_string_dtype # noqa: F401
+from pandas.api.types import is_numeric_dtype, is_string_dtype  # noqa: F401
 import numpy as np  # noqa: F401
 from textx import metamodel_from_str
 from textx.exceptions import TextXError
@@ -307,7 +307,7 @@ class StringQuery(Query):
                 None,
                 obj.name,
                 "df_row.index.get_level_values('node')[0]._depth is None",
-                None
+                None,
             ]
         if obj.prop == "node_id":
             return [
@@ -321,18 +321,16 @@ class StringQuery(Query):
                 None,
                 obj.name,
                 "df_row['{}'].apply(lambda elem: elem is None).any()".format(obj.prop),
-                None
+                None,
             ]
         # if self.multi_index_mode == "all":
         return [
             None,
             obj.name,
             self._add_aggregation_call_to_multi_idx_predicate(
-                "df_row['{}'].apply(lambda elem: elem is None)".format(
-                    obj.prop
-                )
+                "df_row['{}'].apply(lambda elem: elem is None)".format(obj.prop)
             ),
-            None
+            None,
         ]
 
     def _parse_not_none(self, obj):
@@ -364,7 +362,7 @@ class StringQuery(Query):
                 None,
                 obj.name,
                 "df_row.index.get_level_values('node')[0]._depth is not None",
-                None
+                None,
             ]
         if obj.prop == "node_id":
             return [
@@ -377,11 +375,9 @@ class StringQuery(Query):
             None,
             obj.name,
             self._add_aggregation_call_to_multi_idx_predicate(
-                "df_row['{}'].apply(lambda elem: elem is not None)".format(
-                    obj.prop
-                )
+                "df_row['{}'].apply(lambda elem: elem is not None)".format(obj.prop)
             ),
-            None
+            None,
         ]
 
     def _parse_leaf(self, obj):
@@ -453,7 +449,9 @@ class StringQuery(Query):
         if cname(obj) == "StringEq":
             return self._run_method_based_on_multi_idx_mode("_parse_str_eq", obj)
         if cname(obj) == "StringStartsWith":
-            return self._run_method_based_on_multi_idx_mode("_parse_str_starts_with", obj)
+            return self._run_method_based_on_multi_idx_mode(
+                "_parse_str_starts_with", obj
+            )
         if cname(obj) == "StringEndsWith":
             return self._run_method_based_on_multi_idx_mode("_parse_str_ends_with", obj)
         if cname(obj) == "StringContains":
@@ -712,18 +710,18 @@ class StringQuery(Query):
             return [
                 None,
                 obj.name,
-                "df_row.index.get_level_values('node')[0]._hatchet_nid == {}".format(obj.val),
+                "df_row.index.get_level_values('node')[0]._hatchet_nid == {}".format(
+                    obj.val
+                ),
                 "isinstance(df_row.index.get_level_values('node')[0]._hatchet_nid, Real)",
             ]
         return [
             None,
             obj.name,
             self._add_aggregation_call_to_multi_idx_predicate(
-                'df_row["{}"].apply(lambda elem: elem == {})'.format(
-                    obj.prop, obj.val
-                )
+                'df_row["{}"].apply(lambda elem: elem == {})'.format(obj.prop, obj.val)
             ),
-            "is_numeric_dtype(df_row['{}'])".format(obj.prop)
+            "is_numeric_dtype(df_row['{}'])".format(obj.prop),
         ]
 
     def _parse_num_lt(self, obj):
@@ -833,18 +831,18 @@ class StringQuery(Query):
             return [
                 None,
                 obj.name,
-                "df_row.index.get_level_values('node')[0]._hatchet_nid < {}".format(obj.val),
+                "df_row.index.get_level_values('node')[0]._hatchet_nid < {}".format(
+                    obj.val
+                ),
                 "isinstance(df_row.index.get_level_values('node')[0]._hatchet_nid, Real)",
             ]
         return [
             None,
             obj.name,
             self._add_aggregation_call_to_multi_idx_predicate(
-                'df_row["{}"].apply(lambda elem: elem < {})'.format(
-                    obj.prop, obj.val
-                )
+                'df_row["{}"].apply(lambda elem: elem < {})'.format(obj.prop, obj.val)
             ),
-            "is_numeric_dtype(df_row['{}'])".format(obj.prop)
+            "is_numeric_dtype(df_row['{}'])".format(obj.prop),
         ]
 
     def _parse_num_gt(self, obj):
@@ -954,16 +952,16 @@ class StringQuery(Query):
             return [
                 None,
                 obj.name,
-                "df_row.index.get_level_values('node')[0]._hatchet_nid > {}".format(obj.val),
+                "df_row.index.get_level_values('node')[0]._hatchet_nid > {}".format(
+                    obj.val
+                ),
                 "isinstance(df_row.index.get_level_values('node')[0]._hatchet_nid, Real)",
             ]
         return [
             None,
             obj.name,
             self._add_aggregation_call_to_multi_idx_predicate(
-                'df_row["{}"].apply(lambda elem: elem > {})'.format(
-                    obj.prop, obj.val
-                )
+                'df_row["{}"].apply(lambda elem: elem > {})'.format(obj.prop, obj.val)
             ),
             "is_numeric_dtype(df_row['{}'])".format(obj.prop),
         ]
@@ -1075,16 +1073,16 @@ class StringQuery(Query):
             return [
                 None,
                 obj.name,
-                "df_row.index.get_level_values('node')[0]._hatchet_nid <= {}".format(obj.val),
+                "df_row.index.get_level_values('node')[0]._hatchet_nid <= {}".format(
+                    obj.val
+                ),
                 "isinstance(df_row.index.get_level_values('node')[0]._hatchet_nid, Real)",
             ]
         return [
             None,
             obj.name,
             self._add_aggregation_call_to_multi_idx_predicate(
-                'df_row["{}"].apply(lambda elem: elem <= {})'.format(
-                    obj.prop, obj.val
-                )
+                'df_row["{}"].apply(lambda elem: elem <= {})'.format(obj.prop, obj.val)
             ),
             "is_numeric_dtype(df_row['{}'])".format(obj.prop),
         ]
@@ -1196,16 +1194,16 @@ class StringQuery(Query):
             return [
                 None,
                 obj.name,
-                "df_row.index.get_level_values('node')[0]._hatchet_nid >= {}".format(obj.val),
+                "df_row.index.get_level_values('node')[0]._hatchet_nid >= {}".format(
+                    obj.val
+                ),
                 "isinstance(df_row.index.get_level_values('node')[0]._hatchet_nid, Real)",
             ]
         return [
             None,
             obj.name,
             self._add_aggregation_call_to_multi_idx_predicate(
-                'df_row["{}"].apply(lambda elem: elem >= {})'.format(
-                    obj.prop, obj.val
-                )
+                'df_row["{}"].apply(lambda elem: elem >= {})'.format(obj.prop, obj.val)
             ),
             "is_numeric_dtype(df_row['{}'])".format(obj.prop),
         ]
@@ -1252,9 +1250,7 @@ class StringQuery(Query):
             None,
             obj.name,
             self._add_aggregation_call_to_multi_idx_predicate(
-                'pd.isna(df_row["{}"])'.format(
-                    obj.prop
-                )
+                'pd.isna(df_row["{}"])'.format(obj.prop)
             ),
             "is_numeric_dtype(df_row['{}'])".format(obj.prop),
         ]
@@ -1301,9 +1297,7 @@ class StringQuery(Query):
             None,
             obj.name,
             self._add_aggregation_call_to_multi_idx_predicate(
-                'not pd.isna(df_row["{}"])'.format(
-                    obj.prop
-                )
+                'not pd.isna(df_row["{}"])'.format(obj.prop)
             ),
             "is_numeric_dtype(df_row['{}'])".format(obj.prop),
         ]
@@ -1350,9 +1344,7 @@ class StringQuery(Query):
             None,
             obj.name,
             self._add_aggregation_call_to_multi_idx_predicate(
-                'np.isinf(df_row["{}"])'.format(
-                    obj.prop
-                )
+                'np.isinf(df_row["{}"])'.format(obj.prop)
             ),
             "is_numeric_dtype(df_row['{}'])".format(obj.prop),
         ]
@@ -1399,9 +1391,7 @@ class StringQuery(Query):
             None,
             obj.name,
             self._add_aggregation_call_to_multi_idx_predicate(
-                'not np.isinf(df_row["{}"])'.format(
-                    obj.prop
-                )
+                'not np.isinf(df_row["{}"])'.format(obj.prop)
             ),
             "is_numeric_dtype(df_row['{}'])".format(obj.prop),
         ]

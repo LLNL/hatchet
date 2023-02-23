@@ -27,6 +27,7 @@ from hatchet.query import (
 
 def test_apply_indices(calc_pi_hpct_db):
     gf = GraphFrame.from_hpctoolkit(str(calc_pi_hpct_db))
+    gf.drop_index_levels()
     main = gf.graph.roots[0].children[0]
     path = [
         {"name": "[0-9]*:?MPI_.*"},
@@ -118,6 +119,7 @@ def test_high_level_hatchet_nid(mock_graph_literal):
 
 def test_high_level_depth_index_levels(calc_pi_hpct_db):
     gf = GraphFrame.from_hpctoolkit(str(calc_pi_hpct_db))
+    gf.drop_index_levels()
     root = gf.graph.roots[0]
 
     query = QueryMatcher([("*", {"depth": "<= 2"})])
@@ -143,6 +145,7 @@ def test_high_level_depth_index_levels(calc_pi_hpct_db):
 
 def test_high_level_node_id_index_levels(calc_pi_hpct_db):
     gf = GraphFrame.from_hpctoolkit(str(calc_pi_hpct_db))
+    gf.drop_index_levels()
     root = gf.graph.roots[0]
 
     query = QueryMatcher([("*", {"node_id": "<= 2"})])
