@@ -359,7 +359,7 @@ class TimemoryReader:
                     {"node": _hnode, **_frame_attrs},
                     **_extra,
                     **_exc_stats,
-                    **_inc_stats
+                    **_inc_stats,
                 )
             else:
                 # if yes, don't create a new dict, just add the new metrics to

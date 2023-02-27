@@ -12,23 +12,22 @@ import numpy as np
 from hatchet import GraphFrame
 from hatchet.node import traversal_order
 from hatchet.query import (
-    QueryMatcher,
+    Query,
+    ObjectQuery,
+    StringQuery,
+    parse_string_dialect,
+    QueryEngine,
     InvalidQueryFilter,
     InvalidQueryPath,
-    AbstractQuery,
-    NaryQuery,
-    AndQuery,
-    OrQuery,
-    XorQuery,
-    IntersectionQuery,
-    UnionQuery,
-    SymDifferenceQuery,
-    CypherQuery,
-    parse_cypher_query,
+    CompoundQuery,
+    ConjunctionQuery,
+    DisjunctionQuery,
+    ExclusiveDisjunctionQuery,
+    NegationQuery,
 )
 
 
-def test_construct_high_level_api():
+def test_construct_object_dialect():
     mock_node_mpi = {"name": "MPI_Bcast"}
     mock_node_ibv = {"name": "ibv_reg_mr"}
     mock_node_time_true = {"time (inc)": 0.1}
@@ -45,10 +44,10 @@ def test_construct_high_level_api():
         (3, {"time (inc)": 0.1}),
         {"name": "ibv[_a-zA-Z]*"},
     ]
-    query1 = QueryMatcher(path1)
-    query2 = QueryMatcher(path2)
-    query3 = QueryMatcher(path3)
-    query4 = QueryMatcher(path4)
+    query1 = ObjectQuery(path1)
+    query2 = ObjectQuery(path2)
+    query3 = ObjectQuery(path3)
+    query4 = ObjectQuery(path4)
 
     assert query1.query_pattern[0][0] == "."
     assert query1.query_pattern[0][1](mock_node_mpi)
@@ -111,14 +110,14 @@ def test_construct_high_level_api():
         {"name": "ibv[_a-zA-Z]*"},
     ]
     with pytest.raises(InvalidQueryPath):
-        _ = QueryMatcher(invalid_path)
+        _ = ObjectQuery(invalid_path)
 
     invalid_path = [["name", "MPI_[_a-zA-Z]*"], "*", {"name": "ibv[_a-zA-Z]*"}]
     with pytest.raises(InvalidQueryPath):
-        _ = QueryMatcher(invalid_path)
+        _ = ObjectQuery(invalid_path)
 
 
-def test_construct_low_level_api():
+def test_construct_base_query():
     mock_node_mpi = {"name": "MPI_Bcast"}
     mock_node_ibv = {"name": "ibv_reg_mr"}
     mock_node_time_true = {"time (inc)": 0.1}
@@ -148,9 +147,9 @@ def test_construct_low_level_api():
             return False
         return df_row["time (inc)"] == 0.1
 
-    query = QueryMatcher()
+    query = Query()
 
-    query.match(filter_func=mpi_filter).rel("*").rel(filter_func=ibv_filter)
+    query.match(predicate=mpi_filter).rel("*").rel(predicate=ibv_filter)
     assert query.query_pattern[0][0] == "."
     assert query.query_pattern[0][1](mock_node_mpi)
     assert not query.query_pattern[0][1](mock_node_ibv)
@@ -162,7 +161,7 @@ def test_construct_low_level_api():
     assert query.query_pattern[1][1](mock_node_time_false)
     assert query.query_pattern[2][0] == "."
 
-    query.match(filter_func=mpi_filter).rel(2).rel(filter_func=ibv_filter)
+    query.match(predicate=mpi_filter).rel(2).rel(predicate=ibv_filter)
     assert query.query_pattern[0][0] == "."
     assert query.query_pattern[1][0] == "."
     assert query.query_pattern[1][1](mock_node_mpi)
@@ -176,9 +175,7 @@ def test_construct_low_level_api():
     assert query.query_pattern[2][1](mock_node_time_false)
     assert query.query_pattern[3][0] == "."
 
-    query.match(filter_func=mpi_filter).rel("+", time_ge_filter).rel(
-        filter_func=ibv_filter
-    )
+    query.match(predicate=mpi_filter).rel("+", time_ge_filter).rel(predicate=ibv_filter)
     assert query.query_pattern[0][0] == "."
     assert query.query_pattern[1][0] == "."
     assert query.query_pattern[2][0] == "*"
@@ -192,9 +189,7 @@ def test_construct_low_level_api():
     assert not query.query_pattern[2][1](mock_node_time_false)
     assert query.query_pattern[3][0] == "."
 
-    query.match(filter_func=mpi_filter).rel(3, time_eq_filter).rel(
-        filter_func=ibv_filter
-    )
+    query.match(predicate=mpi_filter).rel(3, time_eq_filter).rel(predicate=ibv_filter)
     assert query.query_pattern[0][0] == "."
     assert query.query_pattern[1][0] == "."
     assert not query.query_pattern[1][1](mock_node_mpi)
@@ -214,7 +209,7 @@ def test_construct_low_level_api():
     assert query.query_pattern[4][0] == "."
 
     with pytest.raises(InvalidQueryPath):
-        _ = QueryMatcher().rel(".", lambda row: True)
+        _ = Query().rel(".", lambda row: True)
 
 
 def test_node_caching(mock_graph_literal):
@@ -222,13 +217,14 @@ def test_node_caching(mock_graph_literal):
     gf = GraphFrame.from_literal(mock_graph_literal)
     node = gf.graph.roots[0].children[2].children[0]
 
-    query = QueryMatcher(path)
-    query._cache_node(gf, node)
+    query = ObjectQuery(path)
+    engine = QueryEngine()
+    engine._cache_node(node, query, gf.dataframe)
 
-    assert 0 in query.search_cache[node._hatchet_nid]
-    assert 1 in query.search_cache[node._hatchet_nid]
-    assert 2 in query.search_cache[node._hatchet_nid]
-    assert 3 not in query.search_cache[node._hatchet_nid]
+    assert 0 in engine.search_cache[node._hatchet_nid]
+    assert 1 in engine.search_cache[node._hatchet_nid]
+    assert 2 in engine.search_cache[node._hatchet_nid]
+    assert 3 not in engine.search_cache[node._hatchet_nid]
 
 
 def test_match_0_or_more_wildcard(mock_graph_literal):
@@ -250,15 +246,16 @@ def test_match_0_or_more_wildcard(mock_graph_literal):
         [node.children[0], node.children[0].children[0]],
     ]
 
-    query = QueryMatcher(path)
+    query = ObjectQuery(path)
+    engine = QueryEngine()
     matched_paths = []
     for child in sorted(node.children, key=traversal_order):
-        match = query._match_0_or_more(gf, child, 1)
+        match = engine._match_0_or_more(query, gf.dataframe, child, 1)
         if match is not None:
             matched_paths.extend(match)
 
     assert sorted(matched_paths, key=len) == sorted(correct_paths, key=len)
-    assert query._match_0_or_more(gf, none_node, 1) is None
+    assert engine._match_0_or_more(query, gf.dataframe, none_node, 1) is None
 
 
 def test_match_1(mock_graph_literal):
@@ -268,12 +265,13 @@ def test_match_1(mock_graph_literal):
         ("*", {"time (inc)": "> 10"}),
         {"name": "gr[a-z]+", "time (inc)": "<= 10.0"},
     ]
-    query = QueryMatcher(path)
+    query = ObjectQuery(path)
+    engine = QueryEngine()
 
-    assert query._match_1(gf, gf.graph.roots[0].children[0], 2) == [
+    assert engine._match_1(query, gf.dataframe, gf.graph.roots[0].children[0], 2) == [
         [gf.graph.roots[0].children[0].children[1]]
     ]
-    assert query._match_1(gf, gf.graph.roots[0], 2) is None
+    assert engine._match_1(query, gf.dataframe, gf.graph.roots[0], 2) is None
 
 
 def test_match(mock_graph_literal):
@@ -296,8 +294,11 @@ def test_match(mock_graph_literal):
             root.children[0].children[1].children[0].children[0],
         ]
     ]
-    query0 = QueryMatcher(path0)
-    assert query0._match_pattern(gf, root, 0) == match0
+    query0 = ObjectQuery(path0)
+    engine = QueryEngine()
+    assert engine._match_pattern(query0, gf.dataframe, root, 0) == match0
+
+    engine.reset_cache()
 
     path1 = [
         {"name": "waldo"},
@@ -306,8 +307,8 @@ def test_match(mock_graph_literal):
         "+",
         {"time (inc)": 7.5, "time": 7.5},
     ]
-    query1 = QueryMatcher(path1)
-    assert query1._match_pattern(gf, root, 0) is None
+    query1 = ObjectQuery(path1)
+    assert engine._match_pattern(query1, gf.dataframe, root, 0) is None
 
 
 def test_apply(mock_graph_literal):
@@ -326,9 +327,10 @@ def test_apply(mock_graph_literal):
         root.children[1].children[0].children[0],
         root.children[1].children[0].children[0].children[1],
     ]
-    query = QueryMatcher(path)
+    query = ObjectQuery(path)
+    engine = QueryEngine()
 
-    assert sorted(query.apply(gf)) == sorted(match)
+    assert sorted(engine.apply(query, gf.graph, gf.dataframe)) == sorted(match)
 
     path = [{"time (inc)": ">= 30.0"}, ".", {"name": "bar"}, "*"]
     match = [
@@ -338,13 +340,13 @@ def test_apply(mock_graph_literal):
         root.children[1].children[0].children[0].children[0].children[0],
         root.children[1].children[0].children[0].children[0].children[1],
     ]
-    query = QueryMatcher(path)
-    assert sorted(query.apply(gf)) == sorted(match)
+    query = ObjectQuery(path)
+    assert sorted(engine.apply(query, gf.graph, gf.dataframe)) == sorted(match)
 
     path = [{"name": "foo"}, {"name": "bar"}, {"time": 5.0}]
     match = [root, root.children[0], root.children[0].children[0]]
-    query = QueryMatcher(path)
-    assert sorted(query.apply(gf)) == sorted(match)
+    query = ObjectQuery(path)
+    assert sorted(engine.apply(query, gf.graph, gf.dataframe)) == sorted(match)
 
     path = [{"name": "foo"}, {"name": "qux"}, ("+", {"time (inc)": "> 15.0"})]
     match = [
@@ -354,23 +356,23 @@ def test_apply(mock_graph_literal):
         root.children[1].children[0].children[0],
         root.children[1].children[0].children[0].children[0],
     ]
-    query = QueryMatcher(path)
-    assert sorted(query.apply(gf)) == sorted(match)
+    query = ObjectQuery(path)
+    assert sorted(engine.apply(query, gf.graph, gf.dataframe)) == sorted(match)
 
     path = [{"name": "this"}, ("*", {"name": "is"}), {"name": "nonsense"}]
 
-    query = QueryMatcher(path)
-    assert query.apply(gf) == []
+    query = ObjectQuery(path)
+    assert engine.apply(query, gf.graph, gf.dataframe) == []
 
     path = [{"name": 5}, "*", {"name": "whatever"}]
-    query = QueryMatcher(path)
+    query = ObjectQuery(path)
     with pytest.raises(InvalidQueryFilter):
-        query.apply(gf)
+        engine.apply(query, gf.graph, gf.dataframe)
 
     path = [{"time": "badstring"}, "*", {"name": "whatever"}]
-    query = QueryMatcher(path)
+    query = ObjectQuery(path)
     with pytest.raises(InvalidQueryFilter):
-        query.apply(gf)
+        engine.apply(query, gf.graph, gf.dataframe)
 
     class DummyType:
         def __init__(self):
@@ -384,9 +386,9 @@ def test_apply(mock_graph_literal):
     ] = DummyType()
     gf = GraphFrame.from_literal(bad_field_test_dict)
     path = [{"name": "foo"}, {"name": "bar"}, {"list": DummyType()}]
-    query = QueryMatcher(path)
+    query = ObjectQuery(path)
     with pytest.raises(InvalidQueryFilter):
-        query.apply(gf)
+        engine.apply(query, gf.graph, gf.dataframe)
 
     path = ["*", {"name": "bar"}, {"name": "grault"}, "*"]
     match = [
@@ -430,12 +432,12 @@ def test_apply(mock_graph_literal):
         [gf.graph.roots[1].children[0], gf.graph.roots[1].children[0].children[1]],
     ]
     match = list(set().union(*match))
-    query = QueryMatcher(path)
-    assert sorted(query.apply(gf)) == sorted(match)
+    query = ObjectQuery(path)
+    assert sorted(engine.apply(query, gf.graph, gf.dataframe)) == sorted(match)
 
     path = ["*", {"name": "bar"}, {"name": "grault"}, "+"]
-    query = QueryMatcher(path)
-    assert query.apply(gf) == []
+    query = ObjectQuery(path)
+    assert engine.apply(query, gf.graph, gf.dataframe) == []
 
     # Test a former edge case with the + quantifier/wildcard
     match = [
@@ -464,8 +466,8 @@ def test_apply(mock_graph_literal):
     ]
     match = list(set().union(*match))
     path = [("+", {"name": "ba.*"})]
-    query = QueryMatcher(path)
-    assert sorted(query.apply(gf)) == sorted(match)
+    query = ObjectQuery(path)
+    assert sorted(engine.apply(query, gf.graph, gf.dataframe)) == sorted(match)
 
 
 def test_apply_indices(calc_pi_hpct_db):
@@ -490,21 +492,23 @@ def test_apply_indices(calc_pi_hpct_db):
         ],
     ]
     matches = list(set().union(*matches))
-    query = QueryMatcher(path)
-    assert sorted(query.apply(gf)) == sorted(matches)
+    query = ObjectQuery(path)
+    engine = QueryEngine()
+    assert sorted(engine.apply(query, gf.graph, gf.dataframe)) == sorted(matches)
 
     gf.drop_index_levels()
-    assert query.apply(gf) == matches
+    assert engine.apply(query, gf.graph, gf.dataframe) == matches
 
 
-def test_high_level_depth(mock_graph_literal):
+def test_object_dialect_depth(mock_graph_literal):
     gf = GraphFrame.from_literal(mock_graph_literal)
-    query = QueryMatcher([("*", {"depth": 1})])
+    query = ObjectQuery([("*", {"depth": 1})])
+    engine = QueryEngine()
     roots = gf.graph.roots
     matches = [c for r in roots for c in r.children]
-    assert sorted(query.apply(gf)) == sorted(matches)
+    assert sorted(engine.apply(query, gf.graph, gf.dataframe)) == sorted(matches)
 
-    query = QueryMatcher([("*", {"depth": "<= 2"})])
+    query = ObjectQuery([("*", {"depth": "<= 2"})])
     matches = [
         [roots[0], roots[0].children[0], roots[0].children[0].children[0]],
         [roots[0].children[0], roots[0].children[0].children[0]],
@@ -529,16 +533,17 @@ def test_high_level_depth(mock_graph_literal):
         [roots[1].children[0].children[1]],
     ]
     matches = list(set().union(*matches))
-    assert sorted(query.apply(gf)) == sorted(matches)
+    assert sorted(engine.apply(query, gf.graph, gf.dataframe)) == sorted(matches)
 
     with pytest.raises(InvalidQueryFilter):
-        query = QueryMatcher([{"depth": "hello"}])
-        query.apply(gf)
+        query = ObjectQuery([{"depth": "hello"}])
+        engine.apply(query, gf.graph, gf.dataframe)
 
 
-def test_high_level_hatchet_nid(mock_graph_literal):
+def test_object_dialect_hatchet_nid(mock_graph_literal):
     gf = GraphFrame.from_literal(mock_graph_literal)
-    query = QueryMatcher([("*", {"node_id": ">= 20"})])
+    query = ObjectQuery([("*", {"node_id": ">= 20"})])
+    engine = QueryEngine()
     root = gf.graph.roots[1]
     matches = [
         [root, root.children[0], root.children[0].children[0]],
@@ -549,21 +554,22 @@ def test_high_level_hatchet_nid(mock_graph_literal):
         [root.children[0].children[1]],
     ]
     matches = list(set().union(*matches))
-    assert sorted(query.apply(gf)) == sorted(matches)
+    assert sorted(engine.apply(query, gf.graph, gf.dataframe)) == sorted(matches)
 
-    query = QueryMatcher([{"node_id": 0}])
-    assert query.apply(gf) == [gf.graph.roots[0]]
+    query = ObjectQuery([{"node_id": 0}])
+    assert engine.apply(query, gf.graph, gf.dataframe) == [gf.graph.roots[0]]
 
     with pytest.raises(InvalidQueryFilter):
-        query = QueryMatcher([{"node_id": "hello"}])
-        query.apply(gf)
+        query = ObjectQuery([{"node_id": "hello"}])
+        engine.apply(query, gf.graph, gf.dataframe)
 
 
-def test_high_level_depth_index_levels(calc_pi_hpct_db):
+def test_object_dialect_depth_index_levels(calc_pi_hpct_db):
     gf = GraphFrame.from_hpctoolkit(str(calc_pi_hpct_db))
     root = gf.graph.roots[0]
 
-    query = QueryMatcher([("*", {"depth": "<= 2"})])
+    query = ObjectQuery([("*", {"depth": "<= 2"})])
+    engine = QueryEngine()
     matches = [
         [root, root.children[0], root.children[0].children[0]],
         [root.children[0], root.children[0].children[0]],
@@ -573,22 +579,23 @@ def test_high_level_depth_index_levels(calc_pi_hpct_db):
         [root.children[0].children[1]],
     ]
     matches = list(set().union(*matches))
-    assert sorted(query.apply(gf)) == sorted(matches)
+    assert sorted(engine.apply(query, gf.graph, gf.dataframe)) == sorted(matches)
 
-    query = QueryMatcher([("*", {"depth": 0})])
+    query = ObjectQuery([("*", {"depth": 0})])
     matches = [root]
-    assert query.apply(gf) == matches
+    assert engine.apply(query, gf.graph, gf.dataframe) == matches
 
     with pytest.raises(InvalidQueryFilter):
-        query = QueryMatcher([{"depth": "hello"}])
-        query.apply(gf)
+        query = ObjectQuery([{"depth": "hello"}])
+        engine.apply(query, gf.graph, gf.dataframe)
 
 
-def test_high_level_node_id_index_levels(calc_pi_hpct_db):
+def test_object_dialect_node_id_index_levels(calc_pi_hpct_db):
     gf = GraphFrame.from_hpctoolkit(str(calc_pi_hpct_db))
     root = gf.graph.roots[0]
 
-    query = QueryMatcher([("*", {"node_id": "<= 2"})])
+    query = ObjectQuery([("*", {"node_id": "<= 2"})])
+    engine = QueryEngine()
     matches = [
         [root, root.children[0]],
         [root.children[0]],
@@ -597,20 +604,21 @@ def test_high_level_node_id_index_levels(calc_pi_hpct_db):
         [root.children[0].children[0]],
     ]
     matches = list(set().union(*matches))
-    assert sorted(query.apply(gf)) == sorted(matches)
+    assert sorted(engine.apply(query, gf.graph, gf.dataframe)) == sorted(matches)
 
-    query = QueryMatcher([("*", {"node_id": 0})])
+    query = ObjectQuery([("*", {"node_id": 0})])
     matches = [root]
-    assert query.apply(gf) == matches
+    assert engine.apply(query, gf.graph, gf.dataframe) == matches
 
     with pytest.raises(InvalidQueryFilter):
-        query = QueryMatcher([{"node_id": "hello"}])
-        query.apply(gf)
+        query = ObjectQuery([{"node_id": "hello"}])
+        engine.apply(query, gf.graph, gf.dataframe)
 
 
-def test_high_level_multi_condition_one_attribute(mock_graph_literal):
+def test_object_dialect_multi_condition_one_attribute(mock_graph_literal):
     gf = GraphFrame.from_literal(mock_graph_literal)
-    query = QueryMatcher([("*", {"time (inc)": [">= 20", "<= 60"]})])
+    query = ObjectQuery([("*", {"time (inc)": [">= 20", "<= 60"]})])
+    engine = QueryEngine()
     roots = gf.graph.roots
     matches = [
         [roots[0].children[0]],
@@ -663,36 +671,40 @@ def test_high_level_multi_condition_one_attribute(mock_graph_literal):
         [roots[1].children[0]],
     ]
     matches = list(set().union(*matches))
-    assert sorted(query.apply(gf)) == sorted(matches)
+    assert sorted(engine.apply(query, gf.graph, gf.dataframe)) == sorted(matches)
 
 
-def test_query_matcher_is_abstract_query():
-    assert issubclass(QueryMatcher, AbstractQuery)
+def test_obj_query_is_query():
+    assert issubclass(ObjectQuery, Query)
 
 
-def test_nary_query_is_abstract_query():
-    assert issubclass(NaryQuery, AbstractQuery)
+def test_str_query_is_query():
+    assert issubclass(StringQuery, Query)
 
 
-def test_and_query_is_nary_query():
-    assert issubclass(AndQuery, NaryQuery)
+def test_conj_query_is_compound_query():
+    assert issubclass(ConjunctionQuery, CompoundQuery)
 
 
-def test_or_query_is_nary_query():
-    assert issubclass(OrQuery, NaryQuery)
+def test_disj_query_is_compound_query():
+    assert issubclass(DisjunctionQuery, CompoundQuery)
 
 
-def test_xor_query_is_nary_query():
-    assert issubclass(XorQuery, NaryQuery)
+def test_exc_disj_query_is_compound_query():
+    assert issubclass(ExclusiveDisjunctionQuery, CompoundQuery)
 
 
-def test_nary_query_high_level_construction(mock_graph_literal):
+def test_negation_query_is_compound_query():
+    assert issubclass(NegationQuery, CompoundQuery)
+
+
+def test_compound_query_object_dialect_construction(mock_graph_literal):
     gf = GraphFrame.from_literal(mock_graph_literal)
     query1 = [("*", {"time (inc)": [">= 20", "<= 60"]})]
     query2 = [("*", {"time (inc)": ">= 60"})]
     q1_node = gf.graph.roots[0].children[1].children[0].children[0]
     q2_node = gf.graph.roots[0]
-    compound_query = AndQuery(query1, query2)
+    compound_query = ConjunctionQuery(query1, query2)
     assert compound_query.subqueries[0].query_pattern[0][0] == "*"
     assert compound_query.subqueries[0].query_pattern[0][1](gf.dataframe.loc[q1_node])
     assert not compound_query.subqueries[0].query_pattern[0][1](
@@ -705,15 +717,15 @@ def test_nary_query_high_level_construction(mock_graph_literal):
     )
 
 
-def test_nary_query_low_level_construction(mock_graph_literal):
+def test_compound_query_base_query_construction(mock_graph_literal):
     gf = GraphFrame.from_literal(mock_graph_literal)
-    query1 = QueryMatcher().match(
+    query1 = Query().match(
         "*", lambda x: x["time (inc)"] >= 20 and x["time (inc)"] <= 60
     )
-    query2 = QueryMatcher().match("*", lambda x: x["time (inc)"] >= 60)
+    query2 = Query().match("*", lambda x: x["time (inc)"] >= 60)
     q1_node = gf.graph.roots[0].children[1].children[0].children[0]
     q2_node = gf.graph.roots[0]
-    compound_query = AndQuery(query1, query2)
+    compound_query = ConjunctionQuery(query1, query2)
     assert compound_query.subqueries[0].query_pattern[0][0] == "*"
     assert compound_query.subqueries[0].query_pattern[0][1](gf.dataframe.loc[q1_node])
     assert not compound_query.subqueries[0].query_pattern[0][1](
@@ -726,13 +738,13 @@ def test_nary_query_low_level_construction(mock_graph_literal):
     )
 
 
-def test_nary_query_mixed_level_construction(mock_graph_literal):
+def test_compound_query_mixed_syntax_construction(mock_graph_literal):
     gf = GraphFrame.from_literal(mock_graph_literal)
     query1 = [("*", {"time (inc)": [">= 20", "<= 60"]})]
-    query2 = QueryMatcher().match("*", lambda x: x["time (inc)"] >= 60)
+    query2 = Query().match("*", lambda x: x["time (inc)"] >= 60)
     q1_node = gf.graph.roots[0].children[1].children[0].children[0]
     q2_node = gf.graph.roots[0]
-    compound_query = AndQuery(query1, query2)
+    compound_query = ConjunctionQuery(query1, query2)
     assert compound_query.subqueries[0].query_pattern[0][0] == "*"
     assert compound_query.subqueries[0].query_pattern[0][1](gf.dataframe.loc[q1_node])
     assert not compound_query.subqueries[0].query_pattern[0][1](
@@ -745,37 +757,28 @@ def test_nary_query_mixed_level_construction(mock_graph_literal):
     )
 
 
-def test_and_query(mock_graph_literal):
+def test_conjunction_query(mock_graph_literal):
     gf = GraphFrame.from_literal(mock_graph_literal)
     query1 = [("*", {"time (inc)": [">= 20", "<= 60"]})]
     query2 = [("*", {"time (inc)": ">= 60"})]
-    compound_query = AndQuery(query1, query2)
+    compound_query = ConjunctionQuery(query1, query2)
+    engine = QueryEngine()
     roots = gf.graph.roots
     matches = [
         roots[0].children[1],
         roots[0].children[1].children[0],
     ]
-    assert sorted(compound_query.apply(gf)) == sorted(matches)
+    assert sorted(engine.apply(compound_query, gf.graph, gf.dataframe)) == sorted(
+        matches
+    )
 
 
-def test_intersection_query(mock_graph_literal):
-    gf = GraphFrame.from_literal(mock_graph_literal)
-    query1 = [("*", {"time (inc)": [">= 20", "<= 60"]})]
-    query2 = [("*", {"time (inc)": ">= 60"})]
-    compound_query = IntersectionQuery(query1, query2)
-    roots = gf.graph.roots
-    matches = [
-        roots[0].children[1],
-        roots[0].children[1].children[0],
-    ]
-    assert sorted(compound_query.apply(gf)) == sorted(matches)
-
-
-def test_or_query(mock_graph_literal):
+def test_disjunction_query(mock_graph_literal):
     gf = GraphFrame.from_literal(mock_graph_literal)
     query1 = [("*", {"time (inc)": 5.0})]
     query2 = [("*", {"time (inc)": 10.0})]
-    compound_query = OrQuery(query1, query2)
+    compound_query = DisjunctionQuery(query1, query2)
+    engine = QueryEngine()
     roots = gf.graph.roots
     matches = [
         roots[0].children[0].children[0],
@@ -788,34 +791,17 @@ def test_or_query(mock_graph_literal):
         roots[1].children[0].children[0],
         roots[1].children[0].children[1],
     ]
-    assert sorted(compound_query.apply(gf)) == sorted(matches)
+    assert sorted(engine.apply(compound_query, gf.graph, gf.dataframe)) == sorted(
+        matches
+    )
 
 
-def test_union_query(mock_graph_literal):
-    gf = GraphFrame.from_literal(mock_graph_literal)
-    query1 = [("*", {"time (inc)": 5.0})]
-    query2 = [("*", {"time (inc)": 10.0})]
-    compound_query = UnionQuery(query1, query2)
-    roots = gf.graph.roots
-    matches = [
-        roots[0].children[0].children[0],
-        roots[0].children[0].children[1],
-        roots[0].children[1].children[0].children[0].children[0].children[0],
-        roots[0].children[1].children[0].children[0].children[0].children[1],
-        roots[0].children[1].children[0].children[0].children[1],
-        roots[0].children[2].children[0].children[0],
-        roots[0].children[2].children[0].children[1].children[0].children[0],
-        roots[1].children[0].children[0],
-        roots[1].children[0].children[1],
-    ]
-    assert sorted(compound_query.apply(gf)) == sorted(matches)
-
-
-def test_xor_query(mock_graph_literal):
+def test_exc_disjunction_query(mock_graph_literal):
     gf = GraphFrame.from_literal(mock_graph_literal)
     query1 = [("*", {"time (inc)": [">= 5.0", "<= 10.0"]})]
     query2 = [("*", {"time (inc)": 10.0})]
-    compound_query = XorQuery(query1, query2)
+    compound_query = ExclusiveDisjunctionQuery(query1, query2)
+    engine = QueryEngine()
     roots = gf.graph.roots
     matches = [
         roots[0].children[0].children[0],
@@ -824,26 +810,12 @@ def test_xor_query(mock_graph_literal):
         roots[0].children[2].children[0].children[1].children[0].children[0],
         roots[1].children[0].children[0],
     ]
-    assert sorted(compound_query.apply(gf)) == sorted(matches)
+    assert sorted(engine.apply(compound_query, gf.graph, gf.dataframe)) == sorted(
+        matches
+    )
 
 
-def test_sym_diff_query(mock_graph_literal):
-    gf = GraphFrame.from_literal(mock_graph_literal)
-    query1 = [("*", {"time (inc)": [">= 5.0", "<= 10.0"]})]
-    query2 = [("*", {"time (inc)": 10.0})]
-    compound_query = SymDifferenceQuery(query1, query2)
-    roots = gf.graph.roots
-    matches = [
-        roots[0].children[0].children[0],
-        roots[0].children[1].children[0].children[0].children[0].children[0],
-        roots[0].children[2].children[0].children[0],
-        roots[0].children[2].children[0].children[1].children[0].children[0],
-        roots[1].children[0].children[0],
-    ]
-    assert sorted(compound_query.apply(gf)) == sorted(matches)
-
-
-def test_construct_cypher_api():
+def test_construct_string_dialect():
     mock_node_mpi = {"name": "MPI_Bcast"}
     mock_node_ibv = {"name": "ibv_reg_mr"}
     mock_node_time_true = {"time (inc)": 0.1}
@@ -860,10 +832,10 @@ def test_construct_cypher_api():
     path4 = u"""MATCH (p)->(3, a)->(q)
     WHERE p."name" STARTS WITH "MPI" AND a."time (inc)" = 0.1 AND q."name" STARTS WITH "ibv"
     """
-    query1 = CypherQuery(path1)
-    query2 = CypherQuery(path2)
-    query3 = CypherQuery(path3)
-    query4 = CypherQuery(path4)
+    query1 = StringQuery(path1)
+    query2 = StringQuery(path2)
+    query3 = StringQuery(path3)
+    query4 = StringQuery(path4)
 
     assert query1.query_pattern[0][0] == "."
     assert query1.query_pattern[0][1](mock_node_mpi)
@@ -925,10 +897,10 @@ def test_construct_cypher_api():
     q."name" STARTS WITH "ibv"
     """
     with pytest.raises(InvalidQueryPath):
-        _ = CypherQuery(invalid_path)
+        _ = StringQuery(invalid_path)
 
 
-def test_apply_cypher(mock_graph_literal):
+def test_apply_string_dialect(mock_graph_literal):
     gf = GraphFrame.from_literal(mock_graph_literal)
     path = u"""MATCH (p)->(2, q)->("*", r)->(s)
     WHERE p."time (inc)" >= 30.0 AND NOT q."name" STARTS WITH "b"
@@ -942,9 +914,10 @@ def test_apply_cypher(mock_graph_literal):
         root.children[1].children[0].children[0],
         root.children[1].children[0].children[0].children[1],
     ]
-    query = CypherQuery(path)
+    query = StringQuery(path)
+    engine = QueryEngine()
 
-    assert sorted(query.apply(gf)) == sorted(match)
+    assert sorted(engine.apply(query, gf.graph, gf.dataframe)) == sorted(match)
 
     path = u"""MATCH (p)->(".")->(q)->("*")
     WHERE p."time (inc)" >= 30.0 AND q."name" = "bar"
@@ -956,15 +929,15 @@ def test_apply_cypher(mock_graph_literal):
         root.children[1].children[0].children[0].children[0].children[0],
         root.children[1].children[0].children[0].children[0].children[1],
     ]
-    query = CypherQuery(path)
-    assert sorted(query.apply(gf)) == sorted(match)
+    query = StringQuery(path)
+    assert sorted(engine.apply(query, gf.graph, gf.dataframe)) == sorted(match)
 
     path = u"""MATCH (p)->(q)->(r)
     WHERE p."name" = "foo" AND q."name" = "bar" AND r."time" = 5.0
     """
     match = [root, root.children[0], root.children[0].children[0]]
-    query = CypherQuery(path)
-    assert sorted(query.apply(gf)) == sorted(match)
+    query = StringQuery(path)
+    assert sorted(engine.apply(query, gf.graph, gf.dataframe)) == sorted(match)
 
     path = u"""MATCH (p)->(q)->("+", r)
     WHERE p."name" = "foo" AND q."name" = "qux" AND r."time (inc)" > 15.0
@@ -976,8 +949,8 @@ def test_apply_cypher(mock_graph_literal):
         root.children[1].children[0].children[0],
         root.children[1].children[0].children[0].children[0],
     ]
-    query = CypherQuery(path)
-    assert sorted(query.apply(gf)) == sorted(match)
+    query = StringQuery(path)
+    assert sorted(engine.apply(query, gf.graph, gf.dataframe)) == sorted(match)
 
     path = u"""MATCH (p)->(q)
     WHERE p."time (inc)" > 100 OR p."time (inc)" <= 30 AND q."time (inc)" = 20
@@ -989,29 +962,29 @@ def test_apply_cypher(mock_graph_literal):
         roots[1],
         roots[1].children[0],
     ]
-    query = CypherQuery(path)
-    assert sorted(query.apply(gf)) == sorted(match)
+    query = StringQuery(path)
+    assert sorted(engine.apply(query, gf.graph, gf.dataframe)) == sorted(match)
 
     path = u"""MATCH (p)->("*", q)->(r)
     WHERE p."name" = "this" AND q."name" = "is" AND r."name" = "nonsense"
     """
 
-    query = CypherQuery(path)
-    assert query.apply(gf) == []
+    query = StringQuery(path)
+    assert engine.apply(query, gf.graph, gf.dataframe) == []
 
     path = u"""MATCH (p)->("*")->(q)
     WHERE p."name" = 5 AND q."name" = "whatever"
     """
     with pytest.raises(InvalidQueryFilter):
-        query = CypherQuery(path)
-        query.apply(gf)
+        query = StringQuery(path)
+        engine.apply(query, gf.graph, gf.dataframe)
 
     path = u"""MATCH (p)->("*")->(q)
     WHERE p."time" = "badstring" AND q."name" = "whatever"
     """
-    query = CypherQuery(path)
+    query = StringQuery(path)
     with pytest.raises(InvalidQueryFilter):
-        query.apply(gf)
+        engine.apply(query, gf.graph, gf.dataframe)
 
     class DummyType:
         def __init__(self):
@@ -1028,8 +1001,8 @@ def test_apply_cypher(mock_graph_literal):
     WHERE p."name" = "foo" AND q."name" = "bar" AND p."list" = DummyType()
     """
     with pytest.raises(InvalidQueryPath):
-        query = CypherQuery(path)
-        query.apply(gf)
+        query = StringQuery(path)
+        engine.apply(query, gf.graph, gf.dataframe)
 
     path = u"""MATCH ("*")->(p)->(q)->("*")
     WHERE p."name" = "bar" AND q."name" = "grault"
@@ -1075,46 +1048,46 @@ def test_apply_cypher(mock_graph_literal):
         [gf.graph.roots[1].children[0], gf.graph.roots[1].children[0].children[1]],
     ]
     match = list(set().union(*match))
-    query = CypherQuery(path)
-    assert sorted(query.apply(gf)) == sorted(match)
+    query = StringQuery(path)
+    assert sorted(engine.apply(query, gf.graph, gf.dataframe)) == sorted(match)
 
     path = u"""MATCH ("*")->(p)->(q)->("+")
     WHERE p."name" = "bar" AND q."name" = "grault"
     """
-    query = CypherQuery(path)
-    assert query.apply(gf) == []
+    query = StringQuery(path)
+    assert engine.apply(query, gf.graph, gf.dataframe) == []
 
     gf.dataframe["time"] = np.NaN
     gf.dataframe.at[gf.graph.roots[0], "time"] = 5.0
     path = u"""MATCH ("*", p)
     WHERE p."time" IS NOT NAN"""
     match = [gf.graph.roots[0]]
-    query = CypherQuery(path)
-    assert query.apply(gf) == match
+    query = StringQuery(path)
+    assert engine.apply(query, gf.graph, gf.dataframe) == match
 
     gf.dataframe["time"] = 5.0
     gf.dataframe.at[gf.graph.roots[0], "time"] = np.NaN
     path = u"""MATCH ("*", p)
     WHERE p."time" IS NAN"""
     match = [gf.graph.roots[0]]
-    query = CypherQuery(path)
-    assert query.apply(gf) == match
+    query = StringQuery(path)
+    assert engine.apply(query, gf.graph, gf.dataframe) == match
 
     gf.dataframe["time"] = np.Inf
     gf.dataframe.at[gf.graph.roots[0], "time"] = 5.0
     path = u"""MATCH ("*", p)
     WHERE p."time" IS NOT INF"""
     match = [gf.graph.roots[0]]
-    query = CypherQuery(path)
-    assert query.apply(gf) == match
+    query = StringQuery(path)
+    assert engine.apply(query, gf.graph, gf.dataframe) == match
 
     gf.dataframe["time"] = 5.0
     gf.dataframe.at[gf.graph.roots[0], "time"] = np.Inf
     path = u"""MATCH ("*", p)
     WHERE p."time" IS INF"""
     match = [gf.graph.roots[0]]
-    query = CypherQuery(path)
-    assert query.apply(gf) == match
+    query = StringQuery(path)
+    assert engine.apply(query, gf.graph, gf.dataframe) == match
 
     names = gf.dataframe["name"].copy()
     gf.dataframe["name"] = None
@@ -1122,55 +1095,61 @@ def test_apply_cypher(mock_graph_literal):
     path = u"""MATCH ("*", p)
     WHERE p."name" IS NOT NONE"""
     match = [gf.graph.roots[0]]
-    query = CypherQuery(path)
-    assert query.apply(gf) == match
+    query = StringQuery(path)
+    assert engine.apply(query, gf.graph, gf.dataframe) == match
 
     gf.dataframe["name"] = names
     gf.dataframe.at[gf.graph.roots[0], "name"] = None
     path = u"""MATCH ("*", p)
     WHERE p."name" IS NONE"""
     match = [gf.graph.roots[0]]
-    query = CypherQuery(path)
-    assert query.apply(gf) == match
+    query = StringQuery(path)
+    assert engine.apply(query, gf.graph, gf.dataframe) == match
 
 
-def test_cypher_and_compound_query(mock_graph_literal):
+def test_string_conj_compound_query(mock_graph_literal):
     gf = GraphFrame.from_literal(mock_graph_literal)
-    compound_query1 = parse_cypher_query(
+    compound_query1 = parse_string_dialect(
         u"""
         {MATCH ("*", p) WHERE p."time (inc)" >= 20 AND p."time (inc)" <= 60}
         AND {MATCH ("*", p) WHERE p."time (inc)" >= 60}
         """
     )
-    compound_query2 = parse_cypher_query(
+    compound_query2 = parse_string_dialect(
         u"""
         MATCH ("*", p)
         WHERE {p."time (inc)" >= 20 AND p."time (inc)" <= 60} AND {p."time (inc)" >= 60}
         """
     )
+    engine = QueryEngine()
     roots = gf.graph.roots
     matches = [
         roots[0].children[1],
         roots[0].children[1].children[0],
     ]
-    assert sorted(compound_query1.apply(gf)) == sorted(matches)
-    assert sorted(compound_query2.apply(gf)) == sorted(matches)
+    assert sorted(engine.apply(compound_query1, gf.graph, gf.dataframe)) == sorted(
+        matches
+    )
+    assert sorted(engine.apply(compound_query2, gf.graph, gf.dataframe)) == sorted(
+        matches
+    )
 
 
-def test_cypher_or_compound_query(mock_graph_literal):
+def test_string_disj_compound_query(mock_graph_literal):
     gf = GraphFrame.from_literal(mock_graph_literal)
-    compound_query1 = parse_cypher_query(
+    compound_query1 = parse_string_dialect(
         u"""
         {MATCH ("*", p) WHERE p."time (inc)" = 5.0}
         OR {MATCH ("*", p) WHERE p."time (inc)" = 10.0}
         """
     )
-    compound_query2 = parse_cypher_query(
+    compound_query2 = parse_string_dialect(
         u"""
         MATCH ("*", p)
         WHERE {p."time (inc)" = 5.0} OR {p."time (inc)" = 10.0}
         """
     )
+    engine = QueryEngine()
     roots = gf.graph.roots
     matches = [
         roots[0].children[0].children[0],
@@ -1183,24 +1162,29 @@ def test_cypher_or_compound_query(mock_graph_literal):
         roots[1].children[0].children[0],
         roots[1].children[0].children[1],
     ]
-    assert sorted(compound_query1.apply(gf)) == sorted(matches)
-    assert sorted(compound_query2.apply(gf)) == sorted(matches)
+    assert sorted(engine.apply(compound_query1, gf.graph, gf.dataframe)) == sorted(
+        matches
+    )
+    assert sorted(engine.apply(compound_query2, gf.graph, gf.dataframe)) == sorted(
+        matches
+    )
 
 
-def test_cypher_xor_compound_query(mock_graph_literal):
+def test_cypher_exc_disj_compound_query(mock_graph_literal):
     gf = GraphFrame.from_literal(mock_graph_literal)
-    compound_query1 = parse_cypher_query(
+    compound_query1 = parse_string_dialect(
         u"""
         {MATCH ("*", p) WHERE p."time (inc)" >= 5.0 AND p."time (inc)" <= 10.0}
         XOR {MATCH ("*", p) WHERE p."time (inc)" = 10.0}
         """
     )
-    compound_query2 = parse_cypher_query(
+    compound_query2 = parse_string_dialect(
         u"""
         MATCH ("*", p)
         WHERE {p."time (inc)" >= 5.0 AND p."time (inc)" <= 10.0} XOR {p."time (inc)" = 10.0}
         """
     )
+    engine = QueryEngine()
     roots = gf.graph.roots
     matches = [
         roots[0].children[0].children[0],
@@ -1209,8 +1193,12 @@ def test_cypher_xor_compound_query(mock_graph_literal):
         roots[0].children[2].children[0].children[1].children[0].children[0],
         roots[1].children[0].children[0],
     ]
-    assert sorted(compound_query1.apply(gf)) == sorted(matches)
-    assert sorted(compound_query2.apply(gf)) == sorted(matches)
+    assert sorted(engine.apply(compound_query1, gf.graph, gf.dataframe)) == sorted(
+        matches
+    )
+    assert sorted(engine.apply(compound_query2, gf.graph, gf.dataframe)) == sorted(
+        matches
+    )
 
 
 def test_leaf_query(small_mock2):
@@ -1224,26 +1212,33 @@ def test_leaf_query(small_mock2):
     ]
     nodes = set(gf.graph.traverse())
     nonleaves = list(nodes - set(matches))
-    obj_query = QueryMatcher([{"depth": -1}])
-    str_query_numeric = parse_cypher_query(
+    obj_query = ObjectQuery([{"depth": -1}])
+    str_query_numeric = parse_string_dialect(
         u"""
         MATCH (p)
         WHERE p."depth" = -1
         """
     )
-    str_query_is_leaf = parse_cypher_query(
+    str_query_is_leaf = parse_string_dialect(
         u"""
         MATCH (p)
         WHERE p IS LEAF
         """
     )
-    str_query_is_not_leaf = parse_cypher_query(
+    str_query_is_not_leaf = parse_string_dialect(
         u"""
         MATCH (p)
         WHERE p IS NOT LEAF
         """
     )
-    assert sorted(obj_query.apply(gf)) == sorted(matches)
-    assert sorted(str_query_numeric.apply(gf)) == sorted(matches)
-    assert sorted(str_query_is_leaf.apply(gf)) == sorted(matches)
-    assert sorted(str_query_is_not_leaf.apply(gf)) == sorted(nonleaves)
+    engine = QueryEngine()
+    assert sorted(engine.apply(obj_query, gf.graph, gf.dataframe)) == sorted(matches)
+    assert sorted(engine.apply(str_query_numeric, gf.graph, gf.dataframe)) == sorted(
+        matches
+    )
+    assert sorted(engine.apply(str_query_is_leaf, gf.graph, gf.dataframe)) == sorted(
+        matches
+    )
+    assert sorted(
+        engine.apply(str_query_is_not_leaf, gf.graph, gf.dataframe)
+    ) == sorted(nonleaves)

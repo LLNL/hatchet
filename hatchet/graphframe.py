@@ -17,7 +17,13 @@ import json
 from .node import Node
 from .graph import Graph
 from .frame import Frame
-from .query import AbstractQuery, QueryMatcher, parse_cypher_query
+from .query import (
+    is_hatchet_query,
+    ObjectQuery,
+    parse_string_dialect,
+    QueryEngine,
+    AbstractQuery,
+)
 from .external.console import ConsoleRenderer
 from .util.dot import trees_to_dot
 from .util.deprecated import deprecated_params
@@ -86,6 +92,7 @@ class GraphFrame:
         self.inc_metrics = [] if inc_metrics is None else inc_metrics
         self.default_metric = default_metric
         self.metadata = metadata
+        self.query_engine = QueryEngine()
 
     @staticmethod
     def from_hpctoolkit(dirname):
@@ -466,16 +473,16 @@ class GraphFrame:
                 filtered_rows = dataframe_copy.apply(filter_obj, axis=1)
                 filtered_df = dataframe_copy[filtered_rows]
 
-        elif isinstance(filter_obj, (list, str)) or issubclass(
-            type(filter_obj), AbstractQuery
-        ):
+        elif isinstance(filter_obj, (list, str)) or is_hatchet_query(filter_obj):
             # use a callpath query to apply the filter
             query = filter_obj
             if isinstance(filter_obj, list):
-                query = QueryMatcher(filter_obj)
+                query = ObjectQuery(filter_obj)
             elif isinstance(filter_obj, str):
-                query = parse_cypher_query(filter_obj)
-            query_matches = query.apply(self)
+                query = parse_string_dialect(filter_obj)
+            elif issubclass(type(filter_obj), AbstractQuery):
+                query = filter_obj._get_new_query()
+            query_matches = self.query_engine.apply(query, self.graph, self.dataframe)
             # match_set = list(set().union(*query_matches))
             # filtered_df = dataframe_copy.loc[dataframe_copy["node"].isin(match_set)]
             filtered_df = dataframe_copy.loc[dataframe_copy["node"].isin(query_matches)]
