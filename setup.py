@@ -38,6 +38,7 @@ setup(
         "hatchet",
         "hatchet.readers",
         "hatchet.writers",
+        "hatchet.query",
         "hatchet.util",
         "hatchet.external",
         "hatchet.tests",
