@@ -1,0 +1,7 @@
+include LICENSE
+include NOTICE
+include hatchet/vis/package.json
+include hatchet/vis/webpack.config.js
+recursive-include hatchet/vis/scripts *
+recursive-include hatchet/vis/static *
+recursive-include hatchet/vis/templates *
