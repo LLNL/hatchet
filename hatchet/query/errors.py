@@ -18,3 +18,9 @@ class RedundantQueryFilterWarning(Warning):
 
 class BadNumberNaryQueryArgs(Exception):
     """Raised when a query filter does not have a valid syntax"""
+
+
+class MultiIndexModeMismatch(Exception):
+    """Raised when an ObjectQuery or StringQuery object
+    is set to use multi-indexed data, but no multi-indexed
+    data is provided"""

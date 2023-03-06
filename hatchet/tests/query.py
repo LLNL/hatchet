@@ -25,6 +25,7 @@ from hatchet.query import (
     ExclusiveDisjunctionQuery,
     NegationQuery,
 )
+from hatchet.query.errors import MultiIndexModeMismatch
 
 
 def test_construct_object_dialect():
@@ -492,7 +493,7 @@ def test_apply_indices(calc_pi_hpct_db):
         ],
     ]
     matches = list(set().union(*matches))
-    query = ObjectQuery(path)
+    query = ObjectQuery(path, multi_index_mode="all")
     engine = QueryEngine()
     assert sorted(engine.apply(query, gf.graph, gf.dataframe)) == sorted(matches)
 
@@ -568,7 +569,7 @@ def test_object_dialect_depth_index_levels(calc_pi_hpct_db):
     gf = GraphFrame.from_hpctoolkit(str(calc_pi_hpct_db))
     root = gf.graph.roots[0]
 
-    query = ObjectQuery([("*", {"depth": "<= 2"})])
+    query = ObjectQuery([("*", {"depth": "<= 2"})], multi_index_mode="all")
     engine = QueryEngine()
     matches = [
         [root, root.children[0], root.children[0].children[0]],
@@ -581,12 +582,12 @@ def test_object_dialect_depth_index_levels(calc_pi_hpct_db):
     matches = list(set().union(*matches))
     assert sorted(engine.apply(query, gf.graph, gf.dataframe)) == sorted(matches)
 
-    query = ObjectQuery([("*", {"depth": 0})])
+    query = ObjectQuery([("*", {"depth": 0})], multi_index_mode="all")
     matches = [root]
     assert engine.apply(query, gf.graph, gf.dataframe) == matches
 
     with pytest.raises(InvalidQueryFilter):
-        query = ObjectQuery([{"depth": "hello"}])
+        query = ObjectQuery([{"depth": "hello"}], multi_index_mode="all")
         engine.apply(query, gf.graph, gf.dataframe)
 
 
@@ -594,7 +595,7 @@ def test_object_dialect_node_id_index_levels(calc_pi_hpct_db):
     gf = GraphFrame.from_hpctoolkit(str(calc_pi_hpct_db))
     root = gf.graph.roots[0]
 
-    query = ObjectQuery([("*", {"node_id": "<= 2"})])
+    query = ObjectQuery([("*", {"node_id": "<= 2"})], multi_index_mode="all")
     engine = QueryEngine()
     matches = [
         [root, root.children[0]],
@@ -606,12 +607,12 @@ def test_object_dialect_node_id_index_levels(calc_pi_hpct_db):
     matches = list(set().union(*matches))
     assert sorted(engine.apply(query, gf.graph, gf.dataframe)) == sorted(matches)
 
-    query = ObjectQuery([("*", {"node_id": 0})])
+    query = ObjectQuery([("*", {"node_id": 0})], multi_index_mode="all")
     matches = [root]
     assert engine.apply(query, gf.graph, gf.dataframe) == matches
 
     with pytest.raises(InvalidQueryFilter):
-        query = ObjectQuery([{"node_id": "hello"}])
+        query = ObjectQuery([{"node_id": "hello"}], multi_index_mode="all")
         engine.apply(query, gf.graph, gf.dataframe)
 
 
@@ -1242,3 +1243,86 @@ def test_leaf_query(small_mock2):
     assert sorted(
         engine.apply(str_query_is_not_leaf, gf.graph, gf.dataframe)
     ) == sorted(nonleaves)
+
+
+def test_object_dialect_all_mode(tau_profile_dir):
+    gf = GraphFrame.from_tau(tau_profile_dir)
+    engine = QueryEngine()
+    query = ObjectQuery(
+        [".", ("+", {"time (inc)": ">= 17983.0"})], multi_index_mode="all"
+    )
+    roots = gf.graph.roots
+    matches = [
+        roots[0],
+        roots[0].children[6],
+        roots[0].children[6].children[1],
+        roots[0].children[0],
+    ]
+    assert sorted(engine.apply(query, gf.graph, gf.dataframe)) == sorted(matches)
+
+
+def test_string_dialect_all_mode(tau_profile_dir):
+    gf = GraphFrame.from_tau(tau_profile_dir)
+    engine = QueryEngine()
+    query = StringQuery(
+        u"""MATCH (".")->("+", p)
+        WHERE p."time (inc)" >= 17983.0
+        """,
+        multi_index_mode="all",
+    )
+    roots = gf.graph.roots
+    matches = [
+        roots[0],
+        roots[0].children[6],
+        roots[0].children[6].children[1],
+        roots[0].children[0],
+    ]
+    assert sorted(engine.apply(query, gf.graph, gf.dataframe)) == sorted(matches)
+
+
+def test_object_dialect_any_mode(tau_profile_dir):
+    gf = GraphFrame.from_tau(tau_profile_dir)
+    engine = QueryEngine()
+    query = ObjectQuery([{"time": "< 24.0"}], multi_index_mode="any")
+    roots = gf.graph.roots
+    matches = [
+        roots[0].children[2],
+        roots[0].children[6].children[3],
+    ]
+    assert sorted(engine.apply(query, gf.graph, gf.dataframe)) == sorted(matches)
+
+
+def test_string_dialect_any_mode(tau_profile_dir):
+    gf = GraphFrame.from_tau(tau_profile_dir)
+    engine = QueryEngine()
+    query = StringQuery(
+        u"""MATCH (".", p)
+        WHERE p."time" < 24.0
+        """,
+        multi_index_mode="any",
+    )
+    roots = gf.graph.roots
+    matches = [
+        roots[0].children[2],
+        roots[0].children[6].children[3],
+    ]
+    assert sorted(engine.apply(query, gf.graph, gf.dataframe)) == sorted(matches)
+
+
+def test_multi_index_mode_assertion_error(tau_profile_dir):
+    with pytest.raises(AssertionError):
+        _ = ObjectQuery([".", ("*", {"name": "test"})], multi_index_mode="foo")
+    with pytest.raises(AssertionError):
+        _ = StringQuery(
+            u""" MATCH (".")->("*", p)
+            WHERE p."name" = "test"
+            """,
+            multi_index_mode="foo",
+        )
+    gf = GraphFrame.from_tau(tau_profile_dir)
+    query = ObjectQuery(
+        [".", ("*", {"time (inc)": "> 17983.0"})], multi_index_mode="off"
+    )
+    engine = QueryEngine()
+    with pytest.raises(MultiIndexModeMismatch):
+        engine.apply(query, gf.graph, gf.dataframe)

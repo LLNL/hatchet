@@ -415,6 +415,7 @@ class GraphFrame:
         update_inc_cols=True,
         num_procs=mp.cpu_count(),
         rec_limit=1000,
+        multi_index_mode="off",
     ):
         """Filter the dataframe using a user-supplied function.
 
@@ -476,10 +477,15 @@ class GraphFrame:
         elif isinstance(filter_obj, (list, str)) or is_hatchet_query(filter_obj):
             # use a callpath query to apply the filter
             query = filter_obj
+            # If a raw Object-dialect query is provided (not already passed to ObjectQuery),
+            # create a new ObjectQuery object.
             if isinstance(filter_obj, list):
-                query = ObjectQuery(filter_obj)
+                query = ObjectQuery(filter_obj, multi_index_mode)
+            # If a raw String-dialect query is provided (not already passed to StringQuery),
+            # create a new StringQuery object.
             elif isinstance(filter_obj, str):
-                query = parse_string_dialect(filter_obj)
+                query = parse_string_dialect(filter_obj, multi_index_mode)
+            # If an old-style query is provided, extract the underlying new-style query.
             elif issubclass(type(filter_obj), AbstractQuery):
                 query = filter_obj._get_new_query()
             query_matches = self.query_engine.apply(query, self.graph, self.dataframe)
