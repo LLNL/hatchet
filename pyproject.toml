@@ -1,5 +1,8 @@
 [build-system]
-requires = ["setuptools", "wheel"]
+requires = [
+    "setuptools",
+    "wheel",
+]
 build-backend = "setuptools.build_meta"
 
 [tool.poetry]
@@ -26,7 +29,7 @@ exclude = '''
   | \.tox
   | \.venv
   | _build
- | buck-out
+  | buck-out
   | build
   | dist
 )/

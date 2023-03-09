@@ -21,6 +21,60 @@ with open("./hatchet/version.py") as fp:
     exec(fp.read(), version)
 
 
+cmd_class = {}
+ext_modules = []
+should_cythonize = False
+mod_import_path = "hatchet.cython_modules.libs"
+mod_file_path = "hatchet/cython_modules"
+mod_names = [
+    "reader_modules",
+    "graphframe_modules",
+]
+
+
+for mname in mod_names:
+    c_file = path.join(mod_file_path, "{}.c".format(mname))
+    pyx_file = path.join(mod_file_path, "{}.pyx".format(mname))
+    if not path.isfile(pyx_file):
+        raise FileNotFoundError(
+            "Requested Cython extension not found: {}".format(pyx_file)
+        )
+    if path.isfile(c_file):
+        should_cythonize = False
+        ext_modules.append(
+            Extension(
+                "{}.{}".format(mod_import_path, mname),
+                [c_file],
+            )
+        )
+    else:
+        should_cythonize = True
+        ext_modules.append(
+            Extension(
+                "{}.{}".format(mod_import_path, mname),
+                [pyx_file],
+            )
+        )
+
+if should_cythonize:
+    from Cython.Build import cythonize, build_ext
+
+    ext_modules = cythonize(ext_modules)
+    cmd_class.update({"build_ext": build_ext})
+
+
+ext_modules = [
+    Extension(
+        "hatchet.cython_modules.libs.reader_modules",
+        ["hatchet/cython_modules/reader_modules.pyx"],
+    ),
+    Extension(
+        "hatchet.cython_modules.libs.graphframe_modules",
+        ["hatchet/cython_modules/graphframe_modules.pyx"],
+    ),
+]
+
+
 setup(
     name="llnl-hatchet",
     version=version["__version__"],
@@ -64,14 +118,6 @@ setup(
         "multiprocess",
         "caliper-reader",
     ],
-    ext_modules=[
-        Extension(
-            "hatchet.cython_modules.libs.reader_modules",
-            ["hatchet/cython_modules/reader_modules.c"],
-        ),
-        Extension(
-            "hatchet.cython_modules.libs.graphframe_modules",
-            ["hatchet/cython_modules/graphframe_modules.c"],
-        ),
-    ],
+    ext_modules=ext_modules,
+    cmdclass=cmd_class,
 )
