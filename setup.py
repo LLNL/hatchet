@@ -21,29 +21,92 @@ with open("./hatchet/version.py") as fp:
     exec(fp.read(), version)
 
 
+cmd_class = {}
+ext_modules = []
+should_cythonize = False
+mod_import_path = "hatchet.cython_modules.libs"
+mod_file_path = "hatchet/cython_modules"
+mod_names = [
+    "reader_modules",
+    "graphframe_modules",
+]
+
+
+for mname in mod_names:
+    c_file = path.join(mod_file_path, "{}.c".format(mname))
+    pyx_file = path.join(mod_file_path, "{}.pyx".format(mname))
+    if not path.isfile(pyx_file):
+        raise FileNotFoundError(
+            "Requested Cython extension not found: {}".format(pyx_file)
+        )
+    if path.isfile(c_file):
+        should_cythonize = False
+        ext_modules.append(
+            Extension(
+                "{}.{}".format(mod_import_path, mname),
+                [c_file],
+            )
+        )
+    else:
+        should_cythonize = True
+        ext_modules.append(
+            Extension(
+                "{}.{}".format(mod_import_path, mname),
+                [pyx_file],
+            )
+        )
+
+if should_cythonize:
+    from Cython.Build import cythonize, build_ext
+
+    ext_modules = cythonize(ext_modules)
+    cmd_class.update({"build_ext": build_ext})
+
+
+ext_modules = [
+    Extension(
+        "hatchet.cython_modules.libs.reader_modules",
+        ["hatchet/cython_modules/reader_modules.pyx"],
+    ),
+    Extension(
+        "hatchet.cython_modules.libs.graphframe_modules",
+        ["hatchet/cython_modules/graphframe_modules.pyx"],
+    ),
+]
+
+
 setup(
     name="llnl-hatchet",
     version=version["__version__"],
+    license="MIT",
     description="A Python library for analyzing hierarchical performance data",
+    long_description=long_description,
+    long_description_content_type="text/markdown",
     url="https://github.com/llnl/hatchet",
+    project_urls={
+        "Source Code": "https://github.com/llnl/hatchet",
+        "Documentation": "https://llnl-hatchet.readthedocs.io/en/latest/",
+    },
     author="Stephanie Brink",
     author_email="brink2@llnl.gov",
-    license="MIT",
     classifiers=[
         "Development Status :: 5 - Production/Stable",
         "License :: OSI Approved :: MIT License",
     ],
     keywords="",
+    python_requires=">=2.7,!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*,!=3.4.*",
     packages=[
         "hatchet",
         "hatchet.readers",
         "hatchet.writers",
         "hatchet.query",
+        "hatchet.vis",
         "hatchet.util",
         "hatchet.external",
         "hatchet.tests",
         "hatchet.cython_modules.libs",
     ],
+    include_package_data=True,
     install_requires=[
         "pydot",
         "PyYAML",
@@ -55,14 +118,6 @@ setup(
         "multiprocess",
         "caliper-reader",
     ],
-    ext_modules=[
-        Extension(
-            "hatchet.cython_modules.libs.reader_modules",
-            ["hatchet/cython_modules/reader_modules.c"],
-        ),
-        Extension(
-            "hatchet.cython_modules.libs.graphframe_modules",
-            ["hatchet/cython_modules/graphframe_modules.c"],
-        ),
-    ],
+    ext_modules=ext_modules,
+    cmdclass=cmd_class,
 )
