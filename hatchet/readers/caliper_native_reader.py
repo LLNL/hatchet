@@ -19,17 +19,19 @@ from hatchet.util.timer import Timer
 class CaliperNativeReader:
     """Read in a native `.cali` file using Caliper's python reader."""
 
-    def __init__(self, filename_or_caliperreader, native):
+    def __init__(self, filename_or_caliperreader, native, string_attributes):
         """Read in a native cali using Caliper's python reader.
 
         Args:
             filename_or_caliperreader (str or CaliperReader): name of a `cali` file OR
                 a CaliperReader object
             native (bool): use native metric names or user-readable metric names
+            string_attributes (str or list): Adds existing string attributes from within the caliper file to the dataframe
         """
         self.filename_or_caliperreader = filename_or_caliperreader
         self.filename_ext = ""
         self.use_native_metric_names = native
+        self.string_attributes = string_attributes
 
         self.df_nodes = {}
         self.metric_cols = []
@@ -46,6 +48,9 @@ class CaliperNativeReader:
 
         if isinstance(self.filename_or_caliperreader, str):
             _, self.filename_ext = os.path.splitext(filename_or_caliperreader)
+
+        if isinstance(self.string_attributes, str):
+            self.string_attributes = [self.string_attributes]
 
     def read_metrics(self, ctx="path"):
         all_metrics = []
@@ -104,6 +109,16 @@ class CaliperNativeReader:
                                 node_dict[item] = int(record[item])
                                 if item not in self.record_data_cols:
                                     self.record_data_cols.append(item)
+                            elif (
+                                self.filename_or_caliperreader.attribute(
+                                    item
+                                ).attribute_type()
+                                == "string"
+                            ):
+                                if item in self.string_attributes:
+                                    node_dict[item] = record[item]
+                                    if item not in self.record_data_cols:
+                                        self.record_data_cols.append(item)
 
                     all_metrics.append(node_dict)
 
