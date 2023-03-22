@@ -133,8 +133,8 @@ class GraphFrame:
             filename_or_caliperreader (str or CaliperReader): name of a Caliper
                 output file in `.cali` format, or a CaliperReader object
             native (bool): use native or user-readable metric names (default)
-            string_attributes (str or list): Adds existing string attributes
-                from within the caliper file to the dataframe
+            string_attributes (str or list, optional): Adds existing string
+                attributes from within the caliper file to the dataframe
         """
         # import this lazily to avoid circular dependencies
         from .readers.caliper_native_reader import CaliperNativeReader
