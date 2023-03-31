@@ -126,7 +126,9 @@ class GraphFrame:
         return CaliperReader(filename_or_stream, query).read()
 
     @staticmethod
-    def from_caliperreader(filename_or_caliperreader, native=False, string_attributes=[]):
+    def from_caliperreader(
+        filename_or_caliperreader, native=False, string_attributes=[]
+    ):
         """Read in a native Caliper `cali` file using Caliper's python reader.
 
         Args:
@@ -139,7 +141,9 @@ class GraphFrame:
         # import this lazily to avoid circular dependencies
         from .readers.caliper_native_reader import CaliperNativeReader
 
-        return CaliperNativeReader(filename_or_caliperreader, native, string_attributes).read()
+        return CaliperNativeReader(
+            filename_or_caliperreader, native, string_attributes
+        ).read()
 
     @staticmethod
     def from_spotdb(db_key, list_of_ids=None):
