@@ -7,6 +7,9 @@ on:
   release:
     types:
       - published
+  push:
+    tags:
+      - 'v**'
 
 jobs:
 
@@ -23,40 +26,8 @@ jobs:
 
       - uses: pypa/cibuildwheel@v2.12.1
         env:
-          CIBW_SKIP: pp*
-          CIBW_ARCHS_LINUX: auto aarch64 ppc64le s390x
-
-      - uses: actions/upload-artifact@v3
-        with:
-          path: ./wheelhouse/*.whl
-
-  build_wheels_macos_36_37:
-    name: Build wheels for Python 3.6 and 3.7 on macOS
-    runs-on: macos-12
-    steps:
-      - uses: actions/checkout@v3
-
-      - uses: pypa/cibuildwheel@v2.12.1
-        env:
-          CIBW_SKIP: pp*
-          CIBW_ARCHS_MACOS: x86_64
-          CIBW_PROJECT_REQUIRES_PYTHON: ">=3.6,<3.8"
-
-      - uses: actions/upload-artifact@v3
-        with:
-          path: ./wheelhouse/*.whl
-
-  build_wheels_macos_38_plus:
-    name: Build wheels for Python 3.8+ on macOS
-    runs-on: macos-12
-    steps:
-      - uses: actions/checkout@v3
-
-      - uses: pypa/cibuildwheel@v2.12.1
-        env:
-          CIBW_SKIP: pp*
-          CIBW_ARCHS_MACOS: x86_64 universal2 arm64
-          CIBW_PROJECT_REQUIRES_PYTHON: ">=3.8"
+          CIBW_SKIP: pp* *musllinux*
+          CIBW_ARCHS_LINUX: auto aarch64 ppc64le
 
       - uses: actions/upload-artifact@v3
         with:
@@ -79,21 +50,54 @@ jobs:
         with:
           path: ./wheelhouse/*.whl
 
-  build_wheels_macos_27:
-    name: Build wheels for Python 2.7 on macOS
-    runs-on: macos-12
-    steps:
-      - uses: actions/checkout@v3
+  # TODO: uncomment if/when we decide to build wheels for macOS
+  # build_wheels_macos_36_37:
+  #   name: Build wheels for Python 3.6 and 3.7 on macOS
+  #   runs-on: macos-12
+  #   steps:
+  #     - uses: actions/checkout@v3
 
-      # Neeed to use cibuildwheel 1 for Python 2.7
-      - uses: pypa/cibuildwheel@v1.12.0
-        env:
-          CIBW_SKIP: pp*
-          CIBW_BUILD: cp27-macosx_x86_64
+  #     - uses: pypa/cibuildwheel@v2.12.1
+  #       env:
+  #         CIBW_SKIP: pp*
+  #         CIBW_ARCHS_MACOS: x86_64
+  #         CIBW_PROJECT_REQUIRES_PYTHON: ">=3.6,<3.8"
 
-      - uses: actions/upload-artifact@v3
-        with:
-          path: ./wheelhouse/*.whl
+  #     - uses: actions/upload-artifact@v3
+  #       with:
+  #         path: ./wheelhouse/*.whl
+
+  # build_wheels_macos_38_plus:
+  #   name: Build wheels for Python 3.8+ on macOS
+  #   runs-on: macos-12
+  #   steps:
+  #     - uses: actions/checkout@v3
+
+  #     - uses: pypa/cibuildwheel@v2.12.1
+  #       env:
+  #         CIBW_SKIP: pp*
+  #         CIBW_ARCHS_MACOS: x86_64 universal2 arm64
+  #         CIBW_PROJECT_REQUIRES_PYTHON: ">=3.8"
+
+  #     - uses: actions/upload-artifact@v3
+  #       with:
+  #         path: ./wheelhouse/*.whl
+
+  # build_wheels_macos_27:
+  #   name: Build wheels for Python 2.7 on macOS
+  #   runs-on: macos-12
+  #   steps:
+  #     - uses: actions/checkout@v3
+
+  #     # Neeed to use cibuildwheel 1 for Python 2.7
+  #     - uses: pypa/cibuildwheel@v1.12.0
+  #       env:
+  #         CIBW_SKIP: pp*
+  #         CIBW_BUILD: cp27-macosx_x86_64
+
+  #     - uses: actions/upload-artifact@v3
+  #       with:
+  #         path: ./wheelhouse/*.whl
 
   build_sdist:
     name: Build sdist
@@ -111,13 +115,35 @@ jobs:
         with:
           path: dist/*.tar.gz
 
+  test_upload_to_pypi:
+    needs:
+      - build_wheels_linux_3
+      - build_wheels_linux_27
+        # - build_wheels_macos_36_37
+        # - build_wheels_macos_38_plus
+        # - build_wheels_macos_27
+      - build_sdist
+    runs-on: ubuntu-20.04
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags')
+    steps:
+      - uses: actions/download-artifact@v3
+        with:
+          name: artifact
+          path: dist
+
+      - uses: pypa/gh-action-pypi-publish@v1.5.0
+        with:
+          user: __token__
+          password: ${{ secrets.TEST_PYPI_API_TOKEN }}
+          repository_url: https://test.pypi.org/legacy/
+
   upload_to_pypi:
     needs:
       - build_wheels_linux_3
-      - build_wheels_macos_36_37
-      - build_wheels_macos_38_plus
       - build_wheels_linux_27
-      - build_wheels_macos_27
+        # - build_wheels_macos_36_37
+        # - build_wheels_macos_38_plus
+        # - build_wheels_macos_27
       - build_sdist
     runs-on: ubuntu-20.04
     if: github.event_name == 'release' && github.event.action == 'published'
@@ -130,6 +156,6 @@ jobs:
       - uses: pypa/gh-action-pypi-publish@v1.5.0
         with:
           user: __token__
-          password: ${{ secrets.pypi_password }}
+          password: ${{ secrets.PYPI_API_TOKEN }}
           # Uncomment the line below if you want to upload to PyPI
           # repository_url: https://test.pypi.org/legacy/
