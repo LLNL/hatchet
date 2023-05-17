@@ -1,8 +1,9 @@
 name: Build wheels
 
 on:
-  pull_request:
-    branches: [develop, releases/**]
+  # Uncomment for testing through a PR
+  # pull_request:
+  #   branches: [develop, releases/**]
   workflow_dispatch:
   release:
     types:
