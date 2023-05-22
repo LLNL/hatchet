@@ -29,9 +29,9 @@ copyright = "2017-2023, Lawrence Livermore National Security, LLC"
 author = "LLNL Developerss"
 
 # The short X.Y version
-version = "2022.2.2"
+version = "2023.1.0"
 # The full version, including alpha/beta/rc tags
-release = "2022.2.2"
+release = "2023.1.0"
 
 
 # -- General configuration ---------------------------------------------------
