@@ -7,7 +7,314 @@
 Query Language
 **************
 
-As of version 1.2.0, Hatchet has a filtering query language that allows users to filter GraphFrames based on caller-callee relationships between nodes in the Graph. This query language contains two APIs: a high-level API that is expressed using built-in Python data types (e.g., lists, dictionaries, strings) and a low-level API that is expressed using Python callables. 
+.. versionadded:: 1.2.0
+
+One of the most important steps in identifying performance phenomena (e.g., bottlenecks) is data subselection
+and reduction. In previous versions of Hatchet, users could only reduce their data using filters on the
+pandas :code:`DataFrame` component of the :code:`GraphFrame` object. However, this type of data reduction
+ignores the relational data encoded in the Graph component of the :code:`GraphFrame`.
+
+Hatchet's Call Path Query Language (*query language* for short) provides a new way of reducing profiling
+data that leverages this relational data. In the query language, users provide a *query*, or a
+description of the properties of one or more paths in the Graph. Hatchet then uses this query to
+select all nodes in the Graph that satisfy the query. These nodes are returned to the user as a new
+:code:`GraphFrame`.
+
+The following sections will describe the structure of a query, the syntaxes for constructing
+queries, and the APIs for dealing with queries.
+
+Query Structure
+===============
+
+The main input to the query language is a query. A *query* is defined as a sequence of *query nodes*.
+A query node is a tuple of a *quantifier* and a *predicate*. A quantifier defines how many nodes in the
+Graph should be matched to a single query node. A predicate defines what conditions must be satisfied
+for a node in the Graph to match a query node.
+
+Query Syntaxes and Dialects
+===========================
+
+Hatchet provides three ways of creating queries to simplify the use of the query language under
+diverse circumstances (e.g., creating queries in JavaScript that will be moved into Python code).
+The first way to create queries is the *base syntax*: a Python API for iteratively building a query
+using method calls. Hatchet also provides two dialects for the query language:
+
+- **Object-based Dialect**: uses Python built-in objects (i.e., :code:`list`, :code:`tuple`, :code:`dict`)
+  to build queries
+- **String-based Dialect**: uses strings to build queries. The syntax of this dialect is derived from
+  the `Cypher <https://neo4j.com/product/cypher-graph-query-language/>`_ query language for graph databases.
+
+Besides syntaxes, these three ways of creating queries differ in their capabilities. In general, the base syntax
+is the most capable and most verbose. The object-based dialect is the least capable and least verbose, and the
+string-based dialect is in-between. For a more complete breakdown of the capabilities, see the
+:ref:`Syntax and Dialect Capabilities` section.
+
+Base Syntax
+-----------
+
+.. note::
+   In version 2023.1.0, the query language was refactored to work better with a new tool
+   called `Thicket <https://thicket.readthedocs.io/en/latest/>`_. This refactor is explained in
+   more detail in the :ref:`Query Language APIs` section.
+   This section assumes the use of "new-style" queries. If you are using "old-style" queries, you
+   can simply replace any use of :code:`Query` with :code:`QueryMatcher`.
+
+Hatchet's :code:`Query` class defines how to construct a query using the base syntax. Using this class,
+queries are built using the :code:`match` and :code:`rel` methods. The :code:`match` method sets the first
+node of the query. The :code:`rel` method is called iteratively, each time adding a new node to the end
+of the query. Both methods take a quantifier and a predicate as input.
+
+A quantifier can have one of four possible values:
+
+- :code:`"."`: match one node
+- :code:`"*"`: match zero or more nodes
+- :code:`+`: match one or more nodes
+- An integer: match exactly that number of nodes
+
+All queries can be constructed using just :code:`"."` and :code:`"*"`. The :code:`"+"` and integer quantifiers
+are provided for convenience and are implemented as follows:
+
+- :code:`"+"`: implemented as a node with a :code:`"."` quantifier followed by a node with a :code:`"*"` quantifier
+- Integer: implemented as a sequence of nodes with :code:`"."` quantifiers
+
+If no quantifier is provided to :code:`match` or :code:`rel`, the default :code:`"."` quantifier is used.
+
+A predicate is represented as a Python :code:`Callable` that takes the data for a node in a :code:`GraphFrame`
+as input and returns a Boolean. The returned Boolean is used internally to determine whether a :code:`GraphFrame`
+node satisfies the predicate. If a predicate is to provided to :code:`match` or :code:`rel`, the default
+predicate is a function that always returns :code:`True`.
+
+The base syntax is illustrated by the query below. This query uses two query nodes to find all subgraphs in the
+Graph rooted at MPI (or PMPI) function calls that have more than 5 L2 cache misses (as measured by PAPI).
+
+.. code-block:: python
+
+   query = (
+       Query()
+       .match(
+           ".",
+           lambda row: re.match(
+               "P?MPI_.*",
+               row["name"]
+           )
+           is not None
+           and row["PAPI_L2_TCM"] > 5
+       )
+       .rel("*")
+   )
+
+Object-based Dialect
+--------------------
+
+The object-based dialect allows users to construct queries using built-in Python objects. In this dialect, a
+query is represented by a Python :code:`list` of query nodes. Each query node is represented by a Python
+:code:`tuple` of a qunatifier and a predicate. Quantifiers are represented the same way as in the base syntax
+(see :ref:`Base Syntax` for more information). Predicates are represented as key-value pairs where keys
+are metric names and values are Boolean expressions generated using the following rules:
+
+- If the metric is numeric, the value can be a be a number (checks for equality) or a string consisting of a
+  comparison operator (one of :code:`<`, :code:`<=`, :code:`==`, :code:`>`, or :code:`>=`) followed by a number
+- If the metric is a string, the value can be any regex string that is a valid input to `Python's re.match
+  function <https://docs.python.org/3/library/re.html#re.match>`_.
+
+Multiple predicates can be combined into a larger predicate by simply putting multiple key-value pairs into
+the same Python :code:`dict`. When multiple predicates are in the same :code:`dict` in the object-base dialect,
+they are all combined by conjunction (i.e., logical AND).
+
+When using a default quantifier (i.e., :code:`"."`) or predicate (i.e., a function that always returns :code:`True`),
+query nodes do not have to be represented as a Python :code:`tuple`. In these situations, a query node is represented
+by simply adding the non-default component to the Python :code:`list` representing the query.
+
+The object-based dialect is illustrated by the query below. This query is the same as the one introduced in the
+:ref:`Base Syntax` section. It uses two query nodes to find all subgraphs in the Graph rooted at MPI (or PMPI)
+function calls that have more than 5 L2 cache misses (as measured by PAPI).
+
+.. code-block:: python
+
+   query = [
+       (
+           ".",
+           {
+               "name": "P?MPI_.*",
+               "PAPI_L2_TCM": "> 5"
+           }
+       ),
+       "*"
+   ]
+
+String-based Dialect
+--------------------
+
+The string-based dialect allows users to construct queries using strings. This allows the string-based dialect
+to be the only way of creating queries that is not tied to Python. The syntax of the query strings in the
+string-based dialect is derived from `Cypher <https://neo4j.com/product/cypher-graph-query-language/>`_.
+A query in this dialect contains two main syntactic pieces: a :code:`MATCH` statement and a :code:`WHERE`
+statement.
+
+The :code:`MATCH` statement starts with the :code:`MATCH` keyword and defines the quantifiers and variable
+names used to refer to query nodes in the predicates. Each node in the :code:`MATCH` statement takes the form
+of :code:`([<quantifier>,] <variable>)`. Quantifiers in the string-based dialect have the same representation
+as the base syntax and object-based dialect. Variables can be any valid combination of letters, numbers, and underscores
+that does not start with a number (i.e., normal variable name rules). Multiple query nodes can be added to the
+:code:`MATCH` statement by chaining the nodes with :code:`->`.
+
+The :code:`WHERE` statement starts with the :code:`WHERE` keyword and defines one or more predicates.
+Predicates in the string-based dialect are represented by expressions of the form :code:`<variable>."<metric>" <comparison operation>`.
+In these expressions, :code:`<variable>` should be replaced by the variable associated with the desired query node
+in the :code:`MATCH` statement, and :code:`<metric>` should be replaced by the name of the metric being considered.
+:code:`<comparison operation>` should be replaced by one of the following:
+
+- :code:`= <value>`: checks if the metric equals a value
+- :code:`STARTS WITH <substring>`: checks if a string metric starts with a substring
+- :code:`ENDS WITH <substring>`: checks if a string metric ends with a substring
+- :code:`CONTAINS <substring>`: checks if a string metric contains a substring
+- :code:`=~ <regex>`: checks if a string metric matches a regex
+- :code:`< <value>`: checks if a numeric metric is less than a value
+- :code:`<= <value>`: checks if a numeric metric is less than or equal to a value
+- :code:`> <value>`: checks if a numeric metric is greater than a value
+- :code:`>= <value>`: checks if a numeric metric is greater than or equal to a value
+- :code:`IS NAN`: checks if a numeric metric is NaN
+- :code:`IS NOT NAN`: checks if a numeric metric is not NaN
+- :code:`IS INF`: checks if a numeric metric is infinity
+- :code:`IS NOT INF`: checks if a numeric metric is not infinity
+- :code:`IS NONE`: checks if a metric is Python's None value
+- :code:`IS NOT NONE`: checks if a metric is not Python's None value
+
+.. versionadded:: 2022.2.1
+
+   Added two new comparison operations (i.e., :code:`IS LEAF` and :code:`IS NOT LEAF`) for determining
+   whether a node is a leaf node of the Graph.
+
+Multiple predicates can be combined using three Boolean operators: conjunction (i.e., :code:`AND` keyword),
+disjunction (i.e., :code:`OR` keyword), and complement (i.e., :code:`NOT` keyword).
+
+The string-based dialect is illustrated by the query below. This query is the same as the one introduced in the
+:ref:`Base Syntax` section. It uses two query nodes to find all subgraphs in the Graph rooted at MPI (or PMPI)
+function calls that have more than 5 L2 cache misses (as measured by PAPI).
+
+.. code-block:: python
+
+   query = """
+   MATCH (".", p)->("*")
+   WHERE p."name" STARTS WITH "MPI_" OR p."name" STARTS WTICH "PMPI_" AND
+       p."PAPI_L2_TCM" > 5
+   """
+
+Query Language APIs
+===================
+
+In version 2023.1.0, the query language underwent a large refactor to enable support for :code:`GraphFrame` objects
+containing a multi-indexed DataFrame. As a result, the query language now has two APIs:
+
+- New-Style Queries: APIs for the query language starting with version 2023.1.0
+- Old-Style Queries: APIs for the query language prior to version 2023.1.0
+
+Old-style queries are discouraged for new users. However, these APIs are not deprecated at this time. For the time
+being, old-style queries will be maintained as a thin wrapper around new-style queries.
+
+Applying Queries to GraphFrames
+-------------------------------
+
+Whether using new-style queries or old-style queries, queries are applied to the data in a :code:`GraphFrame`
+using the :code:`GraphFrame.filter()` method. This method takes a "filter object" as its first argument. A filter object can be
+one of the following:
+
+- A Python :code:`Callable`: filters the data in the :code:`GraphFrame` using a filter on the DataFrame (i.e., does not use the query language)
+- A string: assumes the argument is a string-dialect query, builds a new-style query object from the argument,
+  and applies that query to the :code:`GraphFrame`
+- A Python :code:`list`: assumes the argument is an object-dialect query, builds a new-style query object from the argument,
+  and applies that query to the :code:`GraphFrame`
+- A new-sytle or old-style query object: applies the query to the :code:`GraphFrame`
+
+As a result, the differences between new-style queries and old-style queries do not matter when using single
+object- or string-dialect queries. Users only need to get into the differences between these APIs when using
+base syntax queries or when combining queries.
+
+New-Style Queries
+-----------------
+
+The new-style query API consists of 3 main classes:
+
+- :code:`Query`: represents the base syntax
+- :code:`ObjectQuery`: represents the object-based dialect
+- :code:`StringQuery`: represents the string-based dialect
+
+After creating objects of these classes, queries can be combined using the following "compound query" classes:
+
+- :code:`ConjunctionQuery`: combines the results of each sub-query using set conjunction (i.e., logical AND)
+- :code:`DisjunctionQuery`: combines the results of each sub-query using set disjunction (i.e., logical OR)
+- :code:`ExclusiveDisjunctionQuery`: combines the results of each sub-query using set exclusive disjunction (i.e., logical XOR)
+- :code:`NegationQuery`: combines the results of a single sub-query using set negation (i.e., logical NOT)
+
+The rest of this section provides brief descriptions and examples of the usage of these classes.
+
+Query Class
+^^^^^^^^^^^
+
+The :code:`Query` class is used to represent base syntax queries. To use it, simply create a :code:`Query`
+object and call :code:`match` and :code:`rel` as described in the :ref:`Base Syntax` section.
+
+An example of the use of this class can be found in the :ref:`Base Syntax` section.
+
+ObjectQuery Class
+^^^^^^^^^^^^^^^^^
+
+The :code:`ObjectQuery` class is used to represent object-based dialect queries. To use it, create an object-based dialect
+query (as described in the :ref:`Object-based Dialect` section), and pass that query to the constructor of
+:code:`ObjectQuery`.
+
+For example, the following code can be used to create an :code:`ObjectQuery` object from the query in the example from the :ref:`Object-based Dialect`
+section:
+
+.. code-block:: python
+
+   query = [
+       (
+           ".",
+           {
+               "name": "P?MPI_.*",
+               "PAPI_L2_TCM": "> 5"
+           }
+       ),
+       "*"
+   ]
+   query_obj = hatchet.query.ObjectQuery(query)
+
+StringQuery Class
+^^^^^^^^^^^^^^^^^
+
+The :code:`StringQuery` class is used to represent string-based dialect queries. To use it, first create
+a string-based dialect query (as described in the :ref:`String-based Dialect` section). Then, a :code:`StringQuery`
+object can be created from that string-based dialect query using either the :code:`StringQuery` constructor
+or the :code:`parse_string_dialect` function. :code:`parse_string_dialect` is the recommended way of creating
+a :code:`StringQuery` object because it allows users to write compound queries as strings (this functionality is not
+yet documented).
+
+For example, the following code can be used to create a :code:`StringQuery` object from the query in the example from the :ref:`String-based Dialect`
+section:
+
+.. code-block:: python
+
+   query = """
+   MATCH (".", p)->("*")
+   WHERE p."name" STARTS WITH "MPI_" OR p."name" STARTS WTICH "PMPI_" AND
+       p."PAPI_L2_TCM" > 5
+   """
+   query_obj = hatchet.query.parse_string_dialect(query)
+
+ConjunctionQuery, DisjunctionQuery, and ExclusiveDisjunctionQuery Classes
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+TBA
+
+NegationQuery Class
+^^^^^^^^^^^^^^^^^^^
+
+TBA
+
+
+
+Hatchet has a filtering query language that allows users to filter GraphFrames based on caller-callee relationships between nodes in the Graph. This query language contains two APIs: a high-level API that is expressed using built-in Python data types (e.g., lists, dictionaries, strings) and a low-level API that is expressed using Python callables.
 
 Regardless of API, queries in Hatchet represent abstract paths, or path patterns, within the Graph being filtered. When filtering on a query, Hatchet will identify all paths in the Graph that match the query. Then, it will return a new GraphFrame object containing only the nodes contained in the matched paths. A query is represented as a list of *abstract graph nodes*. Each *abstract graph node* is made of two parts:
 
