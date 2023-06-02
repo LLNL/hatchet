@@ -499,3 +499,61 @@ Syntax and Dialect Capabilities
 .. warning::
 
    Section in-progress
+
+Along with different syntaxes, the base syntax, object-based dialect, and string-based dialect also
+have different capabilities. In other words, there are things that each way of writing queries can and
+cannot do. To help users understand these capabilities, the ways of writing queries
+have been classified in terms of their properties and logical operators.
+
+Properties are classified into five categories, one for quantifiers and four for predicates. These
+categories are:
+
+- *Quantifier Capabilities*: ability to match different numbers of nodes (i.e., match one, zero or more
+  one or more, or an exact number of nodes)
+- *String Equivalence and Regex Matching Predicates*: ability to check if the value of a specified string
+  metric is equal to a provided string or matches a provided regular expression
+- *String Containment Predicates*: ability to check if the value of a specified string metric starts
+  with, ends with, or contains a provided string
+- *Basic Numeric Comparison Predicates*: ability to check if the value of the specified numeric metric
+  satisfies the numeric comparison (e.g., equal to, greater than, greater than or equal to)
+- *Special Value Identification Predicates*: ability to check if the value of the specified metric
+  is equivalent to the provided "special value" (i.e., NaN, infinity, None, or "leaf")
+
+The table below shows whether each way of creating queries supports each property category.
+
++----------------------------------------+-------------+-----------------------+----------------------+
+| Property Category                      | Base Syntax | Object-based Dialect  | String-based Dialect |
++========================================+=============+=======================+======================+
+| Quantifier Capabilities                | ✅          | ✅                    | ✅                   |
++----------------------------------------+-------------+-----------------------+----------------------+
+| String Equivalence and Regex           | ✅          | ✅                    | ✅                   |
+| Matching Predicates                    |             |                       |                      |
++----------------------------------------+-------------+-----------------------+----------------------+
+| String Containment Predicates          | ✅          |                       | ✅                   |
++----------------------------------------+-------------+-----------------------+----------------------+
+| Basic Numeric Comparison Predicates    | ✅          | ✅                    | ✅                   |
++----------------------------------------+-------------+-----------------------+----------------------+
+| Special Value Identification           | ✅          |                       | ✅                   |
+| Predicates                             |             |                       |                      |
++----------------------------------------+-------------+-----------------------+----------------------+
+
+Logical operators are classified into three categories. These categories are:
+
+- *Predicate Combination through Conjunction*: ability to combine predicates using conjuntion (i.e., logical AND)
+- *Predicate Combination through Disjunction and Complement*: ability to combine predicates using
+  disjunction (i.e., logical OR) or find the complement (i.e., logical NOT) to a single predicate
+- *Predicate Combination through Other Operations*: ability to combine predicates through other
+  means, such as exclusive disjunction (i.e., logical XOR)
+
++----------------------------------------+-------------+-----------------------+----------------------+
+| Logical Operator Category              | Base Syntax | Object-based Dialect  | String-based Dialect |
++========================================+=============+=======================+======================+
+| Predicate Combination through          | ✅          | ✅                    | ✅                   |
+| Conjunction                            |             |                       |                      |
++----------------------------------------+-------------+-----------------------+----------------------+
+| Predicate Combination through          | ✅          |                       | ✅                   |
+| Disjunction and Complement             |             |                       |                      |
++----------------------------------------+-------------+-----------------------+----------------------+
+| Predicate Combination through          | ✅          |                       |                      |
+| Other Operations                       |             |                       |                      |
++----------------------------------------+-------------+-----------------------+----------------------+
