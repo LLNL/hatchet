@@ -111,7 +111,7 @@ Object-based Dialect
 
 The object-based dialect allows users to construct queries using built-in Python objects. In this dialect, a
 query is represented by a Python :code:`list` of query nodes. Each query node is represented by a Python
-:code:`tuple` of a qunatifier and a predicate. Quantifiers are represented the same way as in the base syntax
+:code:`tuple` of a quantifier and a predicate. Quantifiers are represented the same way as in the base syntax
 (see the :ref:`base_syntax` section for more information). Predicates are represented as key-value pairs where keys
 are metric names and values are Boolean expressions generated using the following rules:
 
