@@ -9,6 +9,10 @@ Query Language
 
 .. versionadded:: 1.2.0
 
+.. note::
+
+   Point to QL Paper
+
 One of the most important steps in identifying performance phenomena (e.g., bottlenecks) is data subselection
 and reduction. In previous versions of Hatchet, users could only reduce their data using filters on the
 pandas :code:`DataFrame` component of the GraphFrame object. However, this type of data reduction
@@ -202,7 +206,7 @@ function calls that have more than 5 L2 cache misses (as measured by PAPI).
 
    query = """
    MATCH (".", p)->("*")
-   WHERE p."name" STARTS WITH "MPI_" OR p."name" STARTS WTICH "PMPI_" AND
+   WHERE p."name" STARTS WITH "MPI_" OR p."name" STARTS WITH "PMPI_" AND
        p."PAPI_L2_TCM" > 5
    """
 
@@ -557,3 +561,29 @@ Logical operators are classified into three categories. These categories are:
 | Predicate Combination through          | ✅          |                       |                      |
 | Other Operations                       |             |                       |                      |
 +----------------------------------------+-------------+-----------------------+----------------------+
+
+Query Language Examples
+=======================
+
+This section shows some examples of common queries that users may want to perform.
+They can be used as a starting point for creating more complex queries.
+
+Find a Subgraph with a Specific Root
+------------------------------------
+
+TBA
+
+Find All Paths Ending with a Specific Node
+-------------------------------------------
+
+TBA
+
+Find All Nodes for a Particular Software Library
+-----------------------------------------------
+
+TBA
+
+Find All Paths through a Specific Node
+---------------------------------------
+
+TBA
