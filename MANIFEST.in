@@ -6,3 +6,4 @@ recursive-include hatchet/vis/scripts *
 recursive-include hatchet/vis/static *
 recursive-include hatchet/vis/templates *
 recursive-include hatchet/vis/styles *
+recursive-include hatchet/external/roundtrip *
