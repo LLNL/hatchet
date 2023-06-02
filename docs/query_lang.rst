@@ -225,8 +225,9 @@ This method takes a "filter object" as its first argument. A filter object can b
   and applies that query to the GraphFrame
 - A new-sytle or old-style query object: applies the query to the GraphFrame
 
-The call to :code:`GraphFrame.filter()` will return a new GraphFrame containing the nodes from *all* paths
-in the original GraphFrame that match the properties described by the query.
+When providing a query, the call to :code:`GraphFrame.filter()` will return a new GraphFrame
+containing the nodes from *all* paths in the original GraphFrame that match the properties
+described by the query.
 
 Additional Query Language Functionality
 =======================================
@@ -243,7 +244,7 @@ Combining Query Results with Compound Queries
 .. note::
 
    This section assumes the use of the "new-style" query APIs. If using the "old-style" API, simply replace
-   the query classes detailed in this section with their equivalents from the :ref:`old_style_queries` section.
+   the query classes detailed in this section with their equivalents from the old-style API.
    For more information about the new-style and old-style APIs, see the :ref:`query_lang_apis` section.
 
 Sometimes, a user might want to combine the results of multiple queries together to get a more detailed
@@ -259,17 +260,12 @@ the query language provides the following Python classes for creating compound q
   exclusive set disjunction (i.e., logical XOR)
 - :code:`NegationQuery`: modifies the results of a single sub-query using set negation (i.e., logical NOT)
 
-Before using any of these classes, all sub-queries must be converted into a Python query class. These classes
-are detailed in the :ref:`query_lang_apis` section. In general, though, "raw" queries (i.e.,
-object-based dialect and string-based dialect queries) are converted into query class objects by simply calling
-the constructor for the corresponding class.
-
-Once all sub-queries are converted into query class objects, a compound query can be created in one of two ways.
-First, all the sub-queries can be passed into the constructor of a compound query class. An example of this is shown
-below. This example creates a :code:`DisjunctionQuery` object from two string-based dialect queries.
-The first query looks for all subgraphs rooted at MPI nodes, and the second query looks for all subgraphs rooted at CUDA host functions
-(i.e., functions starting with the :code:`cuda` or :code:`cu` prefixes). So, the :code:`DisjunctionQuery`
-can be used to look at the host-side internals of a MPI+CUDA program.
+A compound query can be created in one of two ways. First, all the sub-queries can be passed into
+the constructor of a compound query class. An example of this is shown below. This example creates
+a :code:`DisjunctionQuery` object from two string-based dialect queries. The first query looks for
+all subgraphs rooted at MPI nodes, and the second query looks for all subgraphs rooted at CUDA host
+functions (i.e., functions starting with the :code:`cuda` or :code:`cu` prefixes). So, the
+:code:`DisjunctionQuery` can be used to look at the host-side internals of a MPI+CUDA program.
 
 .. code-block:: python
 
@@ -320,7 +316,8 @@ entire string-based dialect queries (i.e., both the :code:`MATCH` and :code:`WHE
 around subsets of the predicate in the :code:`WHERE` statement. When wrapping entire string-based
 dialect queries, each wrapped region is treated as a sub-query. When wrapping subsets of the predicate
 in the :code:`WHERE` statement, sub-queries are created by combining the unwrapped :code:`MATCH` statement
-with each wrapped subset in the :code:`WHERE` statement.
+with each wrapped subset in the :code:`WHERE` statement. This can be thought of as the :code:`MATCH`
+statement being shared between the wrapped subsets in the :code:`WHERE` statement.
 
 Curly brace-delimited regions of a string-based query should then be separated using the :code:`AND`,
 :code:`OR`, and :code:`XOR` keywords. When used to separate curly brace-delimited regions, these keywords
@@ -360,6 +357,7 @@ brace-delimited regions in the input query). If a query language class is not ne
 queries in the string-based dialect can simply be applied to a GraphFrame as usual with
 :code:`GraphFrame.filter()`.
 
+.. _multi_index_gf:
 Supporting Multi-Indexed GraphFrames in the Object- and String-based Dialects
 -----------------------------------------------------------------------------
 
@@ -401,15 +399,16 @@ applying a query in either dialect.
 
 However, with the introduction of the new-style query API in version 2023.1.0 (see the :ref:`query_lang_apis`
 section for more information), it is now possible to use multiindexed GraphFrames with the object- and
-string-based dialects. To do so, users must manually wrap their object-based dialect and string-based dialect
-queries in the :code:`ObjectQuery` and :code:`StringQuery` classes respectively. Both of these classes'
-constructors accept two arguments:
+string-based dialects. To do so, users must provide the new :code:`multi_index_mode` parameter
+to the :code:`GraphFrame.filter()` method, the :code:`ObjectQuery` class, or the :code:`StringQuery` class.
+This parameter controls how predicates generated from the dialects will treat multiindexed data.
+It can be set to one of three values:
 
-1. The object- or string-based dialect query to be wrapped
-2. The :code:`multi_index_mode` parameter, which can be set to :code:`"off"`, :code:`"all"`, or :code:`"any"`
+- :code:`"off"`
+- :code:`"all"`
+- :code:`"any"`
 
-The new :code:`multi_index_mode` parameter controls how predicates generated from the dialects will treat
-multiindexed data. When set to :code:`"off"` (which is the default), the generated predicates will assume
+When set to :code:`"off"` (which is the default), the generated predicates will assume
 that the data for each node is **not** multiindexed. This behavior is the same as eariler versions of Hatchet.
 When set to :code:`all`, the generated predicates will require that all rows of data for a given node
 satisfy the predicate. This usually amounts to applying the predicate to a node's data
@@ -429,155 +428,69 @@ with :code:`Series.any()`.
 Query Language APIs
 ===================
 
-.. warning::
-
-   Section in-progress
+.. versionchanged:: 2023.1.0
 
 In version 2023.1.0, the query language underwent a large refactor to enable support for GraphFrame objects
-containing a multi-indexed DataFrame. As a result, the query language now has two APIs:
+containing a multi-indexed DataFrame (see the :ref:`multi_index_gf` section for more information).
+As a result, the query language now has two APIs:
 
-- New-Style Queries: APIs for the query language starting with version 2023.1.0
-- Old-Style Queries: APIs for the query language prior to version 2023.1.0
+- New-Style Query API: for the query language starting with version 2023.1.0
+- Old-Style Query API: for the query language prior to version 2023.1.0
 
-Old-style queries are discouraged for new users. However, these APIs are not deprecated at this time. For the time
-being, old-style queries will be maintained as a thin wrapper around new-style queries.
+The old-style API is discouraged for new users. However, these APIs are not deprecated at this time. For the time
+being, the old-style API will be maintained as a thin wrapper around the new-style API.
 
-New-Style Queries
------------------
+The key changes in the new-style API that are exposed to users are:
 
-.. versionadded:: 2023.1.0
+- The creation of a new dedicated :code:`ObjectQuery` class to represent object-based dialect queries
+- The renaming of compound query classes and the elimination of confusing alias classes
 
-The new-style query API consists of 3 main classes:
+All other changes in the new-style API are either minor changes (e.g., renaming) or internal changes that
+are not visible to end users.
 
-- :code:`Query`: represents the base syntax
-- :code:`ObjectQuery`: represents the object-based dialect
-- :code:`StringQuery`: represents the string-based dialect
+The table below shows the classes and functions of the new- and old-style APIs and how they map to one another.
 
-After creating objects of these classes, queries can be combined using the following "compound query" classes:
++-----------------------------------+----------------------------+------------------------------------------------------------------------+
+| New-Style API                     | Old-Style API              | Description                                                            |
++===================================+============================+========================================================================+
+| :code:`Query`                     | :code:`QueryMatcher`       | Implements the base syntax                                             |
++-----------------------------------+                            +------------------------------------------------------------------------+
+| :code:`ObjectQuery`               |                            | Parses the object-based dialect and converts it into the base syntax   |
++-----------------------------------+----------------------------+------------------------------------------------------------------------+
+| :code:`StringQuery`               | :code:`CypherQuery`        | Parses the string-based dialect and converts it into the base syntax   |
++-----------------------------------+----------------------------+------------------------------------------------------------------------+
+| :code:`parse_string_dialect`      | :code:`parse_cypher_query` | Parses either normal string-based dialect queries or compound          |
+|                                   |                            | queries in the string-based dialect into classes                       |
++-----------------------------------+----------------------------+------------------------------------------------------------------------+
+| :code:`ConjunctionQuery`          | :code:`AndQuery`           | Combines sub-queries with set conjunction (i.e., logical AND)          |
+|                                   | :code:`IntersectionQuery`  |                                                                        |
++-----------------------------------+----------------------------+------------------------------------------------------------------------+
+| :code:`DisjunctionQuery`          | :code:`OrQuery`            | Combines sub-queries with set disjunction (i.e., logical OR)           |
+|                                   | :code:`UnionQuery`         |                                                                        |
++-----------------------------------+----------------------------+------------------------------------------------------------------------+
+| :code:`ExclusiveDisjunctionQuery` | :code:`XorQuery`           | Combines sub-queries with exclusive set disjunction (i.e., logical XOR |
+|                                   | :code:`SymDifferenceQuery` |                                                                        |
++-----------------------------------+----------------------------+------------------------------------------------------------------------+
+| :code:`NegationQuery`             | :code:`NotQuery`           | Modifies a single sub-query with set negation (i.e., logical NOT)      |
++-----------------------------------+----------------------------+------------------------------------------------------------------------+
 
-- :code:`ConjunctionQuery`: combines the results of each sub-query using set conjunction (i.e., logical AND)
-- :code:`DisjunctionQuery`: combines the results of each sub-query using set disjunction (i.e., logical OR)
-- :code:`ExclusiveDisjunctionQuery`: combines the results of each sub-query using exclusive set disjunction (i.e., logical XOR)
-- :code:`NegationQuery`: combines the results of a single sub-query using set negation (i.e., logical NOT)
-
-The rest of this section provides brief descriptions and examples of the usage of these classes.
-
-Query Class
-^^^^^^^^^^^
-
-The :code:`Query` class is used to represent base syntax queries. To use it, simply create a :code:`Query`
-object and call :code:`match` and :code:`rel` as described in the :ref:`base_syntax` section.
-
-An example of the use of this class can be found in the :ref:`base_syntax` section.
-
-ObjectQuery Class
-^^^^^^^^^^^^^^^^^
-
-The :code:`ObjectQuery` class is used to represent object-based dialect queries. To use it, create an object-based dialect
-query (as described in the :ref:`obj_dialect` section), and pass that query to the constructor of
-:code:`ObjectQuery`.
-
-For example, the following code can be used to create an :code:`ObjectQuery` object from the query in the example from the :ref:`obj_dialect`
-section:
-
-.. code-block:: python
-
-   query = [
-       (
-           ".",
-           {
-               "name": "P?MPI_.*",
-               "PAPI_L2_TCM": "> 5"
-           }
-       ),
-       "*"
-   ]
-   query_obj = hatchet.query.ObjectQuery(query)
-
-StringQuery Class
-^^^^^^^^^^^^^^^^^
-
-The :code:`StringQuery` class is used to represent string-based dialect queries. To use it, first create
-a string-based dialect query (as described in the :ref:`str_dialect` section). Then, a :code:`StringQuery`
-object can be created from that string-based dialect query using either the :code:`StringQuery` constructor
-or the :code:`parse_string_dialect` function. :code:`parse_string_dialect` is the recommended way of creating
-a :code:`StringQuery` object because it allows users to write compound queries as strings (this functionality is not
-yet documented).
-
-For example, the following code can be used to create a :code:`StringQuery` object from the query in the example from the :ref:`str_dialect`
-section:
+The only other changes that may impact users are changes to the base classes of the classes in the table above.
+In the old-style API, all classes in the query language inherit from :code:`AbstractQuery`. As a result,
+:code:`isinstance(obj, hatchet.query.AbstractQuery)` or :code:`issubclass(type(obj), hatchet.query.AbstractQuery)`
+can be used to check if a Python object is an old-sytle API query object. In the new-style API, "normal" queries
+(i.e., :code:`Query`, :code:`ObjectQuery`, and :code:`StringQuery`) and compound queries
+(i.e., :code:`ConjunctionQuery`, :code:`DisjunctionQuery`, :code:`ExclusiveDisjunctionQuery`, and
+:code:`NegationQuery`) inherit from the :code:`Query` and :code:`CompoundQuery` classes respectively.
+As a result, to check if a Python object is a new-sytle API query object (either normal or compound),
+the following piece of code can be used:
 
 .. code-block:: python
 
-   query = """
-   MATCH (".", p)->("*")
-   WHERE p."name" STARTS WITH "MPI_" OR p."name" STARTS WTICH "PMPI_" AND
-       p."PAPI_L2_TCM" > 5
-   """
-   query_obj = hatchet.query.parse_string_dialect(query)
+   issubclass(type(obj), hatchet.query.Query) or issubclass(type(obj), hatchet.query.CompoundQuery)
 
-.. _binary_compound_query:
-ConjunctionQuery, DisjunctionQuery, and ExclusiveDisjunctionQuery Classes
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-The :code:`ConjunctionQuery`, :code:`DisjunctionQuery`, and :code:`ExclusiveDisjunctionQuery` classes are used
-to combine the results of two or more queries using set conjunction (i.e., logical AND), set disjunction (i.e., logical OR),
-and exclusive set disjunction (i.e., logical XOR) respectively. All three of these classes work the same way.
-To use these classes, simply pass the queries (either as new-sytle query objects or "raw" object- and string-base dialect queries)
-whose results you want to combine into the class's constructor.
-
-For example, the following code can be used to create a :code:`DisjunctionQuery` object from two string-based dialect queries.
-The first query looks for all subgraphs rooted at MPI nodes, and the second query looks for all subgraphs rooted at CUDA host functions
-(i.e., functions starting with the :code:`cuda` prefix). So, the :code:`DisjunctionQuery` can be used to look at the
-host-side internals of a MPI+CUDA program.
-
-.. code-block:: python
-
-   query_mpi = """
-   MATCH (".", p)->("*")
-   WHERE p."name" STARTS WITH "MPI_"
-   """
-   query_cuda_host = """
-   MATCH (".", p)->("*")
-   WHERE p."name" STARTS WITH "cuda"
-   """
-   disjunction_query = hatchet.query.DisjunctionQuery(query_mpi, query_cuda_host)
-
-
-NegationQuery Class
-^^^^^^^^^^^^^^^^^^^
-
-The :code:`NegationQuery` class is used to negate the results of another query. In other words, a :code:`NegationQuery` object
-can be used to get all nodes in a Graph that were **not** matched by another query. To use this class,
-simply pass the query you want to negate to the constructor of :code:`NegationQuery`.
-
-For example, the following code can be used to create a :code:`NegationQuery` object that removes the MPI layer
-(i.e., subgraphs rooted at MPI functions) from a Graph.
-
-.. code-block:: python
-
-   mpi_query = """
-   MATCH (".", p)->("*")
-   WHERE p."name" STARTS WITH "MPI_"
-   """
-   no_mpi_query = hatchet.query.NegationQuery(mpi_query)
-
-.. _old_style_queries:
-Old-Style Queries
------------------
-
-The old-style query API consists of 2 main classes:
-
-- :code:`QueryMatcher`: represents the base syntax and the object-based dialect
-- :code:`CypherQuery`: represents the string-based dialect
-
-After creating objects of these classes, queries can be combined using the following old-style compound
-query classes:
-
-- :code:`AndQuery` (and its alias :code:`IntersectionQuery`): combines the results of each sub-query using logical AND
-- :code:`OrQuery` (and its alias :code:`UnionQuery`): combines the results of each sub-query using logical OR
-- :code:`XorQuery` (and its alias :code:`SymDifferenceQuery`): combines the results of each sub-query using logical XOR
-- :code:`NotQuery`: negates the results of a single sub-query (i.e., logical NOT)
+Since the :code:`GraphFrame.filter()` method works with either API, the :code:`is_hatchet_query` function
+is provided to conveniently check if a Python object is any type of query language object, regardless
+of API.
 
 .. _syntax_capabilities:
 Syntax and Dialect Capabilities
