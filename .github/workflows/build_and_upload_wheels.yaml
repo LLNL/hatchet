@@ -16,7 +16,7 @@ jobs:
 
   build_wheels_linux_3:
     name: Build wheels for Linux
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
 
@@ -86,7 +86,6 @@ jobs:
   test_upload_to_pypi:
     needs:
       - build_wheels_linux_3
-      - build_wheels_linux_27
         # - build_wheels_macos_36_37
         # - build_wheels_macos_38_plus
       - build_sdist
@@ -107,7 +106,6 @@ jobs:
   upload_to_pypi:
     needs:
       - build_wheels_linux_3
-      - build_wheels_linux_27
         # - build_wheels_macos_36_37
         # - build_wheels_macos_38_plus
       - build_sdist

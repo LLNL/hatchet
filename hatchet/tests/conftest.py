@@ -1100,3 +1100,71 @@ def json_graphframe_specification(data_dir, tmpdir):
     tmpfile = os.path.join(str(tmpdir), "hatchet-graph-literal.json")
 
     return tmpfile
+
+
+@pytest.fixture
+def caliper_ordered_json(data_dir, tmpdir):
+    """Builds a temporary directory containing the node-ordered lulesh JSON file."""
+    ordered_json_dir = os.path.join(data_dir, "caliper-ordered-json")
+    ordered_json_file = os.path.join(ordered_json_dir, "caliper-region-node-order.json")
+
+    shutil.copy(ordered_json_file, str(tmpdir))
+    tmpfile = os.path.join(str(tmpdir), "caliper-region-node-order.json")
+
+    return tmpfile
+
+
+@pytest.fixture
+def caliper_ordered_cali(data_dir, tmpdir):
+    """Builds a temporary directory containing the node-ordered lulesh cali file."""
+    ordered_cali_dir = os.path.join(data_dir, "caliper-ordered-cali")
+    ordered_cali_file = os.path.join(
+        ordered_cali_dir, "230525-151052_1930517_eWbGeyrlBOPT.cali"
+    )
+
+    shutil.copy(ordered_cali_file, str(tmpdir))
+    tmpfile = os.path.join(str(tmpdir), "230525-151052_1930517_eWbGeyrlBOPT.cali")
+
+    return tmpfile
+
+
+@pytest.fixture
+def caliper_ordered_cali_mpi(data_dir, tmpdir):
+    """Builds a temporary directory containing the node-ordered lulesh cali file with MPI functions."""
+    ordered_cali_dir_mpi = os.path.join(data_dir, "caliper-ordered-cali-mpi")
+    ordered_cali_file_mpi = os.path.join(
+        ordered_cali_dir_mpi, "230525-151723_1930647_FSY8b8cKSEEi.cali"
+    )
+
+    shutil.copy(ordered_cali_file_mpi, str(tmpdir))
+    tmpfile = os.path.join(str(tmpdir), "230525-151723_1930647_FSY8b8cKSEEi.cali")
+
+    return tmpfile
+
+
+@pytest.fixture
+def caliper_ordered_dup(data_dir, tmpdir):
+    """Builds a temporary directory containing the duplicate value node-ordered lulesh cali file."""
+    ordered_duplicate_dir = os.path.join(data_dir, "caliper-ordered-duplicate")
+    ordered_duplicate_file = os.path.join(
+        ordered_duplicate_dir, "duplicate-node-order.cali"
+    )
+
+    shutil.copy(ordered_duplicate_file, str(tmpdir))
+    tmpfile = os.path.join(str(tmpdir), "duplicate-node-order.cali")
+
+    return tmpfile
+
+
+@pytest.fixture
+def caliper_ordered_json_dup(data_dir, tmpdir):
+    """Builds a temporary directory containing the duplicate value node-ordered lulesh JSON file."""
+    ordered_json_dir = os.path.join(data_dir, "caliper-ordered-duplicate-json")
+    ordered_json_file = os.path.join(
+        ordered_json_dir, "caliper-region-dup-node-order.json"
+    )
+
+    shutil.copy(ordered_json_file, str(tmpdir))
+    tmpfile = os.path.join(str(tmpdir), "caliper-region-dup-node-order.json")
+
+    return tmpfile

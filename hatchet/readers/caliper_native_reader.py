@@ -42,6 +42,7 @@ class CaliperNativeReader:
         self.idx_to_node = {}
         self.callpath_to_idx = {}
         self.global_nid = 0
+        self.node_ordering = False
 
         self.default_metric = None
 
@@ -170,7 +171,6 @@ class CaliperNativeReader:
                 else:
                     grandparent_callpath = parent_callpath[:-1]
                     parent_name = parent_callpath[-1]
-
                     parent_node = Node(
                         Frame({"type": "function", "name": parent_name}), None
                     )
@@ -194,6 +194,7 @@ class CaliperNativeReader:
 
         parent_hnode = None
         records = self.filename_or_caliperreader.records
+        order = -1
 
         for record in records:
             node_label = ""
@@ -227,8 +228,13 @@ class CaliperNativeReader:
                         hnode = self.callpath_to_node.get(node_callpath)
 
                         if not hnode:
+                            # set the _hatchet_nid by the node order column if it exists, else -1
+                            if "min#min#aggregate.slot" in record:
+                                self.node_ordering = True
+                                order = record["min#min#aggregate.slot"]
                             frame = Frame({"type": node_type, "name": node_label})
-                            hnode = Node(frame, None)
+                            order = int(order)
+                            hnode = Node(frame, hnid=order)
                             self.callpath_to_node[node_callpath] = hnode
 
                             # get parent from node callpath
@@ -331,6 +337,8 @@ class CaliperNativeReader:
 
         # create a graph object once all the nodes have been added
         graph = Graph(list_roots)
+        if self.node_ordering:
+            graph.node_ordering = True
         graph.enumerate_traverse()
 
         with self.timer.phase("read metrics"):
