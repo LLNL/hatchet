@@ -17,8 +17,25 @@ from hatchet.frame import Frame
 from hatchet.util.timer import Timer
 
 
+def __raise_cali_type_error(msg):
+    raise ValueError(msg)
+
+
 class CaliperNativeReader:
     """Read in a native `.cali` file using Caliper's python reader."""
+    
+    __cali_type_dict = {
+        "inv": lambda dummy: __raise_cali_type_error("Caliper type 'inv' is unsupported in Hatchet"),
+        "usr": lambda dummy: __raise_cali_type_error("Custom Caliper types are unsupported in Hatchet"),
+        "int": int,
+        "uint": int,
+        "string": str,
+        "addr": int,
+        "double": float,
+        "bool": bool,
+        "type": lambda dummy: __raise_cali_type_error("Caliper 'type' types are unsupported in Hatchet"),
+        "ptr": lambda dummy: __raise_cali_type_error("Caliper 'ptr' types are for internal use only!"),
+    }
 
     def __init__(self, filename_or_caliperreader, native, string_attributes):
         """Read in a native cali using Caliper's python reader.
@@ -93,34 +110,20 @@ class CaliperNativeReader:
 
                     for item in record.keys():
                         if item != ctx:
-                            if (
-                                self.filename_or_caliperreader.attribute(
-                                    item
-                                ).attribute_type()
-                                == "double"
-                            ):
-                                node_dict[item] = float(record[item])
-                                if item not in self.record_data_cols:
-                                    self.record_data_cols.append(item)
-                            elif (
-                                self.filename_or_caliperreader.attribute(
-                                    item
-                                ).attribute_type()
-                                == "int"
-                            ):
-                                node_dict[item] = int(record[item])
-                                if item not in self.record_data_cols:
-                                    self.record_data_cols.append(item)
-                            elif (
-                                self.filename_or_caliperreader.attribute(
-                                    item
-                                ).attribute_type()
-                                == "string"
-                            ):
-                                if item in self.string_attributes:
-                                    node_dict[item] = record[item]
-                                    if item not in self.record_data_cols:
-                                        self.record_data_cols.append(item)
+                            attr_type = self.filename_or_caliperreader.attribute(
+                                item
+                            ).attribute_type()
+                            if attr_type in self.__cali_type_dict:
+                                if attr_type != "string" or item in self.string_attributes:
+                                    try:
+                                        node_dict[item] = self.__cali_type_dict[attr_type](record[item])
+                                        if item not in self.record_data_cols:
+                                            self.record_data_cols.append(item)
+                                    except ValueError as e:
+                                        if attr_type not in ("ptr", "inv"):
+                                            print("Ignoring attribute {}:\n    {}".format(item, str(e)))
+                                        else:
+                                            raise e
 
                     all_metrics.append(node_dict)
 
