@@ -11,7 +11,8 @@ Query Language
 
 .. note::
 
-   Point to QL Paper
+   For more information about the query language, including some case studies leveraging it,
+   check out `our paper <https://doi.org/10.1109/eScience55777.2022.00039>`_ from eScience 2022.
 
 One of the most important steps in identifying performance phenomena (e.g., bottlenecks) is data subselection
 and reduction. In previous versions of Hatchet, users could only reduce their data using filters on the
@@ -566,10 +567,72 @@ Query Language Examples
 =======================
 
 This section shows some examples of common queries that users may want to perform.
-They can be used as a starting point for creating more complex queries.
+They can be used as a starting point for creating more complex queries. All of these
+examples are designed to be applied to the following data presented in the :ref:`user_guide` page.
+
+.. table::
+   :align: center
+   :widths: auto
+
+   +-------------------------------------+-------------------------------+
+   | .. image:: images/vis-terminal.png  | .. image:: images/vis-dot.png |
+   |    :scale: 50%                      |    :scale: 35%                |
+   |    :align: left                     |    :align: right              |
+   +-------------------------------------+-------------------------------+
 
 Find a Subgraph with a Specific Root
 ------------------------------------
+
+This example shows how to find a subgraph of a GraphFrame starting with a specific root.
+More specifically, the queries in this example can be used to find the subgraph rooted at
+nodes representing MPI or PMPI function calls.
+
+.. tabs::
+
+   .. tab:: Base Syntax
+
+      .. code-block:: Python
+
+         query = (
+             Query()
+             .match(
+                 ".",
+                 lambda row: re.match(
+                     "P?MPI_.*",
+                     row["name"]
+                 )
+                 is not None
+                 and row["PAPI_L2_TCM"] > 5
+             )
+             .rel("*")
+         )
+
+   .. tab:: Object-based Dialect
+
+      .. code-block:: python
+
+         query = [
+             (
+                 ".",
+                 {
+                     "name": "P?MPI_.*",
+                     "PAPI_L2_TCM": "> 5"
+                 }
+             ),
+             "*"
+         ]
+
+   .. tab:: String-based Dialect
+
+      .. code-block:: python
+
+         query = """
+         MATCH (".", p)->("*")
+         WHERE p."name" STARTS WITH "MPI_" OR p."name" STARTS WITH "PMPI_" AND
+             p."PAPI_L2_TCM" > 5
+         """
+
+When applying one of these queries to the example data, the resulting GraphFrame looks like this:
 
 TBA
 
