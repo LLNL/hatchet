@@ -940,6 +940,7 @@ class GraphFrame:
         highlight_name=False,
         colormap="RdYlGn",
         invert_colormap=False,
+        colormap_annotations=None,
         render_header=True,
     ):
         """Format this graphframe as a tree and return the resulting string."""
@@ -979,6 +980,7 @@ class GraphFrame:
             highlight_name=highlight_name,
             colormap=colormap,
             invert_colormap=invert_colormap,
+            colormap_annotations=colormap_annotations,
             render_header=render_header,
         )
 

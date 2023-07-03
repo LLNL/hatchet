@@ -67,6 +67,7 @@ class ConsoleRenderer:
         self.highlight = kwargs["highlight_name"]
         self.colormap = kwargs["colormap"]
         self.invert_colormap = kwargs["invert_colormap"]
+        self.colormap_annotations = kwargs["colormap_annotations"]
 
         if self.color:
             self.colors = self.colors_enabled
@@ -74,6 +75,19 @@ class ConsoleRenderer:
             self.colors.colormap = ColorMaps().get_colors(
                 self.colormap, self.invert_colormap
             )
+
+            if self.annotation_column and self.colormap_annotations:
+                self.colors_annotations = self.colors_enabled()
+                if isinstance(self.colormap_annotations, str):
+                    self.colors_annotations.colormap = ColorMaps().get_colors(
+                        self.colormap_annotations, False
+                    )
+                elif isinstance(self.colormap_annotations, list):
+                    self.colors_annotations.colormap = self.colormap_annotations
+
+                self.colors_annotations_mapping = sorted(
+                    list(dataframe[self.annotation_column].apply(str).unique())
+                )
         else:
             self.colors = self.colors_disabled
 
@@ -230,9 +244,17 @@ class ConsoleRenderer:
                 )
 
             if self.annotation_column is not None:
-                metric_str += " {}".format(
+                annotation_content = str(
                     dataframe.loc[df_index, self.annotation_column]
                 )
+                if self.colormap_annotations:
+                    color_annotation = self.colors_annotations.colormap[
+                        self.colors_annotations_mapping.index(annotation_content) % len(self.colors_annotations.colormap)]
+                    metric_str += color_annotation
+                    metric_str += " {}".format(annotation_content)
+                    metric_str += self.colors_annotations.end
+                else:
+                    metric_str += " {}".format(annotation_content)
 
             if isinstance(dataframe.columns, pd.MultiIndex):
                 node_name = dataframe.loc[df_index, ("", self.name)]
