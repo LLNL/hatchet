@@ -56,6 +56,7 @@ class ConsoleRenderer:
             return result
 
         self.metric_columns = kwargs["metric_column"]
+        self.annotation_column = kwargs["annotation_column"]
         self.precision = kwargs["precision"]
         self.name = kwargs["name_column"]
         self.expand = kwargs["expand_name"]
@@ -76,7 +77,7 @@ class ConsoleRenderer:
         else:
             self.colors = self.colors_disabled
 
-        if isinstance(self.metric_columns, str):
+        if isinstance(self.metric_columns, (str, tuple)):
             self.primary_metric = self.metric_columns
             self.second_metric = None
         elif isinstance(self.metric_columns, list):
@@ -175,7 +176,7 @@ class ConsoleRenderer:
             + "Legend"
             + self.colors.end
             + " (Metric: "
-            + self.primary_metric
+            + str(self.primary_metric)
             + " Min: {:.2f}".format(self.min_metric)
             + " Max: {:.2f}".format(self.max_metric)
             + ")\n"
@@ -228,7 +229,15 @@ class ConsoleRenderer:
                     c=self.colors,
                 )
 
-            node_name = dataframe.loc[df_index, self.name]
+            if self.annotation_column is not None:
+                metric_str += " {}".format(
+                    dataframe.loc[df_index, self.annotation_column]
+                )
+
+            if isinstance(dataframe.columns, pd.MultiIndex):
+                node_name = dataframe.loc[df_index, ("", self.name)]
+            else:
+                node_name = dataframe.loc[df_index, self.name]
             if self.expand is False:
                 if len(node_name) > 39:
                     node_name = (
