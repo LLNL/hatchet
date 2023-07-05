@@ -78,16 +78,18 @@ class ConsoleRenderer:
 
             if self.annotation_column and self.colormap_annotations:
                 self.colors_annotations = self.colors_enabled()
-                if isinstance(self.colormap_annotations, str):
-                    self.colors_annotations.colormap = ColorMaps().get_colors(
-                        self.colormap_annotations, False
+                if isinstance(self.colormap_annotations, (str, list)):
+                    if isinstance(self.colormap_annotations, str):
+                        self.colors_annotations.colormap = ColorMaps().get_colors(
+                            self.colormap_annotations, False
+                        )
+                    elif isinstance(self.colormap_annotations, list):
+                        self.colors_annotations.colormap = self.colormap_annotations
+                    self.colors_annotations_mapping = sorted(
+                        list(dataframe[self.annotation_column].apply(str).unique())
                     )
-                elif isinstance(self.colormap_annotations, list):
-                    self.colors_annotations.colormap = self.colormap_annotations
-
-                self.colors_annotations_mapping = sorted(
-                    list(dataframe[self.annotation_column].apply(str).unique())
-                )
+                elif isinstance(self.colormap_annotations, dict):
+                    self.colors_annotations_mapping = self.colormap_annotations
         else:
             self.colors = self.colors_disabled
 
@@ -248,10 +250,12 @@ class ConsoleRenderer:
                     dataframe.loc[df_index, self.annotation_column]
                 )
                 if self.colormap_annotations:
-                    color_annotation = self.colors_annotations.colormap[
-                        self.colors_annotations_mapping.index(annotation_content) % len(self.colors_annotations.colormap)]
-                    metric_str += color_annotation
-                    metric_str += " {}".format(annotation_content)
+                    if isinstance(self.colormap_annotations, dict):
+                        color_annotation = self.colors_annotations_mapping[annotation_content]
+                    else:
+                        color_annotation = self.colors_annotations.colormap[
+                            self.colors_annotations_mapping.index(annotation_content) % len(self.colors_annotations.colormap)]
+                    metric_str += " {}{}".format(color_annotation,annotation_content)
                     metric_str += self.colors_annotations.end
                 else:
                     metric_str += " {}".format(annotation_content)
