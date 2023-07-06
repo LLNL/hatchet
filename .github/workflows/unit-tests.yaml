@@ -15,7 +15,7 @@ jobs:
         # TODO: add macos-latest
         # TODO: change ubuntu-20.04 back to ubuntu-latest when the following issue is resolved:
         #       https://github.com/actions/setup-python/issues/162
-        os: [ubuntu-20.04]
+        os: [ubuntu-latest]
         # TODO: add pypy2, pypy3
         python-version: [3.5, 3.6, 3.7, 3.8]
         exclude:
@@ -31,7 +31,6 @@ jobs:
         python-version: ${{ matrix.python-version }}
 
     - name: Install Python3 dependencies
-      if: ${{ matrix.python-version != 2.7 }}
       run: |
         python -m pip install --upgrade pip pytest
         pip install -r requirements.txt
@@ -91,7 +90,7 @@ jobs:
         which cali-query
 
     - name: Build Timemory
-      if: ${{ matrix.python-version >= 3.6 }}
+      if: ${{ matrix.python-version <= 3.6 }}
       run: |
         python -m pip install --upgrade scikit-build
         # python -m pip install --upgrade --no-cache-dir --no-deps -v --pre timemory --install-option=--disable-{c,gotcha,tools}

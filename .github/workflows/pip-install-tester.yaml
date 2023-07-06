@@ -19,7 +19,7 @@ jobs:
       matrix:
         # TODO: change ubuntu-20.04 back to ubuntu-latest when the following issue is resolved:
         #       https://github.com/actions/setup-python/issues/162
-        os: [ubuntu-20.04]
+        os: [ubuntu-latest]
         python-version: [3.6, 3.7, 3.8, 3.9]
         hatchet-version: ["2022.2.0"]
 
@@ -38,7 +38,6 @@ jobs:
         python -m pip install --upgrade pip pytest
 
     - name: Build Python 3 dependencies
-      if: ${{ matrix.python-version != 2.7 }}
       run: |
         python -m pip install tables
 
