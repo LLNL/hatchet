@@ -15,14 +15,10 @@ jobs:
         # TODO: add macos-latest
         # TODO: change ubuntu-20.04 back to ubuntu-latest when the following issue is resolved:
         #       https://github.com/actions/setup-python/issues/162
-        os: [ubuntu-latest, ubuntu-20.04]
+        os: [ubuntu-20.04]
         # TODO: add pypy2, pypy3
         python-version: [3.5, 3.6, 3.7, 3.8]
         exclude:
-          - os: ubuntu-latest
-            python-version: [3.5, 3.6]
-          - os: ubuntu-20.04
-            python-version: [3.7, 3.8]
           - os: macos-latest
             python-version: [3.5, 3.6]
 

@@ -19,7 +19,7 @@ jobs:
       matrix:
         # TODO: change ubuntu-20.04 back to ubuntu-latest when the following issue is resolved:
         #       https://github.com/actions/setup-python/issues/162
-        os: [ubuntu-latest]
+        os: [ubuntu-20.04]
         python-version: [3.6, 3.7, 3.8, 3.9]
         hatchet-version: ["2022.2.0"]
 
