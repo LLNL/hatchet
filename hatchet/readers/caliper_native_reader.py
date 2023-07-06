@@ -350,7 +350,7 @@ class CaliperNativeReader:
             else:
                 default_metric_dict[list(self.record_data_cols)[idx]] = None
         default_metric_dict["nid"] = -1
-        
+
         # create a list of dicts, one dict for each missing row
         missing_nodes = []
         for iteridx, row in self.df_nodes.iterrows():
