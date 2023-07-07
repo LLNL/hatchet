@@ -942,6 +942,8 @@ class GraphFrame:
         invert_colormap=False,
         colormap_annotations=None,
         render_header=True,
+        min_value=None,
+        max_value=None,
     ):
         """Format this graphframe as a tree and return the resulting string."""
         color = sys.stdout.isatty()
@@ -982,6 +984,8 @@ class GraphFrame:
             invert_colormap=invert_colormap,
             colormap_annotations=colormap_annotations,
             render_header=render_header,
+            min_value=min_value,
+            max_value=max_value,
         )
 
     def to_dot(self, metric=None, name="name", rank=0, thread=0, threshold=0.0):
