@@ -349,7 +349,6 @@ class CaliperNativeReader:
                 default_metric_dict[list(self.record_data_cols)[idx]] = 0
             else:
                 default_metric_dict[list(self.record_data_cols)[idx]] = None
-        default_metric_dict["nid"] = -1
 
         # create a list of dicts, one dict for each missing row
         missing_nodes = []
@@ -381,6 +380,7 @@ class CaliperNativeReader:
 
         df_missing = pd.DataFrame.from_dict(data=missing_nodes)
         df_metrics = pd.concat([df_fixed_data, df_missing], sort=False)
+        df_metrics["nid"] = df_metrics["nid"].astype(pd.Int64Dtype())
 
         # rename columns to user-readable metric names (i.e., aliases)
         if not self.use_native_metric_names:

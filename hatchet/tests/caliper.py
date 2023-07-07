@@ -5,6 +5,7 @@
 
 import subprocess
 import numpy as np
+import pandas as pd
 
 import pytest
 import sys
@@ -224,7 +225,7 @@ def test_graphframe_native_lulesh_from_file(lulesh_caliper_cali):
         if col in ("time (inc)", "time"):
             assert gf.dataframe[col].dtype == np.float64
         elif col in ("nid", "rank"):
-            assert gf.dataframe[col].dtype == np.int64
+            assert gf.dataframe[col].dtype == pd.Int64Dtype()
         elif col in ("name", "node"):
             assert gf.dataframe[col].dtype == object
 
@@ -250,7 +251,7 @@ def test_graphframe_native_lulesh_from_caliperreader(lulesh_caliper_cali):
         if col in ("time (inc)", "time"):
             assert gf.dataframe[col].dtype == np.float64
         elif col in ("nid", "rank"):
-            assert gf.dataframe[col].dtype == np.int64
+            assert gf.dataframe[col].dtype == pd.Int64Dtype()
         elif col in ("name", "node"):
             assert gf.dataframe[col].dtype == object
 
