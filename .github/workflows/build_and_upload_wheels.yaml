@@ -34,23 +34,6 @@ jobs:
         with:
           path: ./wheelhouse/*.whl
 
-  build_wheels_linux_27:
-    name: Build wheels for Python 2.7 on Linux
-    runs-on: ubuntu-20.04
-    steps:
-      - uses: actions/checkout@v3
-
-      # Neeed to use cibuildwheel 1 for Python 2.7
-      - uses: pypa/cibuildwheel@v1.12.0
-        env:
-          CIBW_SKIP: pp*
-          CIBW_ARCHS_LINUX: auto
-          CIBW_PROJECT_REQUIRES_PYTHON: "~=2.7"
-
-      - uses: actions/upload-artifact@v3
-        with:
-          path: ./wheelhouse/*.whl
-
   # TODO: uncomment if/when we decide to build wheels for macOS
   # build_wheels_macos_36_37:
   #   name: Build wheels for Python 3.6 and 3.7 on macOS
@@ -84,22 +67,6 @@ jobs:
   #       with:
   #         path: ./wheelhouse/*.whl
 
-  # build_wheels_macos_27:
-  #   name: Build wheels for Python 2.7 on macOS
-  #   runs-on: macos-12
-  #   steps:
-  #     - uses: actions/checkout@v3
-
-  #     # Neeed to use cibuildwheel 1 for Python 2.7
-  #     - uses: pypa/cibuildwheel@v1.12.0
-  #       env:
-  #         CIBW_SKIP: pp*
-  #         CIBW_BUILD: cp27-macosx_x86_64
-
-  #     - uses: actions/upload-artifact@v3
-  #       with:
-  #         path: ./wheelhouse/*.whl
-
   build_sdist:
     name: Build sdist
     runs-on: ubuntu-20.04
@@ -122,7 +89,6 @@ jobs:
       - build_wheels_linux_27
         # - build_wheels_macos_36_37
         # - build_wheels_macos_38_plus
-        # - build_wheels_macos_27
       - build_sdist
     runs-on: ubuntu-20.04
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags')
@@ -144,7 +110,6 @@ jobs:
       - build_wheels_linux_27
         # - build_wheels_macos_36_37
         # - build_wheels_macos_38_plus
-        # - build_wheels_macos_27
       - build_sdist
     runs-on: ubuntu-20.04
     if: github.event_name == 'release' && github.event.action == 'published'

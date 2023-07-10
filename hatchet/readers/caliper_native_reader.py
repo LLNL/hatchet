@@ -5,6 +5,7 @@
 
 
 import pandas as pd
+import numpy as np
 import os
 
 import caliperreader as cr
@@ -349,6 +350,7 @@ class CaliperNativeReader:
                 default_metric_dict[list(self.record_data_cols)[idx]] = 0
             else:
                 default_metric_dict[list(self.record_data_cols)[idx]] = None
+        default_metric_dict["nid"] = np.nan
 
         # create a list of dicts, one dict for each missing row
         missing_nodes = []
@@ -440,6 +442,7 @@ class CaliperNativeReader:
         with self.timer.phase("data frame"):
             # merge the metrics and node dataframes on the nid column
             dataframe = pd.merge(df_metrics, self.df_nodes, on="nid")
+            dataframe["nid"] = dataframe["nid"].astype(pd.Int64Dtype())
 
             # set the index to be a MultiIndex
             indices = ["node"]
