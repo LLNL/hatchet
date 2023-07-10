@@ -580,12 +580,13 @@ examples are designed to be applied to the following data presented in the :ref:
    |    :align: left                     |    :align: right              |
    +-------------------------------------+-------------------------------+
 
+.. _subgraph_root_ex:
 Find a Subgraph with a Specific Root
 ------------------------------------
 
 This example shows how to find a subgraph of a GraphFrame starting with a specific root.
 More specifically, the queries in this example can be used to find the subgraph rooted at
-nodes representing MPI or PMPI function calls.
+nodes with the name :code:`"corge"`.
 
 .. tabs::
 
@@ -595,15 +596,7 @@ nodes representing MPI or PMPI function calls.
 
          query = (
              Query()
-             .match(
-                 ".",
-                 lambda row: re.match(
-                     "P?MPI_.*",
-                     row["name"]
-                 )
-                 is not None
-                 and row["PAPI_L2_TCM"] > 5
-             )
+             .match(".", row["name"] == "corge")
              .rel("*")
          )
 
@@ -615,8 +608,7 @@ nodes representing MPI or PMPI function calls.
              (
                  ".",
                  {
-                     "name": "P?MPI_.*",
-                     "PAPI_L2_TCM": "> 5"
+                     "name": "corge"
                  }
              ),
              "*"
@@ -628,8 +620,7 @@ nodes representing MPI or PMPI function calls.
 
          query = """
          MATCH (".", p)->("*")
-         WHERE p."name" STARTS WITH "MPI_" OR p."name" STARTS WITH "PMPI_" AND
-             p."PAPI_L2_TCM" > 5
+         WHERE p."name" = "corge"
          """
 
 When applying one of these queries to the example data, the resulting GraphFrame looks like this:
@@ -639,14 +630,116 @@ TBA
 Find All Paths Ending with a Specific Node
 -------------------------------------------
 
-TBA
+This example shows how to find all paths of a GraphFrame ending with a specific node.
+More specifically, the queries in this example can be used to find paths ending with
+a node named :code:`"grault"`.
+
+.. tabs::
+
+   .. tab:: Base Syntax
+   
+      .. code-block:: python
+      
+         query = (
+            Query()
+            .match("*")
+            .rel(".", lambda row: row["name"] == "grault")
+         )
+   
+   .. tab:: Object-based Dialect
+   
+      TBA
+   
+   .. tab:: String-based Dialect
+   
+      TBA
+
+Find All Paths with Specific Starting and Ending Nodes
+------------------------------------------------------
+
+This example shows how to find all paths of a GraphFrame starting with and ending with specific nodes.
+More specifically, the queries in this example can be used to find paths starting with a node named
+:code:`"corge"` and ending with a node named :code:`"grault"`.
+
+.. tabs::
+
+   .. tab:: Base Syntax
+   
+      .. code-block:: python
+      
+         query = (
+            Query()
+            .match(".", lambda row: row["name"] == "corge")
+            .rel("*")
+            .rel(".", lambda row: row["name"] == "grault")
+         )
+   
+   .. tab:: Object-based Dialect
+   
+      TBA
+   
+   .. tab:: String-based Dialect
+   
+      TBA
 
 Find All Nodes for a Particular Software Library
 -----------------------------------------------
 
-TBA
+This example shows how to find all paths of a GraphFrame representing a specific
+software library. This example is simply a variant of finding a subgraph with a
+given root (i.e., from :ref:`this section <subgraph_root_ex>`). The example queries
+below can be used to find the nodes for a subset of an MPI library.
+
+.. tabs::
+
+   .. tab:: Base Syntax
+   
+      .. code-block:: python
+      
+         api_entrypoints = [
+            "MPI_Init",
+            "MPI_Finalize",
+            "MPI_Send",
+            "MPI_Recv",
+         ]
+         query = (
+            Query()
+            .match(".", lambda row: row["name"] in api_entrypoints)
+            .rel("*")
+         )
+   
+   .. tab:: Object-based Dialect
+   
+      TBA
+   
+   .. tab:: String-based Dialect
+   
+      TBA
 
 Find All Paths through a Specific Node
 ---------------------------------------
 
-TBA
+This example shows how to find all paths of a GraphFrame that pass through
+a specific node. More specifically, the queries below can be used to find
+all paths that pass through a node named :code:`"corge"`.
+
+.. tabs::
+
+   .. tab:: Base Syntax
+   
+      .. code-block:: python
+      
+         query = (
+            Query()
+            .match("*")
+            .rel(".", lambda row: row["name"] == "corge")
+            .rel("*")
+         )
+   
+   .. tab:: Object-based Dialect
+   
+      TBA
+   
+   .. tab:: String-based Dialect
+   
+      TBA
