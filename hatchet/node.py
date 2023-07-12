@@ -13,6 +13,12 @@ def traversal_order(node):
     return (node.frame, id(node))
 
 
+def node_traversal_order(node):
+    """Deterministic key function for sorting nodes by specified "node order"
+    (which gets assigned to _hatchet_nid) in traversals."""
+    return node._hatchet_nid
+
+
 @total_ordering
 class Node:
     """A node in the graph. The node only stores its frame."""
@@ -138,6 +144,44 @@ class Node:
 
         for child in sorted(self.children, key=traversal_order):
             for item in child.traverse(order=order, attrs=attrs, visited=visited):
+                yield item
+
+        if order == "post":
+            yield value(self)
+
+    def node_order_traverse(self, order="pre", attrs=None, visited=None):
+        """Traverse the tree depth-first and yield each node, sorting children by "node order".
+
+        Arguments:
+            order (str):  "pre" or "post" for preorder or postorder (default: pre)
+            attrs (list or str, optional): if provided, extract these fields
+                from nodes while traversing and yield them
+            visited (dict, optional): dictionary in which each visited
+                node's in-degree will be stored
+        """
+        if order not in ("pre", "post"):
+            raise ValueError("order must be one of 'pre' or 'post'")
+
+        if visited is None:
+            visited = {}
+
+        key = id(self)
+        if key in visited:
+            # count the number of times we reached
+            visited[key] += 1
+            return
+        visited[key] = 1
+
+        def value(node):
+            return node if attrs is None else node.frame.values(attrs)
+
+        if order == "pre":
+            yield value(self)
+
+        for child in sorted(self.children, key=node_traversal_order):
+            for item in child.node_order_traverse(
+                order=order, attrs=attrs, visited=visited
+            ):
                 yield item
 
         if order == "post":

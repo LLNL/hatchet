@@ -256,6 +256,488 @@ def test_graphframe_native_lulesh_from_caliperreader(lulesh_caliper_cali):
             assert gf.dataframe[col].dtype == object
 
 
+def test_graphframe_native_lulesh_from_file_node_order(caliper_ordered_cali):
+    """Check the order of output from the native Caliper reader by examining a known input with node order column."""
+
+    gf = GraphFrame.from_caliperreader(str(caliper_ordered_cali))
+
+    assert len(gf.dataframe.groupby("name")) == 19
+    assert "cali.caliper.version" in gf.metadata.keys()
+    assert type(gf.metadata["cali.channel"]) == str
+    assert type(gf.metadata["cali.caliper.version"]) == str
+    assert "Node order" not in gf.dataframe.columns
+
+    expected_order = [
+        "main",
+        "lulesh.cycle",
+        "TimeIncrement",
+        "LagrangeLeapFrog",
+        "LagrangeNodal",
+        "CalcForceForNodes",
+        "CalcVolumeForceForElems",
+        "IntegrateStressForElems",
+        "CalcHourglassControlForElems",
+        "CalcFBHourglassForceForElems",
+        "LagrangeElements",
+        "CalcLagrangeElements",
+        "CalcKinematicsForElems",
+        "CalcQForElems",
+        "CalcMonotonicQForElems",
+        "ApplyMaterialPropertiesForElems",
+        "EvalEOSForElems",
+        "CalcEnergyForElems",
+        "CalcTimeConstraintsForElems",
+    ]
+
+    expected_data_order = [
+        1.250952,
+        1.229935,
+        0.000085,
+        1.229702,
+        0.604766,
+        0.566399,
+        0.561237,
+        0.161196,
+        0.395344,
+        0.239849,
+        0.614079,
+        0.175102,
+        0.168127,
+        0.136318,
+        0.038575,
+        0.299062,
+        0.293046,
+        0.190395,
+        0.010707,
+    ]
+
+    for i in range(0, gf.dataframe.shape[0]):
+        # check if the rows are in the expected order
+        node_name = gf.dataframe.iloc[i]["name"]
+        assert node_name == expected_order[i]
+        node_data = gf.dataframe.iloc[i]["Total time"]
+        assert node_data == expected_data_order[i]
+
+
+@pytest.mark.skipif(
+    not caliperreader_avail, reason="needs caliper-reader package to be loaded"
+)
+def test_graphframe_native_lulesh_from_caliperreader_node_order(caliper_ordered_cali):
+    """Check the order of output from the native Caliper reader by examining a known input with node order column."""
+    r = caliperreader.CaliperReader()
+    r.read(caliper_ordered_cali)
+
+    gf = GraphFrame.from_caliperreader(r)
+
+    assert len(gf.dataframe.groupby("name")) == 19
+    assert "cali.caliper.version" in gf.metadata.keys()
+    assert type(gf.metadata["cali.caliper.version"]) == str
+    assert "Node order" not in gf.dataframe.columns
+
+    expected_order = [
+        "main",
+        "lulesh.cycle",
+        "TimeIncrement",
+        "LagrangeLeapFrog",
+        "LagrangeNodal",
+        "CalcForceForNodes",
+        "CalcVolumeForceForElems",
+        "IntegrateStressForElems",
+        "CalcHourglassControlForElems",
+        "CalcFBHourglassForceForElems",
+        "LagrangeElements",
+        "CalcLagrangeElements",
+        "CalcKinematicsForElems",
+        "CalcQForElems",
+        "CalcMonotonicQForElems",
+        "ApplyMaterialPropertiesForElems",
+        "EvalEOSForElems",
+        "CalcEnergyForElems",
+        "CalcTimeConstraintsForElems",
+    ]
+
+    expected_data_order = [
+        1.250952,
+        1.229935,
+        0.000085,
+        1.229702,
+        0.604766,
+        0.566399,
+        0.561237,
+        0.161196,
+        0.395344,
+        0.239849,
+        0.614079,
+        0.175102,
+        0.168127,
+        0.136318,
+        0.038575,
+        0.299062,
+        0.293046,
+        0.190395,
+        0.010707,
+    ]
+
+    for i in range(0, gf.dataframe.shape[0]):
+        # check if the rows are in the expected order
+        node_name = gf.dataframe.iloc[i]["name"]
+        assert node_name == expected_order[i]
+        node_data = gf.dataframe.iloc[i]["Total time"]
+        assert node_data == expected_data_order[i]
+
+
+def test_graphframe_lulesh_from_json_node_order(caliper_ordered_json):
+    """Check the order of output from the Caliper reader by examining a known json with node order column."""
+
+    gf = GraphFrame.from_caliper(str(caliper_ordered_json))
+
+    assert len(gf.dataframe.groupby("name")) == 19
+    assert "cali.caliper.version" in gf.metadata.keys()
+    assert type(gf.metadata["cali.channel"]) == str
+    assert type(gf.metadata["cali.caliper.version"]) == str
+    assert "Node order" not in gf.dataframe.columns
+
+    expected_order = [
+        "main",
+        "lulesh.cycle",
+        "TimeIncrement",
+        "LagrangeLeapFrog",
+        "LagrangeNodal",
+        "CalcForceForNodes",
+        "CalcVolumeForceForElems",
+        "IntegrateStressForElems",
+        "CalcHourglassControlForElems",
+        "CalcFBHourglassForceForElems",
+        "LagrangeElements",
+        "CalcLagrangeElements",
+        "CalcKinematicsForElems",
+        "CalcQForElems",
+        "CalcMonotonicQForElems",
+        "ApplyMaterialPropertiesForElems",
+        "EvalEOSForElems",
+        "CalcEnergyForElems",
+        "CalcTimeConstraintsForElems",
+    ]
+
+    # check the total time metric to make sure the values are synced with the correct node
+    expected_data_order = [
+        0.018887,
+        0.000154,
+        0.000100,
+        0.000159,
+        0.038220,
+        0.005107,
+        0.004684,
+        0.161500,
+        0.163350,
+        0.239820,
+        0.003603,
+        0.007004,
+        0.168298,
+        0.097482,
+        0.038570,
+        0.006099,
+        0.102499,
+        0.190896,
+        0.010730,
+    ]
+
+    for i in range(0, gf.dataframe.shape[0]):
+        # check if the rows are in the expected order
+        node_name = gf.dataframe.iloc[i]["name"]
+        assert node_name == expected_order[i]
+        node_time = gf.dataframe.iloc[i]["time"]
+        assert node_time == expected_data_order[i]
+
+
+def test_graphframe_native_lulesh_from_duplicate_node_order(caliper_ordered_dup):
+    """Check the order of output from the native Caliper reader by examining a known input with node order column."""
+
+    gf = GraphFrame.from_caliperreader(str(caliper_ordered_dup))
+
+    assert len(gf.dataframe.groupby("name")) == 19
+    assert "cali.caliper.version" in gf.metadata.keys()
+    assert type(gf.metadata["cali.channel"]) == str
+    assert type(gf.metadata["cali.caliper.version"]) == str
+    assert "Node order" not in gf.dataframe.columns
+
+    expected_order = [
+        "main",
+        "lulesh.cycle",
+        "TimeIncrement",
+        "LagrangeLeapFrog",
+        "LagrangeNodal",
+        "CalcForceForNodes",
+        "CalcVolumeForceForElems",
+        "IntegrateStressForElems",
+        "CalcHourglassControlForElems",
+        "CalcFBHourglassForceForElems",
+        "LagrangeElements",
+        "CalcLagrangeElements",
+        "CalcKinematicsForElems",
+        "CalcQForElems",
+        "CalcMonotonicQForElems",
+        "ApplyMaterialPropertiesForElems",
+        "EvalEOSForElems",
+        "CalcEnergyForElems",
+        "CalcTimeConstraintsForElems",
+    ]
+
+    expected_data_order = [
+        1.250952,
+        1.229935,
+        0.000085,
+        1.229702,
+        0.604766,
+        0.566399,
+        0.561237,
+        0.161196,
+        0.395344,
+        0.239849,
+        0.614079,
+        0.175102,
+        0.168127,
+        0.136318,
+        0.038575,
+        0.299062,
+        0.293046,
+        0.190395,
+        0.010707,
+    ]
+
+    for i in range(0, gf.dataframe.shape[0]):
+        # check if the rows are in the expected order
+        node_name = gf.dataframe.iloc[i]["name"]
+        assert node_name == expected_order[i]
+        node_data = gf.dataframe.iloc[i]["Total time"]
+        assert node_data == expected_data_order[i]
+
+
+def test_graphframe_lulesh_from_duplicate_json_node_order(caliper_ordered_json_dup):
+    """Check the order of output from the Caliper reader by examining a known json with node order column."""
+
+    gf = GraphFrame.from_caliper(str(caliper_ordered_json_dup))
+
+    assert len(gf.dataframe.groupby("name")) == 19
+    assert "cali.caliper.version" in gf.metadata.keys()
+    assert type(gf.metadata["cali.channel"]) == str
+    assert type(gf.metadata["cali.caliper.version"]) == str
+    assert "Node order" not in gf.dataframe.columns
+
+    expected_order = [
+        "main",
+        "lulesh.cycle",
+        "TimeIncrement",
+        "LagrangeLeapFrog",
+        "LagrangeNodal",
+        "CalcForceForNodes",
+        "CalcVolumeForceForElems",
+        "IntegrateStressForElems",
+        "CalcHourglassControlForElems",
+        "CalcFBHourglassForceForElems",
+        "LagrangeElements",
+        "CalcLagrangeElements",
+        "CalcKinematicsForElems",
+        "CalcQForElems",
+        "CalcMonotonicQForElems",
+        "ApplyMaterialPropertiesForElems",
+        "EvalEOSForElems",
+        "CalcEnergyForElems",
+        "CalcTimeConstraintsForElems",
+    ]
+
+    # check the total time metric to make sure the values are synced with the correct node
+    expected_data_order = [
+        0.018887,
+        0.000154,
+        0.000100,
+        0.000159,
+        0.038220,
+        0.005107,
+        0.004684,
+        0.161500,
+        0.163350,
+        0.239820,
+        0.003603,
+        0.007004,
+        0.168298,
+        0.097482,
+        0.038570,
+        0.006099,
+        0.102499,
+        0.190896,
+        0.010730,
+    ]
+
+    for i in range(0, gf.dataframe.shape[0]):
+        # check if the rows are in the expected order
+        node_name = gf.dataframe.iloc[i]["name"]
+        assert node_name == expected_order[i]
+        node_time = gf.dataframe.iloc[i]["time"]
+        assert node_time == expected_data_order[i]
+
+
+def test_graphframe_native_lulesh_from_file_node_order_mpi(caliper_ordered_cali_mpi):
+    """Check the order of output from the native Caliper reader by examining a known input with node order column."""
+
+    gf = GraphFrame.from_caliperreader(str(caliper_ordered_cali_mpi))
+
+    assert len(gf.dataframe.groupby("name")) == 26
+    assert "cali.caliper.version" in gf.metadata.keys()
+    assert type(gf.metadata["cali.channel"]) == str
+    assert type(gf.metadata["cali.caliper.version"]) == str
+    assert "Node order" not in gf.dataframe.columns
+
+    expected_order = [
+        "main",
+        "MPI_Barrier",
+        "lulesh.cycle",
+        "TimeIncrement",
+        "MPI_Allreduce",
+        "LagrangeLeapFrog",
+        "LagrangeNodal",
+        "CalcForceForNodes",
+        "CalcVolumeForceForElems",
+        "IntegrateStressForElems",
+        "CalcHourglassControlForElems",
+        "CalcFBHourglassForceForElems",
+        "LagrangeElements",
+        "CalcLagrangeElements",
+        "CalcKinematicsForElems",
+        "CalcQForElems",
+        "CalcMonotonicQForElems",
+        "ApplyMaterialPropertiesForElems",
+        "EvalEOSForElems",
+        "CalcEnergyForElems",
+        "CalcTimeConstraintsForElems",
+        "MPI_Reduce",
+        "MPI_Finalize",
+        "MPI_Initialized",
+        "MPI_Finalized",
+        "MPI_Comm_dup",
+    ]
+
+    expected_data_order = [
+        1.264876,
+        0.000025,
+        1.245757,
+        0.000170,
+        0.000087,
+        1.245438,
+        0.607194,
+        0.568202,
+        0.563011,
+        0.161496,
+        0.396797,
+        0.240649,
+        0.627072,
+        0.175473,
+        0.168321,
+        0.136137,
+        0.039200,
+        0.311724,
+        0.305564,
+        0.199211,
+        0.011015,
+        0.000029,
+        0.000024,
+        0.000007,
+        0.000005,
+        0.000017,
+    ]
+
+    for i in range(0, gf.dataframe.shape[0]):
+        # check if the rows are in the expected order
+        node_name = gf.dataframe.iloc[i]["name"]
+        assert node_name == expected_order[i]
+        node_data = gf.dataframe.iloc[i]["Total time"]
+        assert node_data == expected_data_order[i]
+
+
+@pytest.mark.skipif(
+    not caliperreader_avail, reason="needs caliper-reader package to be loaded"
+)
+def test_graphframe_native_lulesh_from_caliperreader_node_order_mpi(
+    caliper_ordered_cali_mpi,
+):
+    """Check the order of output from the native Caliper reader by examining a known input with node order column."""
+    r = caliperreader.CaliperReader()
+    r.read(caliper_ordered_cali_mpi)
+
+    gf = GraphFrame.from_caliperreader(r)
+
+    assert len(gf.dataframe.groupby("name")) == 26
+    assert "cali.caliper.version" in gf.metadata.keys()
+    assert type(gf.metadata["cali.caliper.version"]) == str
+    assert "Node order" not in gf.dataframe.columns
+
+    expected_order = [
+        "main",
+        "MPI_Barrier",
+        "lulesh.cycle",
+        "TimeIncrement",
+        "MPI_Allreduce",
+        "LagrangeLeapFrog",
+        "LagrangeNodal",
+        "CalcForceForNodes",
+        "CalcVolumeForceForElems",
+        "IntegrateStressForElems",
+        "CalcHourglassControlForElems",
+        "CalcFBHourglassForceForElems",
+        "LagrangeElements",
+        "CalcLagrangeElements",
+        "CalcKinematicsForElems",
+        "CalcQForElems",
+        "CalcMonotonicQForElems",
+        "ApplyMaterialPropertiesForElems",
+        "EvalEOSForElems",
+        "CalcEnergyForElems",
+        "CalcTimeConstraintsForElems",
+        "MPI_Reduce",
+        "MPI_Finalize",
+        "MPI_Initialized",
+        "MPI_Finalized",
+        "MPI_Comm_dup",
+    ]
+
+    # check the total time metric to make sure the values are synced with the correct node
+    expected_data_order = [
+        1.264876,
+        0.000025,
+        1.245757,
+        0.000170,
+        0.000087,
+        1.245438,
+        0.607194,
+        0.568202,
+        0.563011,
+        0.161496,
+        0.396797,
+        0.240649,
+        0.627072,
+        0.175473,
+        0.168321,
+        0.136137,
+        0.039200,
+        0.311724,
+        0.305564,
+        0.199211,
+        0.011015,
+        0.000029,
+        0.000024,
+        0.000007,
+        0.000005,
+        0.000017,
+    ]
+
+    for i in range(0, gf.dataframe.shape[0]):
+        # check if the rows are in the expected order
+        node_name = gf.dataframe.iloc[i]["name"]
+        assert node_name == expected_order[i]
+        node_data = gf.dataframe.iloc[i]["Total time"]
+        assert node_data == expected_data_order[i]
+
+
 def test_inclusive_time_calculation(lulesh_caliper_json):
     """Validate update_inclusive_columns() on known dataset containing per-rank data."""
     gf = GraphFrame.from_caliper(str(lulesh_caliper_json))

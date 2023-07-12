@@ -5,7 +5,7 @@
 
 from collections import defaultdict
 
-from .node import Node, traversal_order
+from .node import Node, traversal_order, node_traversal_order
 
 
 def index_by(attr, objects):
@@ -26,6 +26,7 @@ class Graph:
     def __init__(self, roots):
         assert roots is not None
         self.roots = roots
+        self.node_ordering = False
 
     def traverse(self, order="pre", attrs=None, visited=None):
         """Preorder traversal of all roots of this Graph.
@@ -44,6 +45,28 @@ class Graph:
         # iterate over roots in order
         for root in sorted(self.roots, key=traversal_order):
             for value in root.traverse(order=order, attrs=attrs, visited=visited):
+                yield value
+
+    def node_order_traverse(self, order="pre", attrs=None, visited=None):
+        """Preorder traversal of all roots of this Graph, sorting by "node order" column.
+
+        Arguments:
+            attrs (list or str, optional): If provided, extract these
+                fields from nodes while traversing and yield them. See
+                :func:`~hatchet.node.traverse` for details.
+
+        Only preorder traversal is currently supported.
+        """
+        # share visited dict so that we visit each node at most once.
+        if visited is None:
+            visited = {}
+
+        # iterate over roots in order
+        sorted_roots = sorted(self.roots, key=node_traversal_order)
+        for root in sorted_roots:
+            for value in root.node_order_traverse(
+                order=order, attrs=attrs, visited=visited
+            ):
                 yield value
 
     def is_tree(self):
@@ -334,15 +357,26 @@ class Graph:
 
     def enumerate_traverse(self):
         if not self._check_enumerate_traverse():
-            for i, node in enumerate(self.traverse()):
-                node._hatchet_nid = i
+            # if "node order" column exists, we traverse sorting by _hatchet_nid
+            if self.node_ordering:
+                for i, node in enumerate(self.node_order_traverse()):
+                    node._hatchet_nid = i
+            else:
+                for i, node in enumerate(self.traverse()):
+                    node._hatchet_nid = i
 
             self.enumerate_depth()
 
     def _check_enumerate_traverse(self):
-        for i, node in enumerate(self.traverse()):
-            if i != node._hatchet_nid:
-                return False
+        # if "node order" column exists, we traverse sorting by _hatchet_nid
+        if self.node_ordering:
+            for i, node in enumerate(self.node_order_traverse()):
+                if i != node._hatchet_nid:
+                    return False
+        else:
+            for i, node in enumerate(self.traverse()):
+                if i != node._hatchet_nid:
+                    return False
 
     def __len__(self):
         """Size of the graph in terms of number of nodes."""

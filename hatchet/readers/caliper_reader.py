@@ -37,6 +37,7 @@ class CaliperReader:
         self.filename_or_stream = filename_or_stream
         self.filename_ext = ""
         self.query = query
+        self.node_ordering = False
 
         self.json_data = {}
         self.json_cols = {}
@@ -143,6 +144,7 @@ class CaliperReader:
         list_roots = []
 
         global unknown_label_counter
+        order = -1
 
         # find nodes in the nodes section that represent the path hierarchy
         for idx, node in enumerate(self.json_nodes):
@@ -153,10 +155,14 @@ class CaliperReader:
             self.idx_to_label[idx] = node_label
 
             if node["column"] == self.path_col_name:
+                # If there is a node orderering, assign to the _hatchet_nid
+                if "Node order" in self.json_cols:
+                    self.node_ordering = True
+                    order = self.json_data[idx][0]
                 if "parent" not in node:
                     # since this node does not have a parent, this is a root
                     graph_root = Node(
-                        Frame({"type": self.node_type, "name": node_label}), None
+                        Frame({"type": self.node_type, "name": node_label}), hnid=order
                     )
                     list_roots.append(graph_root)
 
@@ -170,7 +176,7 @@ class CaliperReader:
                     parent_hnode = (self.idx_to_node[node["parent"]])["node"]
                     hnode = Node(
                         Frame({"type": self.node_type, "name": node_label}),
-                        parent_hnode,
+                        hnid=order,
                     )
                     parent_hnode.add_child(hnode)
 
@@ -368,6 +374,10 @@ class CaliperReader:
 
         # create a graph object once all the nodes have been added
         graph = Graph(list_roots)
+        if self.node_ordering:
+            graph.node_ordering = True
+            # we do not want to expose the "Node order" column to the user
+            self.df_metrics = self.df_metrics.drop(columns="Node order")
         graph.enumerate_traverse()
 
         # merge the metrics and node dataframes on the idx column
