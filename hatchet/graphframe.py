@@ -838,7 +838,7 @@ class GraphFrame:
                     # Sum up the inclusive metric values of the current node's children
                     inc_sum = 0
                     for child in node.children:
-                        inc_sum += self.dataframe.loc[child, inc]
+                        inc_sum += np.nan_to_num(self.dataframe.loc[child, inc])
                     # Subtract the current node's inclusive metric from the previously calculated sum to
                     # get the exclusive metric value for the node
                     new_data[node] = self.dataframe.loc[node, inc] - inc_sum
