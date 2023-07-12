@@ -171,6 +171,7 @@ class CaliperNativeReader:
                 else:
                     grandparent_callpath = parent_callpath[:-1]
                     parent_name = parent_callpath[-1]
+                    
                     parent_node = Node(
                         Frame({"type": "function", "name": parent_name}), None
                     )
