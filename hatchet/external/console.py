@@ -257,10 +257,11 @@ class ConsoleRenderer:
                     else:
                         color_annotation = self.colors_annotations.colormap[
                             self.colors_annotations_mapping.index(annotation_content) % len(self.colors_annotations.colormap)]
-                    metric_str += " {}{}".format(color_annotation,annotation_content)
-                    metric_str += self.colors_annotations.end
+                    metric_str += " [{}".format(color_annotation)
+                    metric_str += "{}".format(annotation_content)
+                    metric_str +="{}]".format(self.colors_annotations.end)
                 else:
-                    metric_str += " {}".format(annotation_content)
+                    metric_str += " [{}]".format(annotation_content)
 
             if isinstance(dataframe.columns, pd.MultiIndex):
                 node_name = dataframe.loc[df_index, (self.name, "")]
