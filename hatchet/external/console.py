@@ -275,30 +275,24 @@ class ConsoleRenderer:
                 self._ansi_color_for_name(node_name) + node_name + self.colors.end
             )
 
-            left_or_right = 0
-            if self.primary_metric in dataframe and np.isnan(dataframe.loc[df_index, self.primary_metric]):
-                left_or_right = 1
-            elif self.second_metric in dataframe and np.isnan(dataframe.loc[df_index, self.second_metric]):
-                left_or_right = 2
-
             # 0 is "", 1 is "L", and 2 is "R"
             if "_missing_node" in dataframe.columns:
                 left_or_right = dataframe.loc[df_index, "_missing_node"]
-            if left_or_right == 0:
-                lr_decorator = u""
-            elif left_or_right == 1:
-                lr_decorator = u" {c.left}{decorator}{c.end}".format(
-                    decorator=self.lr_arrows["◀"], c=self.colors
-                )
-            elif left_or_right == 2:
-                lr_decorator = u" {c.right}{decorator}{c.end}".format(
-                    decorator=self.lr_arrows["▶"], c=self.colors
-                )
+                if left_or_right == 0:
+                    lr_decorator = u""
+                elif left_or_right == 1:
+                    lr_decorator = u" {c.left}{decorator}{c.end}".format(
+                        decorator=self.lr_arrows["◀"], c=self.colors
+                    )
+                elif left_or_right == 2:
+                    lr_decorator = u" {c.right}{decorator}{c.end}".format(
+                        decorator=self.lr_arrows["▶"], c=self.colors
+                    )
 
             result = u"{indent}{metric_str} {name_str}".format(
                 indent=indent, metric_str=metric_str, name_str=name_str
             )
-            if left_or_right > 0:
+            if "_missing_node" in dataframe.columns:
                 result += lr_decorator
             if self.context in dataframe.columns:
                 result += u" {c.faint}{context}{c.end}\n".format(
