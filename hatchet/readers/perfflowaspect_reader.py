@@ -6,15 +6,16 @@ from hatchet.node import Node
 from hatchet.graph import Graph
 from hatchet.frame import Frame
 
-class PerfReader :
+class PerfFlowAspectReader:
     """ Create a GraphFrame from a json string of the following format.
 
     Return:
         (GraphFrame): graphframe containing data from dictionaries
     """
+
     def __init__(self, filename):
         """Read from a json string specification of a graphframe
- 
+
         json (string): Json specification of a graphframe.
         """
         with open(filename, 'r') as file:
@@ -28,14 +29,19 @@ class PerfReader :
     def read(self):
         roots = []
         node_mapping = {}
+        node_dicts = []
+        
         for item in self.spec_dict:
             name = item["name"]
             ts = item["ts"]
             dur = item["dur"]
+            
             # Create a Frame and Node for the function
             # Frame stores performance data related to each function
             # Node represents a node in the hierarchical graph structure 
             node = Node(Frame({"name": name, "ts": ts, "dur": dur}))
+            frame = Frame({"name": name, "type": "function", "ts": ts, "dur": dur})
+            
             # check the relationships between node and roots
             for root in reversed(roots):
                 # if node is a parent of root node 
@@ -44,38 +50,38 @@ class PerfReader :
                     root.add_parent(node)
                     roots.pop()
             roots.append(node)
-       
-        print(roots) 
+
+            node_dict = dict(
+                {
+                    "node": node,
+                    "name": name,
+                    "ts": ts,
+                    "dur": dur,
+                    "pid": item["pid"],
+                    "tid": item["tid"],
+                    "ph": item["ph"],
+                }
+            )
+            node_dicts.append(node_dict)
+
+            # Store the Node object with its name for future reference
+            print("Add", name, "to node map")
+            node_mapping[name] = node
+
         # Create the Graph object from the root nodes
         graph = Graph(roots)
+        graph.enumerate_traverse()
 
-        # Create the DataFrame
-        dataframe = pd.DataFrame(self.spec_dict)
-        #print(dataframe['name'])
-        print(dataframe.columns)
+        dataframe = pd.DataFrame(data=node_dicts)
+        dataframe.set_index(["node"], inplace=True)
+        dataframe.sort_index(inplace=True)
 
-        #print("Unique values in 'name' column:", dataframe["name"].unique())
-        #print("Keys in node_mapping dictionary:", node_mapping.keys())
+        exc_metrics = []
+        inc_metrics = []
+        for col in dataframe.columns:
+            if "(inc)" in col:
+                inc_metrics.append(col)
+            else:
+                exc_metrics.append(col)
 
-        dataframe.rename(columns={'name':'node'}, inplace=True)
-        dataframe['node'] = dataframe['node'].map(
-
-            lambda n: node_mapping[n] if n in node_mapping else n
-        )
-       
-        dataframe.set_index('node', inplace=True)  # Set 'name' column as the index
-       
         return hatchet.graphframe.GraphFrame(graph, dataframe)
-
-if __name__ == "__main__":
-    # filename = "perfflow.quartz1532.3570764.pfw"
-    filename = "perf_mod.pfw"
-    # Create an instance of the PerfReader class
-    perf_reader = PerfReader(filename)
-
-    perf_reader.sort()
-    graph_frame = perf_reader.read()
-    # print(graph_frame.dataframe)
-
-    # print(graph_frame.tree())
-
