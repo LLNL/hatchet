@@ -253,13 +253,17 @@ class ConsoleRenderer:
                 )
                 if self.colormap_annotations:
                     if isinstance(self.colormap_annotations, dict):
-                        color_annotation = self.colors_annotations_mapping[annotation_content]
+                        color_annotation = self.colors_annotations_mapping[
+                            annotation_content
+                        ]
                     else:
                         color_annotation = self.colors_annotations.colormap[
-                            self.colors_annotations_mapping.index(annotation_content) % len(self.colors_annotations.colormap)]
+                            self.colors_annotations_mapping.index(annotation_content)
+                            % len(self.colors_annotations.colormap)
+                        ]
                     metric_str += " [{}".format(color_annotation)
                     metric_str += "{}".format(annotation_content)
-                    metric_str +="{}]".format(self.colors_annotations.end)
+                    metric_str += "{}]".format(self.colors_annotations.end)
                 else:
                     metric_str += " [{}]".format(annotation_content)
 
