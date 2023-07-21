@@ -762,6 +762,8 @@ class GraphFrame:
 
     def generate_exclusive_columns(self, inc_metrics=None):
         """Generates exclusive metrics from available inclusive metrics.
+        Arguments:
+            inc_metrics (str, list, optional): Instead of generating the exclusive time for each inclusive metric, it is possible to specify those metrics manually. Defaults to None.
 
         Currently, this function determines which metrics to generate by looking for one of two things:
 
