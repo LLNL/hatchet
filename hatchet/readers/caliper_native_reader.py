@@ -299,6 +299,10 @@ class CaliperNativeReader:
         """
         parsed_mdata = {}
         for k, v in mdata.items():
+            # environment information service brings in different metadata types
+            if isinstance(v, list):
+                parsed_mdata[k] = v
+                continue
             # If the value is an int, convert it to an int.
             try:
                 parsed_mdata[k] = int(v)
