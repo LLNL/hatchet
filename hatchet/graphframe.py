@@ -322,11 +322,18 @@ class GraphFrame:
         return JsonReader(json_spec).read(**kwargs)
 
     @staticmethod
-    def from_hdf(filename, **kwargs):
+    def from_hdf(filename):
         # import this lazily to avoid circular dependencies
         from .readers.hdf5_reader import HDF5Reader
 
-        return HDF5Reader(filename).read(**kwargs)
+        return HDF5Reader(filename).read()
+
+    @staticmethod
+    def from_perfflowaspect(filename, **kwargs):
+        # import this lazily to avoid circular dependencies
+        from .readers.perfflowaspect_reader import PerfFlowAspectReader
+
+        return PerfFlowAspectReader(filename).read(**kwargs)
 
     def to_hdf(self, filename, key="hatchet_graphframe", **kwargs):
         # import this lazily to avoid circular dependencies
