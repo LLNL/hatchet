@@ -159,46 +159,18 @@ def test_filter_squash_unify_caliper_data(lulesh_caliper_json):
     squash_gf2.dataframe.set_index(gf2_index_names, inplace=True)
 
 
-def test_tree(lulesh_caliper_json):
+def test_tree(monkeypatch, lulesh_caliper_json):
     """Sanity test a GraphFrame object with known data."""
+    monkeypatch.setattr("sys.stdout.isatty", (lambda: False))
     gf = GraphFrame.from_caliper(str(lulesh_caliper_json))
+    output = gf.tree(metric_column="time")
 
-    output = ConsoleRenderer(unicode=True, color=False).render(
-        gf.graph.roots,
-        gf.dataframe,
-        metric_column="time",
-        precision=3,
-        name_column="name",
-        expand_name=False,
-        context_column="file",
-        rank=0,
-        thread=0,
-        depth=10000,
-        highlight_name=False,
-        colormap="RdYlGn",
-        invert_colormap=False,
-        render_header=True,
-    )
     assert "121489.000 main" in output
     assert "663.000 LagrangeElements" in output
     assert "21493.000 CalcTimeConstraintsForElems" in output
 
-    output = ConsoleRenderer(unicode=True, color=False).render(
-        gf.graph.roots,
-        gf.dataframe,
-        metric_column="time (inc)",
-        precision=3,
-        name_column="name",
-        expand_name=False,
-        context_column="file",
-        rank=0,
-        thread=0,
-        depth=10000,
-        highlight_name=False,
-        colormap="RdYlGn",
-        invert_colormap=False,
-        render_header=True,
-    )
+    output = gf.tree(metric_column="time (inc)")
+
     assert "662712.000 EvalEOSForElems" in output
     assert "2895319.000 LagrangeNodal" in output
 

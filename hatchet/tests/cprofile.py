@@ -27,43 +27,16 @@ def test_graphframe(hatchet_cycle_pstats):
             assert gf.dataframe[col].dtype == object
 
 
-def test_tree(hatchet_cycle_pstats):
+def test_tree(monkeypatch, hatchet_cycle_pstats):
+    monkeypatch.setattr("sys.stdout.isatty", (lambda: False))
     gf = GraphFrame.from_cprofile(str(hatchet_cycle_pstats))
 
-    output = ConsoleRenderer(unicode=True, color=False).render(
-        gf.graph.roots,
-        gf.dataframe,
-        metric_column="time",
-        precision=3,
-        name_column="name",
-        expand_name=False,
-        context_column="file",
-        rank=0,
-        thread=0,
-        depth=10000,
-        highlight_name=False,
-        colormap="RdYlGn",
-        invert_colormap=False,
-        render_header=True,
-    )
+    output = gf.tree(metric_column="time")
+
     assert "g pstats_reader_test.py" in output
     assert "<method 'disable' ...Profiler' objects> ~" in output
 
-    output = ConsoleRenderer(unicode=True, color=False).render(
-        gf.graph.roots,
-        gf.dataframe,
-        metric_column="time (inc)",
-        precision=3,
-        name_column="name",
-        expand_name=False,
-        context_column="file",
-        rank=0,
-        thread=0,
-        depth=10000,
-        highlight_name=False,
-        colormap="RdYlGn",
-        invert_colormap=False,
-        render_header=True,
-    )
+    output = gf.tree(metric_column="time (inc)")
+
     assert "f pstats_reader_test.py" in output
     assert re.match("(.|\n)*recursive(.|\n)*recursive", output)

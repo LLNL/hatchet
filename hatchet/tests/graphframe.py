@@ -705,46 +705,19 @@ def test_filter_emtpy_graphframe(mock_graph_literal):
         gf.filter(empty_filter, squash=False)
 
 
-def test_tree(mock_graph_literal):
+def test_tree(monkeypatch, mock_graph_literal):
+    monkeypatch.setattr("sys.stdout.isatty", (lambda: False))
     gf = GraphFrame.from_literal(mock_graph_literal)
 
-    output = ConsoleRenderer(unicode=True, color=False).render(
-        gf.graph.roots,
-        gf.dataframe,
-        metric_column="time",
-        precision=3,
-        name_column="name",
-        expand_name=False,
-        context_column="file",
-        rank=0,
-        thread=0,
-        depth=10000,
-        highlight_name=False,
-        colormap="RdYlGn",
-        invert_colormap=False,
-        render_header=True,
-    )
+    output = gf.tree(metric_column="time")
+
     assert "0.000 foo" in output
     assert "10.000 waldo" in output
     assert "15.000 garply" in output
     assert "v" + __version__ in output
 
-    output = ConsoleRenderer(unicode=True, color=False).render(
-        gf.graph.roots,
-        gf.dataframe,
-        metric_column="time (inc)",
-        precision=3,
-        name_column="name",
-        expand_name=False,
-        context_column="file",
-        rank=0,
-        thread=0,
-        depth=10000,
-        highlight_name=False,
-        colormap="RdYlGn",
-        invert_colormap=False,
-        render_header=False,
-    )
+    output = gf.tree(metric_column="time (inc)", render_header=False)
+
     assert "55.000 waldo" in output
     assert "15.000 garply" in output
     assert "v" + __version__ not in output
@@ -772,7 +745,8 @@ def test_unify_diff_graphs():
     assert len(gf1.graph) == gf1.dataframe.shape[0]
 
 
-def test_sub_decorator(small_mock1, small_mock2, small_mock3):
+def test_sub_decorator(monkeypatch, small_mock1, small_mock2, small_mock3):
+    monkeypatch.setattr("sys.stdout.isatty", (lambda: False))
     gf1 = GraphFrame.from_literal(small_mock1)
     gf2 = GraphFrame.from_literal(small_mock2)
     gf3 = GraphFrame.from_literal(small_mock3)
@@ -789,22 +763,8 @@ def test_sub_decorator(small_mock1, small_mock2, small_mock3):
         gf4.dataframe.loc[gf4.dataframe["_missing_node"] == 0].shape[0] == 5
     )  # "" or same in both
 
-    output = ConsoleRenderer(unicode=True, color=False).render(
-        gf4.graph.roots,
-        gf4.dataframe,
-        metric_column="time",
-        precision=3,
-        name_column="name",
-        expand_name=False,
-        context_column="file",
-        rank=0,
-        thread=0,
-        depth=10000,
-        highlight_name=False,
-        colormap="RdYlGn",
-        invert_colormap=False,
-        render_header=True,
-    )
+    output = gf4.tree(metric_column="time")
+
     assert "0.000 C" in output
     assert u"nan D ▶" in output
     assert u"10.000 H ◀" in output
@@ -819,28 +779,15 @@ def test_sub_decorator(small_mock1, small_mock2, small_mock3):
     assert gf5.dataframe.loc[gf5.dataframe["_missing_node"] == 1].shape[0] == 2  # "L"
     assert gf5.dataframe.loc[gf5.dataframe["_missing_node"] == 0].shape[0] == 4  # ""
 
-    output = ConsoleRenderer(unicode=True, color=False).render(
-        gf5.graph.roots,
-        gf5.dataframe,
-        metric_column="time (inc)",
-        precision=3,
-        name_column="name",
-        expand_name=False,
-        context_column="file",
-        rank=0,
-        thread=0,
-        depth=10000,
-        highlight_name=False,
-        colormap="RdYlGn",
-        invert_colormap=False,
-        render_header=True,
-    )
+    output = gf5.tree(metric_column="time (inc)")
+
     assert "15.000 A" in output
     assert u"5.000 C ◀" in output
     assert u"10.000 H ◀" in output
 
 
-def test_div_decorator(small_mock1, small_mock2):
+def test_div_decorator(monkeypatch, small_mock1, small_mock2):
+    monkeypatch.setattr("sys.stdout.isatty", (lambda: False))
     gf1 = GraphFrame.from_literal(small_mock1)
     gf2 = GraphFrame.from_literal(small_mock2)
 
@@ -854,22 +801,8 @@ def test_div_decorator(small_mock1, small_mock2):
     assert gf3.dataframe.loc[gf3.dataframe["_missing_node"] == 1].shape[0] == 1  # "L"
     assert gf3.dataframe.loc[gf3.dataframe["_missing_node"] == 0].shape[0] == 5  # ""
 
-    output = ConsoleRenderer(unicode=True, color=False).render(
-        gf3.graph.roots,
-        gf3.dataframe,
-        metric_column="time",
-        precision=3,
-        name_column="name",
-        expand_name=False,
-        context_column="file",
-        rank=0,
-        thread=0,
-        depth=10000,
-        highlight_name=False,
-        colormap="RdYlGn",
-        invert_colormap=False,
-        render_header=True,
-    )
+    output = gf3.tree(metric_column="time")
+
     assert "1.000 C" in output
     assert "inf B" in output
     assert u"nan D ▶" in output
@@ -999,7 +932,7 @@ def test_tree_deprecated_parameters(mock_graph_literal):
         gf.tree(metric="time", metric_column="time")
 
 
-def test_output_with_cycle_graphs():
+def test_output_with_cycle_graphs(monkeypatch):
     r"""Test three output modes on a graph with cycles,
         multiple parents and children.
 
@@ -1011,7 +944,7 @@ def test_output_with_cycle_graphs():
        / \
       e   f
     """
-
+    monkeypatch.setattr("sys.stdout.isatty", (lambda: False))
     dot_edges = [
         # d has two parents and two children
         '"1" -> "2";',
@@ -1028,7 +961,7 @@ def test_output_with_cycle_graphs():
     gf = GraphFrame.from_lists([a, ["b", [d]], ["c", [d, ["e"], ["f"]], [a]]])
 
     lit_list = gf.to_literal()
-    treeout = gf.tree()
+    treeout = gf.tree(render_header=False)
     dotout = gf.to_dot()
 
     # scan through litout produced dictionary for edges
@@ -1053,9 +986,6 @@ def test_output_with_cycle_graphs():
     # check certain edges are in dot
     for edge in dot_edges:
         assert edge in dotout
-
-    # removing header to prevent it being counted
-    treeout = "\n".join(treeout.split("\n")[6:])
 
     # check that a certain number of occurences
     # of same node are in tree indicating multiple
