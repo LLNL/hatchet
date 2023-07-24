@@ -13,7 +13,6 @@ import sys
 from hatchet import GraphFrame
 from hatchet.readers.caliper_reader import CaliperReader
 from hatchet.util.executable import which
-from hatchet.external.console import ConsoleRenderer
 
 caliperreader_avail = True
 try:

@@ -7,7 +7,6 @@ import numpy as np
 import re
 
 from hatchet import GraphFrame
-from hatchet.external.console import ConsoleRenderer
 
 
 def test_graphframe(hatchet_cycle_pstats):

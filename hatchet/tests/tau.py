@@ -6,7 +6,6 @@
 import numpy as np
 
 from hatchet import GraphFrame
-from hatchet.external.console import ConsoleRenderer
 
 
 def test_graphframe(tau_profile_dir):

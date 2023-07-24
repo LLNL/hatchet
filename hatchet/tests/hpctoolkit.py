@@ -9,7 +9,6 @@ import os
 
 from hatchet import GraphFrame
 from hatchet.readers.hpctoolkit_reader import HPCToolkitReader
-from hatchet.external.console import ConsoleRenderer
 
 modules = [
     "cpi",

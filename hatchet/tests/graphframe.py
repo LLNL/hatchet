@@ -19,7 +19,6 @@ from hatchet.graphframe import InvalidFilter, EmptyFilter
 from hatchet.frame import Frame
 from hatchet.graph import Graph
 from hatchet.node import Node
-from hatchet.external.console import ConsoleRenderer
 from hatchet.version import __version__
 
 
