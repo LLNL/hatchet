@@ -95,7 +95,7 @@ class ConsoleRenderer:
         else:
             self.colors = self.colors_disabled
 
-        if isinstance(self.metric_columns, (str, tuple)):
+        if isinstance(self.metric_columns, str):
             self.primary_metric = self.metric_columns
             self.second_metric = None
         elif isinstance(self.metric_columns, list):
@@ -194,7 +194,7 @@ class ConsoleRenderer:
             + "Legend"
             + self.colors.end
             + " (Metric: "
-            + str(self.primary_metric)
+            + self.primary_metric
             + " Min: {:.2f}".format(self.min_metric)
             + " Max: {:.2f}".format(self.max_metric)
             + ")\n"
@@ -267,10 +267,7 @@ class ConsoleRenderer:
                 else:
                     metric_str += " [{}]".format(annotation_content)
 
-            if isinstance(dataframe.columns, pd.MultiIndex):
-                node_name = dataframe.loc[df_index, (self.name, "")]
-            else:
-                node_name = dataframe.loc[df_index, self.name]
+            node_name = dataframe.loc[df_index, self.name]
             if self.expand is False:
                 if len(node_name) > 39:
                     node_name = (

@@ -945,7 +945,7 @@ class GraphFrame:
         min_value=None,
         max_value=None,
     ):
-        """Visualize the Thicket as a tree
+        """Visualize the Hatchet graphframe as a tree
 
         Arguments:
             metric_column (str, list, optional): Columns to use the metrics from. Defaults to None.
