@@ -9,7 +9,8 @@ import hatchet as ht
 
 
 if __name__ == "__main__":
-    pfa_file = "../../../hatchet/tests/data/perfflow.quartz1532.3570764.pfw"
+    # pfa_file = "../../../hatchet/tests/data/perfflow.quartz1532.3570764-1iter.pfw"
+    pfa_file = "../../../hatchet/tests/data/laghos_1iter.pfw"
 
     gf = ht.GraphFrame.from_perfflowaspect(pfa_file)
 
@@ -23,4 +24,4 @@ if __name__ == "__main__":
 
 #    # Printout the graph component of the GraphFrame.
 #    # Use "time (inc)" as the metric column to be displayed
-#    print(gf.tree(metric_column="ts"))
+    print(gf.tree(metric_column="ts"))
