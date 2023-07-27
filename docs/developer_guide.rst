@@ -57,6 +57,13 @@ compliance using:
 
   $ flake8
 
+Hatchet also uses python `Black <https://black.readthedocs.io/en/stable/>`_ for 
+code formatting. Format your files using:
+
+.. code-block:: console
+
+  $ black -t <target_python_version> <src>
+
 Contributing Workflow
 ---------------------
 
