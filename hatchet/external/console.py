@@ -194,7 +194,7 @@ class ConsoleRenderer:
             + "Legend"
             + self.colors.end
             + " (Metric: "
-            + self.primary_metric
+            + str(self.primary_metric)
             + " Min: {:.2f}".format(self.min_metric)
             + " Max: {:.2f}".format(self.max_metric)
             + ")\n"
