@@ -89,12 +89,12 @@ jobs:
         echo -e "PWD:${PWD}"
         which cali-query
 
-    - name: Build Timemory for Python 3.6
-      if: ${{ matrix.python-version == 3.6 }}
-      run: |
-        python -m pip install --upgrade scikit-build
-        # python -m pip install --upgrade --no-cache-dir --no-deps -v --pre timemory --install-option=--disable-{c,gotcha,tools}
-        python -m pip install --upgrade --no-cache-dir --no-deps -v timemory==3.2.0.dev4 --install-option=--disable-{c,gotcha,tools}
+#    - name: Build Timemory for Python 3.6
+#      if: ${{ matrix.python-version == 3.6 }}
+#      run: |
+#        python -m pip install --upgrade scikit-build
+#        # python -m pip install --upgrade --no-cache-dir --no-deps -v --pre timemory --install-option=--disable-{c,gotcha,tools}
+#        python -m pip install --upgrade --no-cache-dir --no-deps -v timemory==3.2.0.dev4 --install-option=--disable-{c,gotcha,tools}
 
     - name: Test Caliper and Timemory Support with pytest
       run: |
