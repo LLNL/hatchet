@@ -8,7 +8,6 @@ import json
 import numpy as np
 
 from hatchet import GraphFrame
-from hatchet.external.console import ConsoleRenderer
 
 
 def test_graphframe(hatchet_pyinstrument_json):
@@ -73,45 +72,18 @@ def test_graphframe(hatchet_pyinstrument_json):
             assert gf.dataframe[col].dtype == object
 
 
-def test_tree(hatchet_pyinstrument_json):
+def test_tree(monkeypatch, hatchet_pyinstrument_json):
     """Sanity test a GraphFrame object with known data."""
+    monkeypatch.setattr("sys.stdout.isatty", (lambda: False))
     gf = GraphFrame.from_pyinstrument(str(hatchet_pyinstrument_json))
 
-    output = ConsoleRenderer(unicode=True, color=False).render(
-        gf.graph.roots,
-        gf.dataframe,
-        metric_column="time",
-        precision=3,
-        name_column="name",
-        expand_name=False,
-        context_column="file",
-        rank=0,
-        thread=0,
-        depth=10000,
-        highlight_name=False,
-        colormap="RdYlGn",
-        invert_colormap=False,
-        render_header=True,
-    )
+    output = gf.tree(metric_column="time")
+
     assert "0.000 <module> examples.py" in output
     assert "0.025 read hatchet/readers/caliper_reader.py" in output
 
-    output = ConsoleRenderer(unicode=True, color=False).render(
-        gf.graph.roots,
-        gf.dataframe,
-        metric_column="time (inc)",
-        precision=3,
-        name_column="name",
-        expand_name=False,
-        context_column="file",
-        rank=0,
-        thread=0,
-        depth=10000,
-        highlight_name=False,
-        colormap="RdYlGn",
-        invert_colormap=False,
-        render_header=True,
-    )
+    output = gf.tree(metric_column="time (inc)")
+
     assert "0.478 <module> examples.py" in output
     assert "0.063 from_caliper_json hatchet/graphframe.py" in output
 

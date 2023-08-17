@@ -6,7 +6,6 @@
 import numpy as np
 
 from hatchet import GraphFrame
-from hatchet.external.console import ConsoleRenderer
 
 import pytest
 
@@ -38,48 +37,12 @@ def test_graphframe(timemory_json_data):
 
 
 @pytest.mark.skipif(not timemory_avail, reason="timemory package not available")
-def test_tree(timemory_json_data):
+def test_tree(monkeypatch, timemory_json_data):
     """Sanity test a GraphFrame object with known data."""
+    monkeypatch.setattr("sys.stdout.isatty", (lambda: False))
     gf = GraphFrame.from_timemory(timemory_json_data)
 
-    print(gf.tree("sum.wall_clock"))
-
-    output = ConsoleRenderer(unicode=True, color=False).render(
-        gf.graph.roots,
-        gf.dataframe,
-        metric_column="sum.wall_clock",
-        precision=3,
-        name_column="name",
-        expand_name=False,
-        context_column="file",
-        rank=0,
-        thread=0,
-        depth=10000,
-        highlight_name=False,
-        colormap="RdYlGn",
-        invert_colormap=False,
-        render_header=True,
-    )
-
-    print(output)
-
-    output = ConsoleRenderer(unicode=True, color=False).render(
-        gf.graph.roots,
-        gf.dataframe,
-        metric_column="sum.wall_clock",
-        precision=3,
-        name_column="name",
-        expand_name=False,
-        context_column="file",
-        rank=0,
-        thread=0,
-        depth=10000,
-        highlight_name=False,
-        colormap="RdYlGn",
-        invert_colormap=False,
-        render_header=True,
-    )
-
+    output = gf.tree(metric_column="sum.wall_clock")
     print(output)
 
 

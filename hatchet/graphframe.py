@@ -929,6 +929,7 @@ class GraphFrame:
     def tree(
         self,
         metric_column=None,
+        annotation_column=None,
         precision=3,
         name_column="name",
         expand_name=False,
@@ -939,9 +940,34 @@ class GraphFrame:
         highlight_name=False,
         colormap="RdYlGn",
         invert_colormap=False,
+        colormap_annotations=None,
         render_header=True,
+        min_value=None,
+        max_value=None,
     ):
-        """Format this graphframe as a tree and return the resulting string."""
+        """Visualize the Hatchet graphframe as a tree
+
+        Arguments:
+            metric_column (str, list, optional): Columns to use the metrics from. Defaults to None.
+            annotation_column (str, optional): Column to use as an annotation. Defaults to None.
+            precision (int, optional): Precision of shown numbers. Defaults to 3.
+            name_column (str, optional): Column of the node name. Defaults to "name".
+            expand_name (bool, optional): Limits the lenght of the node name. Defaults to False.
+            context_column (str, optional): Shows the file this function was called in (Available with HPCToolkit). Defaults to "file".
+            rank (int, optional): Specifies the rank to take the data from. Defaults to 0.
+            thread (int, optional): Specifies the thread to take the data from. Defaults to 0.
+            depth (int, optional): Sets the maximum depth of the tree. Defaults to 10000.
+            highlight_name (bool, optional): Highlights the names of the nodes. Defaults to False.
+            colormap (str, optional): Specifies a colormap to use. Defaults to "RdYlGn".
+            invert_colormap (bool, optional): Reverts the chosen colormap. Defaults to False.
+            colormap_annotations (str, list, dict, optional): Either provide the name of a colormap, a list of colors to use or a dictionary which maps the used annotations to a color. Defaults to None.
+            render_header (bool, optional): Shows the Preamble. Defaults to True.
+            min_value (int, optional): Overwrites the min value for the coloring legend. Defaults to None.
+            max_value (int, optional): Overwrites the max value for the coloring legend. Defaults to None.
+
+        Returns:
+            str: String representation of the tree, ready to print
+        """
         color = sys.stdout.isatty()
         shell = None
         if metric_column is None:
@@ -967,6 +993,7 @@ class GraphFrame:
             self.graph.roots,
             self.dataframe,
             metric_column=metric_column,
+            annotation_column=annotation_column,
             precision=precision,
             name_column=name_column,
             expand_name=expand_name,
@@ -977,7 +1004,10 @@ class GraphFrame:
             highlight_name=highlight_name,
             colormap=colormap,
             invert_colormap=invert_colormap,
+            colormap_annotations=colormap_annotations,
             render_header=render_header,
+            min_value=min_value,
+            max_value=max_value,
         )
 
     def to_dot(self, metric=None, name="name", rank=0, thread=0, threshold=0.0):

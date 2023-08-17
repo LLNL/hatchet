@@ -56,6 +56,7 @@ class ConsoleRenderer:
             return result
 
         self.metric_columns = kwargs["metric_column"]
+        self.annotation_column = kwargs["annotation_column"]
         self.precision = kwargs["precision"]
         self.name = kwargs["name_column"]
         self.expand = kwargs["expand_name"]
@@ -66,6 +67,9 @@ class ConsoleRenderer:
         self.highlight = kwargs["highlight_name"]
         self.colormap = kwargs["colormap"]
         self.invert_colormap = kwargs["invert_colormap"]
+        self.colormap_annotations = kwargs["colormap_annotations"]
+        self.min_value = kwargs["min_value"]
+        self.max_value = kwargs["max_value"]
 
         if self.color:
             self.colors = self.colors_enabled
@@ -73,6 +77,21 @@ class ConsoleRenderer:
             self.colors.colormap = ColorMaps().get_colors(
                 self.colormap, self.invert_colormap
             )
+
+            if self.annotation_column and self.colormap_annotations:
+                self.colors_annotations = self.colors_enabled()
+                if isinstance(self.colormap_annotations, (str, list)):
+                    if isinstance(self.colormap_annotations, str):
+                        self.colors_annotations.colormap = ColorMaps().get_colors(
+                            self.colormap_annotations, False
+                        )
+                    elif isinstance(self.colormap_annotations, list):
+                        self.colors_annotations.colormap = self.colormap_annotations
+                    self.colors_annotations_mapping = sorted(
+                        list(dataframe[self.annotation_column].apply(str).unique())
+                    )
+                elif isinstance(self.colormap_annotations, dict):
+                    self.colors_annotations_mapping = self.colormap_annotations
         else:
             self.colors = self.colors_disabled
 
@@ -122,8 +141,8 @@ class ConsoleRenderer:
             metric_series.values[isfinite_mask], metric_series.index[isfinite_mask]
         )
 
-        self.max_metric = filtered_series.max()
-        self.min_metric = filtered_series.min()
+        self.max_metric = self.max_value if self.max_value else filtered_series.max()
+        self.min_metric = self.min_value if self.min_value else filtered_series.min()
 
         if self.unicode:
             self.lr_arrows = {"◀": u"◀ ", "▶": u"▶ "}
@@ -175,7 +194,7 @@ class ConsoleRenderer:
             + "Legend"
             + self.colors.end
             + " (Metric: "
-            + self.primary_metric
+            + str(self.primary_metric)
             + " Min: {:.2f}".format(self.min_metric)
             + " Max: {:.2f}".format(self.max_metric)
             + ")\n"
@@ -227,6 +246,26 @@ class ConsoleRenderer:
                     precision=self.precision,
                     c=self.colors,
                 )
+
+            if self.annotation_column is not None:
+                annotation_content = str(
+                    dataframe.loc[df_index, self.annotation_column]
+                )
+                if self.colormap_annotations:
+                    if isinstance(self.colormap_annotations, dict):
+                        color_annotation = self.colors_annotations_mapping[
+                            annotation_content
+                        ]
+                    else:
+                        color_annotation = self.colors_annotations.colormap[
+                            self.colors_annotations_mapping.index(annotation_content)
+                            % len(self.colors_annotations.colormap)
+                        ]
+                    metric_str += " [{}".format(color_annotation)
+                    metric_str += "{}".format(annotation_content)
+                    metric_str += "{}]".format(self.colors_annotations.end)
+                else:
+                    metric_str += " [{}]".format(annotation_content)
 
             node_name = dataframe.loc[df_index, self.name]
             if self.expand is False:

@@ -6,7 +6,6 @@
 import numpy as np
 
 from hatchet import GraphFrame
-from hatchet.external.console import ConsoleRenderer
 
 
 def test_graphframe(tau_profile_dir):
@@ -24,48 +23,21 @@ def test_graphframe(tau_profile_dir):
     # TODO: add tests to confirm values in dataframe
 
 
-def test_tree(tau_profile_dir):
+def test_tree(monkeypatch, tau_profile_dir):
     """Sanity test a GraphFrame object with known data."""
+    monkeypatch.setattr("sys.stdout.isatty", (lambda: False))
     gf = GraphFrame.from_tau(str(tau_profile_dir))
 
     # check the tree for rank 0
-    output = ConsoleRenderer(unicode=True, color=False).render(
-        gf.graph.roots,
-        gf.dataframe,
-        metric_column="time",
-        precision=3,
-        name_column="name",
-        expand_name=False,
-        context_column="file",
-        rank=0,
-        thread=0,
-        depth=10000,
-        highlight_name=False,
-        colormap="RdYlGn",
-        invert_colormap=False,
-        render_header=True,
-    )
+    output = gf.tree(metric_column="time", rank=0)
+
     assert "449.000 .TAU application" in output
     assert "4458.000 MPI_Finalize()" in output
     assert "218.000 MPI_Bcast()" in output
 
     # check the tree for rank 1
-    output = ConsoleRenderer(unicode=True, color=False).render(
-        gf.graph.roots,
-        gf.dataframe,
-        metric_column="time",
-        precision=3,
-        name_column="name",
-        expand_name=False,
-        context_column="",
-        rank=1,
-        thread=0,
-        depth=10000,
-        highlight_name=False,
-        colormap="RdYlGn",
-        invert_colormap=False,
-        render_header=True,
-    )
+    output = gf.tree(metric_column="time", rank=1)
+
     assert "419.000 .TAU application" in output
     assert "4894.000 MPI_Finalize()" in output
     assert "333.000 MPI_Bcast()" in output
