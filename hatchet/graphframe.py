@@ -760,8 +760,10 @@ class GraphFrame:
                     function(self.dataframe.loc[(subgraph_nodes), columns])
                 )
 
-    def generate_exclusive_columns(self):
+    def generate_exclusive_columns(self, inc_metrics=None):
         """Generates exclusive metrics from available inclusive metrics.
+        Arguments:
+            inc_metrics (str, list, optional): Instead of generating the exclusive time for each inclusive metric, it is possible to specify those metrics manually. Defaults to None.
 
         Currently, this function determines which metrics to generate by looking for one of two things:
 
@@ -779,6 +781,9 @@ class GraphFrame:
         # Iterate over inclusive metrics and collect tuples of (new exclusive metrics name, inclusive metric name)
         generation_pairs = []
         for inc in self.inc_metrics:
+            if inc_metrics and inc not in inc_metrics:
+                continue
+
             # If the metric isn't numeric, it is really categorical. This means the inclusive/exclusive thing doesn't really apply.
             if not pd.api.types.is_numeric_dtype(self.dataframe[inc]):
                 continue
@@ -819,7 +824,7 @@ class GraphFrame:
                         for child in node.children:
                             # TODO: See note about full_idx above
                             child_idx = tuple([child]) + tuple(non_node_idx)
-                            inc_sum += self.dataframe.loc[child_idx, inc]
+                            inc_sum += np.nan_to_num(self.dataframe.loc[child_idx, inc])
                         # Subtract the current node's inclusive metric from the previously calculated sum to
                         # get the exclusive metric value for the node
                         new_data[full_idx] = self.dataframe.loc[full_idx, inc] - inc_sum
@@ -835,7 +840,7 @@ class GraphFrame:
                     # Sum up the inclusive metric values of the current node's children
                     inc_sum = 0
                     for child in node.children:
-                        inc_sum += self.dataframe.loc[child, inc]
+                        inc_sum += np.nan_to_num(self.dataframe.loc[child, inc])
                     # Subtract the current node's inclusive metric from the previously calculated sum to
                     # get the exclusive metric value for the node
                     new_data[node] = self.dataframe.loc[node, inc] - inc_sum
