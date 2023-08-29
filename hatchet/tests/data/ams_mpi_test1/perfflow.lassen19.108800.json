@@ -1,0 +1,461 @@
+{
+ "data": [
+  [
+   11818269.0,
+   0,
+   0
+  ],
+  [
+   202604.0,
+   0,
+   1
+  ],
+  [
+   1240974.0,
+   0,
+   2
+  ],
+  [
+   1238824.0,
+   0,
+   3
+  ],
+  [
+   8845484.0,
+   0,
+   4
+  ],
+  [
+   11012.0,
+   0,
+   5
+  ],
+  [
+   54219.0,
+   0,
+   6
+  ],
+  [
+   32829.0,
+   0,
+   7
+  ],
+  [
+   11838.0,
+   0,
+   8
+  ],
+  [
+   71115.0,
+   0,
+   9
+  ],
+  [
+   757092.0,
+   0,
+   10
+  ],
+  [
+   734277.0,
+   0,
+   11
+  ],
+  [
+   16904.0,
+   0,
+   12
+  ],
+  [
+   113753.0,
+   0,
+   13
+  ],
+  [
+   51410.0,
+   0,
+   14
+  ],
+  [
+   477701.0,
+   0,
+   15
+  ],
+  [
+   452038.0,
+   0,
+   16
+  ],
+  [
+   51355.0,
+   0,
+   17
+  ],
+  [
+   27191.0,
+   0,
+   18
+  ],
+  [
+   23899.0,
+   0,
+   19
+  ],
+  [
+   23462.0,
+   0,
+   20
+  ],
+  [
+   23026.0,
+   0,
+   21
+  ],
+  [
+   47305.0,
+   0,
+   22
+  ],
+  [
+   23129.0,
+   0,
+   23
+  ],
+  [
+   1465288.0,
+   0,
+   24
+  ],
+  [
+   1211937.0,
+   0,
+   25
+  ],
+  [
+   109455.0,
+   0,
+   26
+  ],
+  [
+   20024.0,
+   0,
+   27
+  ],
+  [
+   173749.0,
+   0,
+   28
+  ],
+  [
+   723533.0,
+   0,
+   29
+  ],
+  [
+   685838.0,
+   0,
+   30
+  ],
+  [
+   80448.0,
+   0,
+   31
+  ],
+  [
+   37249.0,
+   0,
+   32
+  ],
+  [
+   40383.0,
+   0,
+   33
+  ],
+  [
+   37369.0,
+   0,
+   34
+  ],
+  [
+   37275.0,
+   0,
+   35
+  ],
+  [
+   74413.0,
+   0,
+   36
+  ],
+  [
+   37272.0,
+   0,
+   37
+  ],
+  [
+   4711512.0,
+   0,
+   38
+  ],
+  [
+   92925.0,
+   0,
+   39
+  ],
+  [
+   954721.0,
+   0,
+   40
+  ],
+  [
+   2484204.0,
+   0,
+   41
+  ],
+  [
+   12275.0,
+   0,
+   42
+  ],
+  [
+   11223.0,
+   0,
+   43
+  ]
+ ],
+ "columns": [
+  "dur",
+  "rank",
+  "path"
+ ],
+ "column_metadata": [
+  {
+   "is_value": true
+  },
+  {
+   "is_value": true
+  },
+  {
+   "is_value": false
+  }
+ ],
+ "nodes": [
+  {
+   "column": "path",
+   "label": "main"
+  },
+  {
+   "column": "path",
+   "label": "ams::ResourceManager::setup",
+   "parent": 0
+  },
+  {
+   "column": "path",
+   "label": "void SurrogateModel<double>::_load<double, ",
+   "parent": 0
+  },
+  {
+   "column": "path",
+   "label": "SurrogateModel<double>::_load_torch",
+   "parent": 2
+  },
+  {
+   "column": "path",
+   "label": "ams::AMSWorkflow<double>::evaluate",
+   "parent": 0
+  },
+  {
+   "column": "path",
+   "label": "bool* ams::ResourceManager::allocate<bool>",
+   "parent": 4
+  },
+  {
+   "column": "path",
+   "label": "HDCache<double>::evaluate",
+   "parent": 4
+  },
+  {
+   "column": "path",
+   "label": "HDCache<double>::_evaluate",
+   "parent": 6
+  },
+  {
+   "column": "path",
+   "label": "random_uq_device",
+   "parent": 7
+  },
+  {
+   "column": "path",
+   "label": "double* ams::ResourceManager::allocate<double>",
+   "parent": 4
+  },
+  {
+   "column": "path",
+   "label": "SurrogateModel<double>::evaluate",
+   "parent": 4
+  },
+  {
+   "column": "path",
+   "label": "SurrogateModel<double>::_evaluate",
+   "parent": 10
+  },
+  {
+   "column": "path",
+   "label": "SurrogateModel<double>::arrayToTensor",
+   "parent": 11
+  },
+  {
+   "column": "path",
+   "label": "SurrogateModel<double>::tensorToArray",
+   "parent": 11
+  },
+  {
+   "column": "path",
+   "label": "DtoDMemcpy",
+   "parent": 13
+  },
+  {
+   "column": "path",
+   "label": "ams::DataHandler<double>::pack",
+   "parent": 4
+  },
+  {
+   "column": "path",
+   "label": "int ams::Device::pack<double>",
+   "parent": 15
+  },
+  {
+   "column": "path",
+   "label": "int* ams::ResourceManager::allocate<int>",
+   "parent": 16
+  },
+  {
+   "column": "path",
+   "label": "double** ams::ResourceManager::allocate<double*>",
+   "parent": 16
+  },
+  {
+   "column": "path",
+   "label": "ams::ResourceManager::registerExternal",
+   "parent": 16
+  },
+  {
+   "column": "path",
+   "label": "void ams::ResourceManager::copy<double*>",
+   "parent": 16
+  },
+  {
+   "column": "path",
+   "label": "void ams::ResourceManager::copy<int>",
+   "parent": 16
+  },
+  {
+   "column": "path",
+   "label": "void ams::ResourceManager::deallocate<int>",
+   "parent": 16
+  },
+  {
+   "column": "path",
+   "label": "void ams::ResourceManager::deallocate<double*>",
+   "parent": 16
+  },
+  {
+   "column": "path",
+   "label": "ams::AMSLoadBalancer<double>::init",
+   "parent": 4
+  },
+  {
+   "column": "path",
+   "label": "ams::AMSLoadBalancer<double>::computeBalanceLoad",
+   "parent": 24
+  },
+  {
+   "column": "path",
+   "label": "double* ams::ResourceManager::allocate<double>",
+   "parent": 24
+  },
+  {
+   "column": "path",
+   "label": "IdealGas::Eval",
+   "parent": 4
+  },
+  {
+   "column": "path",
+   "label": "void ams::ResourceManager::deallocate<double>",
+   "parent": 4
+  },
+  {
+   "column": "path",
+   "label": "ams::DataHandler<double>::unpack",
+   "parent": 4
+  },
+  {
+   "column": "path",
+   "label": "int ams::Device::unpack<double>",
+   "parent": 29
+  },
+  {
+   "column": "path",
+   "label": "int* ams::ResourceManager::allocate<int>",
+   "parent": 30
+  },
+  {
+   "column": "path",
+   "label": "double** ams::ResourceManager::allocate<double*>",
+   "parent": 30
+  },
+  {
+   "column": "path",
+   "label": "ams::ResourceManager::registerExternal",
+   "parent": 30
+  },
+  {
+   "column": "path",
+   "label": "void ams::ResourceManager::copy<double*>",
+   "parent": 30
+  },
+  {
+   "column": "path",
+   "label": "void ams::ResourceManager::copy<int>",
+   "parent": 30
+  },
+  {
+   "column": "path",
+   "label": "void ams::ResourceManager::deallocate<int>",
+   "parent": 30
+  },
+  {
+   "column": "path",
+   "label": "void ams::ResourceManager::deallocate<double*>",
+   "parent": 30
+  },
+  {
+   "column": "path",
+   "label": "ams::AMSWorkflow<double>::Store",
+   "parent": 4
+  },
+  {
+   "column": "path",
+   "label": "double* ams::ResourceManager::allocate<double>",
+   "parent": 38
+  },
+  {
+   "column": "path",
+   "label": "void ams::ResourceManager::copy<double>",
+   "parent": 38
+  },
+  {
+   "column": "path",
+   "label": "hdf5DB<double>::store",
+   "parent": 38
+  },
+  {
+   "column": "path",
+   "label": "void ams::ResourceManager::deallocate<double>",
+   "parent": 38
+  },
+  {
+   "column": "path",
+   "label": "void ams::ResourceManager::deallocate<bool>",
+   "parent": 4
+  }
+ ]
+}
