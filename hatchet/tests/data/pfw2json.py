@@ -1,9 +1,16 @@
 import json
+import sys
+
+if len(sys.argv) != 3:
+    print("Usage: script.py <rank> <file_name>")
+    sys.exit(1)
+
+rank = sys.argv[1]
+file_name = sys.argv[2]
+
 
 # Read the JSON file
-with open('perfflow.quartz1532.3570764.pfw', 'r') as file:
-# with open('laghos_1iter.pfw', 'r') as file:
-# with open('ams_test1.pfw', 'r') as file:
+with open(file_name, 'r') as file:
     content = file.read()
 
 # Load the JSON content
@@ -44,13 +51,12 @@ for index, item in enumerate(data):
             parent_found = True
         else:
             break    
-
+    
     if not parent_found:
         nodes[index] = {'name': name, 'dur': dur, 'children': []}
     else:
         # aggregate at current level
         i = level_start 
-        # put the below code block in a funciton
         while i < len(roots):
             j = i 
             while j < len(roots):
@@ -74,7 +80,7 @@ for index, item in enumerate(data):
                 roots.pop()
     roots.append({'index': index, 'name': name, 'ts': ts, 'dur': dur})
 
-# checking if current roots can be aggregated at very top level
+# aggregate at current level
 i = 0 
 while i < len(roots):
     j = i 
@@ -91,60 +97,93 @@ while i < len(roots):
             j += 1
     i += 1
 
-# print("final nodes: ", nodes)
-# print("fianl roots: ", roots)
+# print("nodes: ", nodes)
+# print("roots: ", roots)
 
+# Create a list to hold the JSON data
+json_data = []
 
-# Function to recursively generate the formatted output
-def format_node(node_name, depth=0):
-    node = nodes[node_name]
-    indent = "    " * depth
+# Function to recursively generate the JSON data for a node
+def generate_json_data(node_index, parent_index=None, index_counter=[0]):
+    node = nodes[node_index]
     children = []
+
+    json_node = [node['name'], node['dur'], 1, index_counter[0]]
+    index_counter[0] += 1
+
+    json_data.append(json_node)
+    
+    node_info = {"label": node['name']}
+    
+    if parent_index is not None:
+        node_info["parent"] = parent_index
 
     if 'children' in node and node['children']:
         for child_name in node.get('children', []):
             child = nodes[child_name]
-            children.append(format_node(child_name, depth + 1))
+            children.append(generate_json_data(child_name, node_index, index_counter))
 
-    frame_info = {
-        # "name": node_name,
-        "name": node['name']    
-        # Add other frame information here if available in your nodes
-    }
+    return node_info 
 
-    metrics_info = {
-        "dur": node['dur'],
-        # Add other metrics information here if available in your nodes
-    }
+def generate_json_data(node_index, parent_index=None, index_counter=[0]):
+    node = nodes[node_index]
+    children = []
 
-    formatted_children = ",\n".join(children)
-    children_output = f",\n{indent}    \"children\": [\n{formatted_children}\n{indent}    ]" if formatted_children else ""
+    json_node = [node['dur'], int(rank), index_counter[0]]
+    index_counter[0] += 1
+
+    json_data.append(json_node)
     
-    return (
-        f"{indent}{{\n"
-        f"{indent}    \"frame\": {json.dumps(frame_info)},\n"
-        f"{indent}    \"metrics\": {json.dumps(metrics_info)}{children_output}\n"
-        f"{indent}}}"
-    )
+    if 'children' in node and node['children']:
+        for child_name in node.get('children', []):
+            child = nodes[child_name]
+            children.append(generate_json_data(child_name, node_index, index_counter))
 
-# Loop through each root node and write its formatted information to a file
-with open('formatted_literal', 'w') as file:
-    file.write("[\n")
-    num_roots = len(roots)
-    
-    for index, root in enumerate(roots):
-        formatted_output = format_node(root['index'])
-        file.write(formatted_output)
-        
-        if index < num_roots - 1:
-            file.write(',')  # Add a comma after each node except the last one
-        
-        file.write('\n')  # Add a newline after each node
-    '''
-    for root in unique_roots:
-        formatted_output = format_node(root['name'])
-        file.write(formatted_output)
-        file.write('\n')  # Add a newline after each node
-    '''
-    file.write("]\n")
-    
+def generate_json_nodes(node_index, offset, index_counter = None, parent_index=None):
+    if index_counter is None:
+       index_counter = [0]
+
+    node = nodes[node_index]
+    children = []
+
+    if parent_index is None:
+        node_info = [{"column": "path", "label": node['name']}]  
+    else:
+        # print("parent: ", parent_index, "offset: ", offset)
+        node_info = [{"column": "path", "label": node['name'], "parent": parent_index+offset}]
+    parent_index = index_counter[0]
+    index_counter[0] += 1
+    if 'children' in node and node['children']:
+        for child_index in node.get('children', []):
+            child = nodes[child_index]
+            node_info.extend(generate_json_nodes(child_index, offset, index_counter, parent_index))
+
+   
+    return node_info
+
+
+
+# Loop through each root node and generate the JSON data
+json_data = []
+for root in roots:
+    generate_json_data(root['index'])
+
+'''
+TODO!!! remove offset after fixing index in nodes!!!
+'''
+json_nodes = []
+for root in roots:
+    offset = len(json_nodes)
+    json_nodes.extend(generate_json_nodes(root['index'], offset))
+# Define the JSON structure
+json_structure = {
+    "data": json_data,
+    "columns": ["dur", "rank", "path"],
+    "column_metadata": [{"is_value": True}, {"is_value": True}, {"is_value": False}],
+    "nodes":json_nodes
+}
+
+output_name = file_name[0:-4] + ".json"
+with open(output_name, 'w') as file:
+    json.dump(json_structure, file, indent=1, separators=(',', ': '))
+
