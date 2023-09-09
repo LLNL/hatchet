@@ -97,34 +97,7 @@ while i < len(roots):
             j += 1
     i += 1
 
-# print("nodes: ", nodes)
-# print("roots: ", roots)
-
-# Create a list to hold the JSON data
-json_data = []
-
 # Function to recursively generate the JSON data for a node
-def generate_json_data(node_index, parent_index=None, index_counter=[0]):
-    node = nodes[node_index]
-    children = []
-
-    json_node = [node['name'], node['dur'], 1, index_counter[0]]
-    index_counter[0] += 1
-
-    json_data.append(json_node)
-    
-    node_info = {"label": node['name']}
-    
-    if parent_index is not None:
-        node_info["parent"] = parent_index
-
-    if 'children' in node and node['children']:
-        for child_name in node.get('children', []):
-            child = nodes[child_name]
-            children.append(generate_json_data(child_name, node_index, index_counter))
-
-    return node_info 
-
 def generate_json_data(node_index, parent_index=None, index_counter=[0]):
     node = nodes[node_index]
     children = []
@@ -158,23 +131,18 @@ def generate_json_nodes(node_index, offset, index_counter = None, parent_index=N
             child = nodes[child_index]
             node_info.extend(generate_json_nodes(child_index, offset, index_counter, parent_index))
 
-   
     return node_info
 
-
-
-# Loop through each root node and generate the JSON data
+# Loop through each root node and generate the JSON data and nodes
 json_data = []
 for root in roots:
     generate_json_data(root['index'])
 
-'''
-TODO!!! remove offset after fixing index in nodes!!!
-'''
 json_nodes = []
 for root in roots:
     offset = len(json_nodes)
     json_nodes.extend(generate_json_nodes(root['index'], offset))
+
 # Define the JSON structure
 json_structure = {
     "data": json_data,
