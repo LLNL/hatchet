@@ -289,6 +289,13 @@ def test_graphframe_native_lulesh_from_file_node_order(caliper_ordered_cali):
         node_data = gf.dataframe.iloc[i]["Total time"]
         assert node_data == expected_data_order[i]
 
+    # check the tree ordering is correct as well
+    output = gf.tree(metric_column="nid")
+    for i in range(1, 20):
+        location = output.find(str(i))
+        assert location != 0
+        output = output[location:]
+
 
 @pytest.mark.skipif(
     not caliperreader_avail, reason="needs caliper-reader package to be loaded"
@@ -356,6 +363,13 @@ def test_graphframe_native_lulesh_from_caliperreader_node_order(caliper_ordered_
         node_data = gf.dataframe.iloc[i]["Total time"]
         assert node_data == expected_data_order[i]
 
+    # check the tree ordering is correct as well
+    output = gf.tree(metric_column="nid")
+    for i in range(1, 20):
+        location = output.find(str(i))
+        assert location != 0
+        output = output[location:]
+
 
 def test_graphframe_lulesh_from_json_node_order(caliper_ordered_json):
     """Check the order of output from the Caliper reader by examining a known json with node order column."""
@@ -420,6 +434,13 @@ def test_graphframe_lulesh_from_json_node_order(caliper_ordered_json):
         node_time = gf.dataframe.iloc[i]["time"]
         assert node_time == expected_data_order[i]
 
+    # check the tree ordering is correct as well
+    output = gf.tree(metric_column="nid")
+    for i in range(1, 20):
+        location = output.find(str(i))
+        assert location != 0
+        output = output[location:]
+
 
 def test_graphframe_native_lulesh_from_duplicate_node_order(caliper_ordered_dup):
     """Check the order of output from the native Caliper reader by examining a known input with node order column."""
@@ -482,6 +503,13 @@ def test_graphframe_native_lulesh_from_duplicate_node_order(caliper_ordered_dup)
         assert node_name == expected_order[i]
         node_data = gf.dataframe.iloc[i]["Total time"]
         assert node_data == expected_data_order[i]
+
+    # check the tree ordering is correct as well
+    output = gf.tree(metric_column="nid")
+    for i in range(1, 20):
+        location = output.find(str(i))
+        assert location != 0
+        output = output[location:]
 
 
 def test_graphframe_lulesh_from_duplicate_json_node_order(caliper_ordered_json_dup):
@@ -546,6 +574,13 @@ def test_graphframe_lulesh_from_duplicate_json_node_order(caliper_ordered_json_d
         assert node_name == expected_order[i]
         node_time = gf.dataframe.iloc[i]["time"]
         assert node_time == expected_data_order[i]
+
+    # check the tree ordering is correct as well
+    output = gf.tree(metric_column="nid")
+    for i in range(1, 20):
+        location = output.find(str(i))
+        assert location != 0
+        output = output[location:]
 
 
 def test_graphframe_native_lulesh_from_file_node_order_mpi(caliper_ordered_cali_mpi):
@@ -623,6 +658,13 @@ def test_graphframe_native_lulesh_from_file_node_order_mpi(caliper_ordered_cali_
         assert node_name == expected_order[i]
         node_data = gf.dataframe.iloc[i]["Total time"]
         assert node_data == expected_data_order[i]
+
+    # check the tree ordering is correct as well
+    output = gf.tree(metric_column="nid")
+    for i in range(1, 20):
+        location = output.find(str(i))
+        assert location != 0
+        output = output[location:]
 
 
 @pytest.mark.skipif(
@@ -707,6 +749,63 @@ def test_graphframe_native_lulesh_from_caliperreader_node_order_mpi(
         assert node_name == expected_order[i]
         node_data = gf.dataframe.iloc[i]["Total time"]
         assert node_data == expected_data_order[i]
+
+    # check the tree ordering is correct as well
+    output = gf.tree(metric_column="nid")
+    for i in range(1, 20):
+        location = output.find(str(i))
+        assert location != 0
+        output = output[location:]
+
+
+def test_graphframe_squash_file_node_order(caliper_ordered_cali):
+    """Check the order of output from the native Caliper reader by examining a known input with node order column."""
+
+    gf = GraphFrame.from_caliperreader(str(caliper_ordered_cali))
+
+    assert len(gf.dataframe.groupby("name")) == 19
+    assert "Node order" not in gf.dataframe.columns
+
+    filtered_gf = gf.filter(lambda x: x["nid"] > 10)
+    assert len(filtered_gf.dataframe.groupby("name")) == 9
+
+    expected_order = [
+        "LagrangeElements",
+        "CalcLagrangeElements",
+        "CalcKinematicsForElems",
+        "CalcQForElems",
+        "CalcMonotonicQForElems",
+        "ApplyMaterialPropertiesForElems",
+        "EvalEOSForElems",
+        "CalcEnergyForElems",
+        "CalcTimeConstraintsForElems",
+    ]
+
+    expected_data_order = [
+        0.614079,
+        0.175102,
+        0.168127,
+        0.136318,
+        0.038575,
+        0.299062,
+        0.293046,
+        0.190395,
+        0.010707,
+    ]
+
+    for i in range(0, filtered_gf.dataframe.shape[0]):
+        # check if the rows are in the expected order
+        node_name = filtered_gf.dataframe.iloc[i]["name"]
+        assert node_name == expected_order[i]
+        node_data = filtered_gf.dataframe.iloc[i]["Total time"]
+        assert node_data == expected_data_order[i]
+
+    # check the tree ordering is correct as well
+    output = filtered_gf.tree(metric_column="nid")
+    for i in range(10, 19):
+        location = output.find(str(i))
+        assert location != 0
+        output = output[location:]
 
 
 def test_inclusive_time_calculation(lulesh_caliper_json):

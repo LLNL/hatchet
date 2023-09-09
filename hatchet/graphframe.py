@@ -581,6 +581,8 @@ class GraphFrame:
         for root in self.graph.roots:
             rewire(root, None, visited)
         graph = Graph(new_roots)
+        if self.graph.node_ordering:
+            graph.node_ordering = True
         graph.enumerate_traverse()
 
         # reindex new dataframe with new nodes
