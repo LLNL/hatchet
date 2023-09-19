@@ -239,6 +239,21 @@ class ConsoleRenderer:
                         self.colors.end + str(complexity_class)
                 legend += "\n"
 
+                # create a legend for the model parameters
+                legend += "\n\033[4mLegend Model Parameters" + \
+                    self.colors.end
+                column_headers = list(dataframe.columns.values)
+                column_name = None
+                for column in column_headers:
+                    if "_extrap-model" in column:
+                        column_name = column
+                        break
+                model_wrapper_object = dataframe[column_name].iloc[0]
+                for i in range(len(model_wrapper_object.parameters)):
+                    legend += "\n" + \
+                        str(model_wrapper_object.default_param_names[i]) + " -> " + \
+                        str(model_wrapper_object.parameters[i])
+
         return legend
 
     def render_frame(self, node, dataframe, indent=u"", child_indent=u""):
@@ -401,22 +416,37 @@ class ConsoleRenderer:
                 colormap = "brg"
             else:
                 colormap = "tab20b"
-        cmap = matplotlib.cm.get_cmap(colormap)
-        for i in range(len(range_values)):
-            red = int(cmap(range_values[i])[0] / (1 / 255))
-            green = int(cmap(range_values[i])[1] / (1 / 255))
-            blue = int(cmap(range_values[i])[2] / (1 / 255))
-            ansi_color_str = (
-                "\033[38;2;"
-                + str(red)
-                + ";"
-                + str(green)
-                + ";"
-                + str(blue)
-                + "m"
-            )
-            color_map_dict[unique_complexity_classes[i]
-                           ] = ansi_color_str
+        if colormap != "black":
+            cmap = matplotlib.cm.get_cmap(colormap)
+            for i in range(len(range_values)):
+                red = int(cmap(range_values[i])[0] / (1 / 255))
+                green = int(cmap(range_values[i])[1] / (1 / 255))
+                blue = int(cmap(range_values[i])[2] / (1 / 255))
+                ansi_color_str = (
+                    "\033[38;2;"
+                    + str(red)
+                    + ";"
+                    + str(green)
+                    + ";"
+                    + str(blue)
+                    + "m"
+                )
+                color_map_dict[unique_complexity_classes[i]
+                               ] = ansi_color_str
+        else:
+            for i in range(len(range_values)):
+                ansi_color_str = (
+                    "\033[38;2;"
+                    + str(0)
+                    + ";"
+                    + str(0)
+                    + ";"
+                    + str(0)
+                    + "m"
+                )
+                color_map_dict[unique_complexity_classes[i]
+                               ] = ansi_color_str
+
         return color_map_dict
 
     def _ansi_color_for_metric(self, metric):
