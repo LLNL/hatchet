@@ -1,3 +1,21 @@
+# 2023.1.1 (2023-09-20)
+
+Version `2023.1.1` is a minor release on the `2023.1` series.
+
+### Notable Changes
+* Add support for NaNs in calculating exclusive columns and optionally specify
+  inclusive columns (#99)
+* Adds support for tree annotations with coloring and min/max attributes (#97)
+* caliperreader: handle other metadata types (#98)
+* Update caliperreader to initialize nodes based on node order column (#94)
+* Sort nodes in terminal tree by hatchet_nid instead alphabetically (#108)
+
+### Internal Updates
+* docs: Update developer_guide.rst (#102)
+* Deprecate Python2 CI coverage (#95)
+* Adds hatchet/external/roundtrip to MANIFEST (#91)
+* Removes python 3.5 from CI checks (#112)
+
 # 2023.1.0 (2023-05-21)
 
 Version `2023.1.0` is a major release.
