@@ -60,6 +60,14 @@ hatchet.readers.hpctoolkit\_reader module
    :undoc-members:
    :show-inheritance:
 
+hatchet.readers.json\_reader module
+-----------------------------------
+
+.. automodule:: hatchet.readers.json_reader
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 hatchet.readers.literal\_reader module
 --------------------------------------
 

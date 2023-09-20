@@ -9,6 +9,7 @@ Subpackages
 
    hatchet.cython_modules
    hatchet.external
+   hatchet.query
    hatchet.readers
    hatchet.util
    hatchet.vis
@@ -45,14 +46,6 @@ hatchet.node module
 -------------------
 
 .. automodule:: hatchet.node
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-hatchet.query module
---------------------
-
-.. automodule:: hatchet.query
    :members:
    :undoc-members:
    :show-inheritance:
