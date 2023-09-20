@@ -434,11 +434,12 @@ class CaliperNativeReader:
         df_metrics.columns = new_cols
 
         # create list of exclusive and inclusive metric columns
+        ignore_columns = ["mpi.rank", "aggregate.slot", "Node order"]
         exc_metrics = []
         inc_metrics = []
         for column in self.metric_cols:
-            # ignore rank as an exc or inc metric
-            if column == "mpi.rank":
+            # ignore certain columns as an exc or inc metric
+            if column in ignore_columns:
                 continue
 
             # add new column names to list of metrics if inc or inclusive in
