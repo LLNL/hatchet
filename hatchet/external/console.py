@@ -215,6 +215,36 @@ class ConsoleRenderer:
         legend += self.colors.right + self.lr_arrows["▶"] + self.colors.end
         legend += " Only in right graph\n"
 
+        if self.annotation_column is not None:
+            # temporal pattern legend customization
+            if "_pattern" in self.annotation_column:
+                score_ranges = [0.0, 0.2, 0.4, 0.6, 1.0]
+                legend += "\nTemporal Pattern"
+                for k in self.temporal_symbols.keys():
+                    if "none" not in k:
+                        legend += "   " + self.temporal_symbols[k] + " " + k
+                legend += "\nTemporal Score  "
+                if self.colormap_annotations:
+                    legend_color_mapping = sorted(score_ranges)
+                    legend_colormap = ColorMaps().get_colors(
+                        self.colormap_annotations, False
+                    )
+                    for i in range(len(score_ranges) - 1):
+                        color = legend_colormap[
+                            legend_color_mapping.index(score_ranges[i + 1])
+                            % len(legend_colormap)
+                        ]
+                        legend += "{}".format(color)
+                        legend += "   {} - {}".format(
+                            score_ranges[i], score_ranges[i + 1]
+                        )
+                        legend += "{}".format(self.colors_annotations.end)
+                else:  # no color map passed in
+                    for i in range(len(score_ranges) - 1):
+                        legend += "   {} - {}".format(
+                            score_ranges[i], score_ranges[i + 1]
+                        )
+
         return legend
 
     def render_frame(self, node, dataframe, indent="", child_indent=""):
@@ -251,7 +281,37 @@ class ConsoleRenderer:
                 annotation_content = str(
                     dataframe.loc[df_index, self.annotation_column]
                 )
-                if self.colormap_annotations:
+
+                # custom visualization for temporal pattern metrics if it is the annotation column
+                if "_pattern" in self.annotation_column:
+                    self.temporal_symbols = {
+                        "none": "",
+                        "constant": "\U00002192",
+                        "phased": "\U00002933",
+                        "dynamic": "\U000021DD",
+                        "sporadic": "\U0000219D",
+                    }
+                    pattern_metric = dataframe.loc[df_index, self.annotation_column]
+                    annotation_content = self.temporal_symbols[pattern_metric]
+                    if self.colormap_annotations:
+                        self.colors_annotations_mapping = list(
+                            dataframe[self.annotation_column].apply(str).unique()
+                        )
+                        coloring_content = pattern_metric
+                        if coloring_content != "none":
+                            color_annotation = self.colors_annotations.colormap[
+                                self.colors_annotations_mapping.index(coloring_content)
+                                % len(self.colors_annotations.colormap)
+                            ]
+                            metric_str += " {}".format(color_annotation)
+                            metric_str += "{}".format(annotation_content)
+                            metric_str += "{}".format(self.colors_annotations.end)
+                        else:
+                            metric_str += "{}".format(annotation_content)
+                    else:  # no colormap passed in
+                        metric_str += " {}".format(annotation_content)
+                # no pattern column
+                elif self.colormap_annotations:
                     if isinstance(self.colormap_annotations, dict):
                         color_annotation = self.colors_annotations_mapping[
                             annotation_content
