@@ -145,9 +145,9 @@ class ConsoleRenderer:
         self.min_metric = self.min_value if self.min_value else filtered_series.min()
 
         if self.unicode:
-            self.lr_arrows = {"◀": u"◀ ", "▶": u"▶ "}
+            self.lr_arrows = {"◀": "◀ ", "▶": "▶ "}
         else:
-            self.lr_arrows = {"◀": u"< ", "▶": u"> "}
+            self.lr_arrows = {"◀": "< ", "▶": "> "}
 
         for root in sorted(roots, key=lambda n: n._hatchet_nid):
             result += self.render_frame(root, dataframe)
@@ -180,7 +180,7 @@ class ConsoleRenderer:
 
             return (
                 self.colors.colormap[index]
-                + u"█ "
+                + "█ "
                 + self.colors.end
                 + "{:.2f}".format(low * metric_range + self.min_metric)
                 + " - "
@@ -217,7 +217,7 @@ class ConsoleRenderer:
 
         return legend
 
-    def render_frame(self, node, dataframe, indent=u"", child_indent=u""):
+    def render_frame(self, node, dataframe, indent="", child_indent=""):
         node_depth = node._depth
         if node_depth < self.depth:
             # set dataframe index based on whether rank and thread are part of
@@ -241,7 +241,7 @@ class ConsoleRenderer:
             )
 
             if self.second_metric is not None:
-                metric_str += u" {c.faint}{second_metric:.{precision}f}{c.end}".format(
+                metric_str += " {c.faint}{second_metric:.{precision}f}{c.end}".format(
                     second_metric=dataframe.loc[df_index, self.second_metric],
                     precision=self.precision,
                     c=self.colors,
@@ -281,32 +281,32 @@ class ConsoleRenderer:
             if "_missing_node" in dataframe.columns:
                 left_or_right = dataframe.loc[df_index, "_missing_node"]
                 if left_or_right == 0:
-                    lr_decorator = u""
+                    lr_decorator = ""
                 elif left_or_right == 1:
-                    lr_decorator = u" {c.left}{decorator}{c.end}".format(
+                    lr_decorator = " {c.left}{decorator}{c.end}".format(
                         decorator=self.lr_arrows["◀"], c=self.colors
                     )
                 elif left_or_right == 2:
-                    lr_decorator = u" {c.right}{decorator}{c.end}".format(
+                    lr_decorator = " {c.right}{decorator}{c.end}".format(
                         decorator=self.lr_arrows["▶"], c=self.colors
                     )
 
-            result = u"{indent}{metric_str} {name_str}".format(
+            result = "{indent}{metric_str} {name_str}".format(
                 indent=indent, metric_str=metric_str, name_str=name_str
             )
             if "_missing_node" in dataframe.columns:
                 result += lr_decorator
             if self.context in dataframe.columns:
-                result += u" {c.faint}{context}{c.end}\n".format(
+                result += " {c.faint}{context}{c.end}\n".format(
                     context=dataframe.loc[df_index, self.context], c=self.colors
                 )
             else:
-                result += u"\n"
+                result += "\n"
 
             if self.unicode:
-                indents = {"├": u"├─ ", "│": u"│  ", "└": u"└─ ", " ": u"   "}
+                indents = {"├": "├─ ", "│": "│  ", "└": "└─ ", " ": "   "}
             else:
-                indents = {"├": u"|- ", "│": u"|  ", "└": u"`- ", " ": u"   "}
+                indents = {"├": "|- ", "│": "|  ", "└": "`- ", " ": "   "}
 
             # ensures that we never revisit nodes in the case of
             # large complex graphs
@@ -328,7 +328,7 @@ class ConsoleRenderer:
                     )
         else:
             result = ""
-            indents = {"├": u"", "│": u"", "└": u"", " ": u""}
+            indents = {"├": "", "│": "", "└": "", " ": ""}
 
         return result
 
