@@ -118,13 +118,6 @@ class CaliperNativeReader:
         for record in records:
             # if we have a timeseries file we need to split the single cali file into multiple profiles
             if self.timeseries_level in record:
-                # spot_profile = lambda : True if "spot.channel" in self.timeseries_level else False
-                # check if we've hit the next timestep
-                # if spot_profile:
-                # if "spot.channel" in record:# and record["spot.channel"] == "timeseries":
-                #     print(record)
-                # next_timestep = int(record)
-                # else:
                 next_timestep = int(record[self.timeseries_level])
                 if cur_timestep != next_timestep:
                     # make a dataframe for the current profile before we continue reading metrics
