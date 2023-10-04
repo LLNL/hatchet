@@ -86,7 +86,6 @@ jobs:
   test_upload_to_pypi:
     needs:
       - build_wheels_linux_3
-      - build_wheels_linux_27
         # - build_wheels_macos_36_37
         # - build_wheels_macos_38_plus
       - build_sdist
@@ -107,12 +106,11 @@ jobs:
   upload_to_pypi:
     needs:
       - build_wheels_linux_3
-      - build_wheels_linux_27
         # - build_wheels_macos_36_37
         # - build_wheels_macos_38_plus
       - build_sdist
     runs-on: ubuntu-20.04
-    if: github.event_name == 'release' && github.event.action == 'published'
+    if: (github.event_name == 'release' && github.event.action == 'published') || github.event_name == 'workflow_dispatch'
     steps:
       - uses: actions/download-artifact@v3
         with:

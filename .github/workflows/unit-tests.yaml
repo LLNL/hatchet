@@ -17,10 +17,10 @@ jobs:
         #       https://github.com/actions/setup-python/issues/162
         os: [ubuntu-20.04]
         # TODO: add pypy2, pypy3
-        python-version: [3.5, 3.6, 3.7, 3.8]
+        python-version: [3.6, 3.7, 3.8]
         exclude:
           - os: macos-latest
-            python-version: [3.5, 3.6]
+            python-version: [3.6]
 
     steps:
     - uses: actions/checkout@v2
@@ -100,11 +100,11 @@ jobs:
       run: |
         PYTHONPATH=. coverage run $(which pytest)
 
-    - name: "Upload coverage to Codecov"
-      uses: codecov/codecov-action@d9f34f8cd5cb3b3eb79b3e4b5dae3a16df499a70 # @v2.1.0
-      if: ${{ matrix.python-version >= 3.7 }}
-      with:
-        fail_ci_if_error: true
-        verbose: true
-        env_vars: OS,PYTHON
-        directory: ./.coverage
+#    - name: "Upload coverage to Codecov"
+#      uses: codecov/codecov-action@d9f34f8cd5cb3b3eb79b3e4b5dae3a16df499a70 # @v2.1.0
+#      if: ${{ matrix.python-version >= 3.7 }}
+#      with:
+#        fail_ci_if_error: true
+#        verbose: true
+#        env_vars: OS,PYTHON
+#        directory: ./.coverage

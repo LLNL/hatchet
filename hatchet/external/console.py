@@ -151,7 +151,7 @@ class ConsoleRenderer:
         else:
             self.lr_arrows = {"◀": u"< ", "▶": u"> "}
 
-        for root in sorted(roots, key=lambda n: n.frame):
+        for root in sorted(roots, key=lambda n: n._hatchet_nid):
             result += self.render_frame(root, dataframe)
 
         if self.color is True:
@@ -374,7 +374,7 @@ class ConsoleRenderer:
             # large complex graphs
             if node not in self.visited:
                 self.visited.append(node)
-                sorted_children = sorted(node.children, key=lambda n: n.frame)
+                sorted_children = sorted(node.children, key=lambda n: n._hatchet_nid)
                 if sorted_children:
                     last_child = sorted_children[-1]
 
