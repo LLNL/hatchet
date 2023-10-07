@@ -378,6 +378,7 @@ class ScentedSliderPopup extends View{
 
         this._svg.style('visibility', ()=>{
             if(this.model.state.pruneEnabled) return 'visible';
+            self.options_dropdown.style('visibility', 'hidden');
             return 'hidden';
         });
 
@@ -522,6 +523,10 @@ class ScentedSliderPopup extends View{
          * 
          */
 
+        
+         this.current_selection_text.text(this.model.state.primaryMetric);
+
+
         this._svg.select('.selection-button')
                     .select('rect')
                     .attr('fill',  ()=>{
@@ -531,7 +536,10 @@ class ScentedSliderPopup extends View{
                         else{
                             return 'rgba(100,100,200,1)';
                         }
-                    });
+                    })
+                    .attr('height', ()=>{return this.current_selection_text.node().getBBox().height+4})
+                    .attr('width', ()=>{return this.current_selection_text.node().getBBox().width+10});
+                    
 
         this._svg.select('.selection-button')
                     .select('text')
@@ -546,10 +554,7 @@ class ScentedSliderPopup extends View{
 
         option_rects
             .attr('width', max_option_width + 10);
-                        
-        
-        this.current_selection_text.text(this.model.state.primaryMetric);
-
+    
         this.hist_grp.select('.left-axis')
                 .transition()
                 .duration(globals.duration)

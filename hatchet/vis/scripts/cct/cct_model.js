@@ -39,7 +39,16 @@ class Model{
                     };
 
         //setup model
+        //secret vis state loading >:D
+        
+
         RT['jsNodeSelected'] = 'MATCH (\\"*\\")->(a) WHERE a.\\"name\\" IS NOT NONE';
+        if('node_query' in RT){
+            RT['node_query'] = JSON.stringify({'tree_state':'MATCH (\\"*\\")->(a) WHERE a.\\"name\\" IS NOT NONE', 'selection':''});
+        }
+        if("json_def" in RT){
+            let jsonTree = RT["json_def"]
+        }
         let cleanTree = RT["hatchet_tree_def"];
         let _forestData = JSON.parse(cleanTree);
         this.forest = new Forest(_forestData);
@@ -53,6 +62,23 @@ class Model{
         this.state.prune_range = {"low": Number.MAX_SAFE_INTEGER, "high": Number.MIN_SAFE_INTEGER};
         //prunes away non-internal zero nodes
         this.forest.initializePrunedTrees(this.state.primaryMetric);
+
+        console.log(RT['visualization_state'])
+        if(RT['visualization_state'] == '{}'){
+            RT['visualization_state'] = JSON.stringify({"primaryMetric": this.state.primaryMetric, "secondaryMetric": this.state.secondaryMetric});
+        } else {
+            let cached_state = JSON.parse(RT['visualization_state']);
+
+            console.log(cached_state.primaryMetric, this.forest.metricColumns);
+            //got to make sure the cached metric is present, otherwise default
+            if(this.forest.metricColumns.includes(cached_state.primaryMetric)){
+                this.state.primaryMetric = cached_state.primaryMetric;
+            }
+            if( this.forest.metricColumns.includes(cached_state.primaryMetric)){
+                this.state.secondaryMetric = cached_state.secondaryMetric;
+            }
+        }
+
     }
 
     // --------------------------------------------
@@ -144,8 +170,6 @@ class Model{
 
 
         // let conditions = ''
-
-
         // let queryStr = `MATCH (n)
         //             WHERE ${conditions}`;
 
@@ -352,12 +376,7 @@ class Model{
          */
         this.state['selectedNodes'] = nodes;
         this.updateTooltip(nodes);
-
-        // if(nodes.length > 0 && nodes[0]){
-        //     RT['jsNodeSelected'] = JSON.stringify(this._printQuery(nodes));
-        // } else {
-        //     RT['jsNodeSelected'] = JSON.stringify(["*"]);
-        // }
+        this.storeSelectionQuery(nodes);
 
         this._observers.notify();
     }
@@ -557,7 +576,9 @@ class Model{
         else if(source.includes("secondary")){
             this.state.secondaryMetric = newMetric;
         }
-        
+
+        RT['visualization_state'] = JSON.stringify({"primaryMetric": this.state.primaryMetric, "secondaryMetric": this.state.secondaryMetric});
+
         if(source.includes("primary")){
             if(this.state.pruneEnabled){
                 this.forest.resetMutable();
@@ -570,6 +591,8 @@ class Model{
             this.state.prune_range.high = this.data.distCounts.nonzero[this.data.distCounts.nonzero.length-1].x1;
 
         }
+
+        
 
         this._observers.notify();
     }
@@ -668,8 +691,6 @@ class Model{
 
         norms = norms.concat(aggs);
 
-        console.log(norms);
-
         let full_query = '';
 
         //inclusive query
@@ -690,9 +711,7 @@ class Model{
             }
         }
 
-
         full_query=`${path_query}`
-
 
         if(this.data.removedNodes.length > 0){
             //exclusive query
@@ -712,7 +731,36 @@ class Model{
         }
 
         RT['jsNodeSelected'] = full_query;
+        if('node_query' in RT){
+            let existing = JSON.parse(RT['node_query']);
+            RT['node_query'] = JSON.stringify({'tree_state':full_query, 'selection':existing['selection']});
+        }
         
+    }
+
+    storeSelectionQuery(selectedNodes){
+        //query all nodes matching this nid
+        let path_query = `MATCH (n)`;
+        let initial_flag = true;
+        for(const node of selectedNodes){
+            if(initial_flag){
+                if(node.data.aggregate){
+                    path_query += `WHERE n.\\"node_id\\" = ${node.data.prototype.data.metrics._hatchet_nid}`;
+                }
+                else{
+                    path_query += `WHERE n.\\"node_id\\" = ${node.data.metrics._hatchet_nid}`;
+                }
+                initial_flag = false;
+            }
+            else{
+                path_query += ` OR n.\\"node_id\\" = ${node.data.metrics._hatchet_nid}`;
+            }
+        }
+
+        if('node_query' in RT){
+            let existing = JSON.parse(RT['node_query']);
+            RT['node_query'] = JSON.stringify({'tree_state':existing['tree_state'], 'selection':path_query});
+        }
     }
 
 }
