@@ -300,92 +300,78 @@ class ConsoleRenderer:
             else:
                 df_index = node
 
-            node_metric = dataframe.loc[df_index, self.primary_metric]
+            try:
+                node_metric = dataframe.loc[df_index, self.primary_metric]
 
-            metric_precision = "{:." + str(self.precision) + "f}"
-            metric_str = (
-                self._ansi_color_for_metric(node_metric)
-                + metric_precision.format(node_metric)
-                + self.colors.end
-            )
-
-            if self.second_metric is not None:
-                metric_str += " {c.faint}{second_metric:.{precision}f}{c.end}".format(
-                    second_metric=dataframe.loc[df_index, self.second_metric],
-                    precision=self.precision,
-                    c=self.colors,
+                metric_precision = "{:." + str(self.precision) + "f}"
+                metric_str = (
+                    self._ansi_color_for_metric(node_metric)
+                    + metric_precision.format(node_metric)
+                    + self.colors.end
                 )
 
-            if self.annotation_column is not None:
-                annotation_content = str(
-                    dataframe.loc[df_index, self.annotation_column]
-                )
+                if self.second_metric is not None:
+                    metric_str += " {c.faint}{second_metric:.{precision}f}{c.end}".format(
+                        second_metric=dataframe.loc[df_index,
+                                                    self.second_metric],
+                        precision=self.precision,
+                        c=self.colors,
+                    )
 
-                # custom visualization for complexity class analysis with extra-p models
-                if "_complexity" in self.annotation_column:
+                if self.annotation_column is not None:
+                    annotation_content = str(
+                        dataframe.loc[df_index, self.annotation_column]
+                    )
 
-                    # get unique complexity classes from all models
-                    unique_complexity_classes = self.get_unique_complexity_classes(
-                        dataframe)
+                    # custom visualization for complexity class analysis with extra-p models
+                    if "_complexity" in self.annotation_column:
 
-                    # add color coding for complexity classes to data frame
-                    color_map_dict = self.colormap_for_complexity_classes(
-                        unique_complexity_classes)
+                        # get unique complexity classes from all models
+                        unique_complexity_classes = self.get_unique_complexity_classes(
+                            dataframe)
 
-                    metric_str += " [{}".format(
-                        color_map_dict[annotation_content])
+                        # add color coding for complexity classes to data frame
+                        color_map_dict = self.colormap_for_complexity_classes(
+                            unique_complexity_classes)
 
-                # custom visualization for temporal pattern metrics if it is the annotation column
-                if "_pattern" in self.annotation_column:
-                    self.temporal_symbols = {
-                        "none": "",
-                        "constant": "\U00002192",
-                        "phased": "\U00002933",
-                        "dynamic": "\U000021DD",
-                        "sporadic": "\U0000219D",
-                    }
-                    pattern_metric = dataframe.loc[df_index,
-                                                   self.annotation_column]
-                    annotation_content = self.temporal_symbols[pattern_metric]
-                    if self.colormap_annotations:
-                        self.colors_annotations_mapping = list(
-                            dataframe[self.annotation_column].apply(
-                                str).unique()
-                        )
-                        coloring_content = pattern_metric
-                        if coloring_content != "none":
-                            color_annotation = self.colors_annotations.colormap[
-                                self.colors_annotations_mapping.index(
-                                    coloring_content)
-                                % len(self.colors_annotations.colormap)
-                            ]
-                            metric_str += " {}".format(color_annotation)
-                            metric_str += "{}".format(annotation_content)
-                            metric_str += "{}".format(
-                                self.colors_annotations.end)
-                        else:
-                            metric_str += "{}".format(annotation_content)
-                    else:  # no colormap passed in
-                        metric_str += " {}".format(annotation_content)
+                        metric_str += "{}".format(
+                            color_map_dict[annotation_content])
 
-                # no pattern column
-                elif self.colormap_annotations:
-                    if isinstance(self.colormap_annotations, dict):
-                        color_annotation = self.colors_annotations_mapping[
-                            annotation_content
-                        ]
-                    else:
-                        color_annotation = self.colors_annotations.colormap[
-                            self.colors_annotations_mapping.index(
-                                annotation_content)
-                            % len(self.colors_annotations.colormap)
-                        ]
-                    metric_str += " [{}".format(color_annotation)
-                    metric_str += "{}".format(annotation_content)
-                    metric_str += "{}]".format("\033[0m")
+                    # custom visualization for temporal pattern metrics if it is the annotation column
+                    if "_pattern" in self.annotation_column:
+                        self.temporal_symbols = {
+                            "none": "",
+                            "constant": "\U00002192",
+                            "phased": "\U00002933",
+                            "dynamic": "\U000021DD",
+                            "sporadic": "\U0000219D",
+                        }
+                        pattern_metric = dataframe.loc[df_index,
+                                                       self.annotation_column]
+                        annotation_content = self.temporal_symbols[pattern_metric]
+                        if self.colormap_annotations:
+                            self.colors_annotations_mapping = list(
+                                dataframe[self.annotation_column].apply(
+                                    str).unique()
+                            )
+                            coloring_content = pattern_metric
+                            if coloring_content != "none":
+                                color_annotation = self.colors_annotations.colormap[
+                                    self.colors_annotations_mapping.index(
+                                        coloring_content)
+                                    % len(self.colors_annotations.colormap)
+                                ]
+                                metric_str += " {}".format(color_annotation)
+                                metric_str += "{}".format(annotation_content)
+                                metric_str += "{}".format(
+                                    self.colors_annotations.end)
+                            else:
+                                metric_str += "{}".format(annotation_content)
+                        else:  # no colormap passed in
+                            metric_str += " {}".format(annotation_content)
 
-                else:
-                    if self.colormap_annotations:
+                    # no pattern column
+                    elif self.colormap_annotations:
                         if isinstance(self.colormap_annotations, dict):
                             color_annotation = self.colors_annotations_mapping[
                                 annotation_content
@@ -398,74 +384,96 @@ class ConsoleRenderer:
                             ]
                         metric_str += " [{}".format(color_annotation)
                         metric_str += "{}".format(annotation_content)
-                        metric_str += "{}]".format(self.colors_annotations.end)
+                        metric_str += "{}]".format("\033[0m")
 
                     else:
-                        metric_str += " [{}]".format(annotation_content)
+                        if self.colormap_annotations:
+                            if isinstance(self.colormap_annotations, dict):
+                                color_annotation = self.colors_annotations_mapping[
+                                    annotation_content
+                                ]
+                            else:
+                                color_annotation = self.colors_annotations.colormap[
+                                    self.colors_annotations_mapping.index(
+                                        annotation_content)
+                                    % len(self.colors_annotations.colormap)
+                                ]
+                            metric_str += " [{}".format(color_annotation)
+                            metric_str += "{}".format(annotation_content)
+                            metric_str += "{}]".format(
+                                self.colors_annotations.end)
 
-            node_name = dataframe.loc[df_index, self.name]
-            if self.expand is False:
-                if len(node_name) > 39:
-                    node_name = (
-                        node_name[:18] + "..." +
-                        node_name[(len(node_name) - 18):]
-                    )
-            name_str = (
-                self._ansi_color_for_name(
-                    node_name) + node_name + self.colors.end
-            )
+                        else:
+                            metric_str += " [{}]".format(annotation_content)
 
-            # 0 is "", 1 is "L", and 2 is "R"
-            if "_missing_node" in dataframe.columns:
-                left_or_right = dataframe.loc[df_index, "_missing_node"]
-                if left_or_right == 0:
-                    lr_decorator = ""
-                elif left_or_right == 1:
-                    lr_decorator = " {c.left}{decorator}{c.end}".format(
-                        decorator=self.lr_arrows["◀"], c=self.colors
-                    )
-                elif left_or_right == 2:
-                    lr_decorator = " {c.right}{decorator}{c.end}".format(
-                        decorator=self.lr_arrows["▶"], c=self.colors
-                    )
-
-            result = "{indent}{metric_str} {name_str}".format(
-                indent=indent, metric_str=metric_str, name_str=name_str
-            )
-            if "_missing_node" in dataframe.columns:
-                result += lr_decorator
-            if self.context in dataframe.columns:
-                result += u" {c.faint}{context}{c.end}\n".format(
-                    context=dataframe.loc[df_index,
-                                          self.context], c=self.colors
+                node_name = dataframe.loc[df_index, self.name]
+                if self.expand is False:
+                    if len(node_name) > 39:
+                        node_name = (
+                            node_name[:18] + "..." +
+                            node_name[(len(node_name) - 18):]
+                        )
+                name_str = (
+                    self._ansi_color_for_name(
+                        node_name) + node_name + self.colors.end
                 )
-            else:
-                result += "\n"
 
-            if self.unicode:
-                indents = {"├": "├─ ", "│": "│  ", "└": "└─ ", " ": "   "}
-            else:
-                indents = {"├": "|- ", "│": "|  ", "└": "`- ", " ": "   "}
+                # 0 is "", 1 is "L", and 2 is "R"
+                if "_missing_node" in dataframe.columns:
+                    left_or_right = dataframe.loc[df_index, "_missing_node"]
+                    if left_or_right == 0:
+                        lr_decorator = ""
+                    elif left_or_right == 1:
+                        lr_decorator = " {c.left}{decorator}{c.end}".format(
+                            decorator=self.lr_arrows["◀"], c=self.colors
+                        )
+                    elif left_or_right == 2:
+                        lr_decorator = " {c.right}{decorator}{c.end}".format(
+                            decorator=self.lr_arrows["▶"], c=self.colors
+                        )
 
-            # ensures that we never revisit nodes in the case of
-            # large complex graphs
-            if node not in self.visited:
-                self.visited.append(node)
-                sorted_children = sorted(
-                    node.children, key=lambda n: n._hatchet_nid)
-                if sorted_children:
-                    last_child = sorted_children[-1]
-
-                for child in sorted_children:
-                    if child is not last_child:
-                        c_indent = child_indent + indents["├"]
-                        cc_indent = child_indent + indents["│"]
-                    else:
-                        c_indent = child_indent + indents["└"]
-                        cc_indent = child_indent + indents[" "]
-                    result += self.render_frame(
-                        child, dataframe, indent=c_indent, child_indent=cc_indent
+                result = "{indent}{metric_str} {name_str}".format(
+                    indent=indent, metric_str=metric_str, name_str=name_str
+                )
+                if "_missing_node" in dataframe.columns:
+                    result += lr_decorator
+                if self.context in dataframe.columns:
+                    result += u" {c.faint}{context}{c.end}\n".format(
+                        context=dataframe.loc[df_index,
+                                              self.context], c=self.colors
                     )
+                else:
+                    result += "\n"
+
+                if self.unicode:
+                    indents = {"├": "├─ ", "│": "│  ", "└": "└─ ", " ": "   "}
+                else:
+                    indents = {"├": "|- ", "│": "|  ", "└": "`- ", " ": "   "}
+
+                # ensures that we never revisit nodes in the case of
+                # large complex graphs
+                if node not in self.visited:
+                    self.visited.append(node)
+                    sorted_children = sorted(
+                        node.children, key=lambda n: n._hatchet_nid)
+                    if sorted_children:
+                        last_child = sorted_children[-1]
+
+                    for child in sorted_children:
+                        if child is not last_child:
+                            c_indent = child_indent + indents["├"]
+                            cc_indent = child_indent + indents["│"]
+                        else:
+                            c_indent = child_indent + indents["└"]
+                            cc_indent = child_indent + indents[" "]
+                        result += self.render_frame(
+                            child, dataframe, indent=c_indent, child_indent=cc_indent
+                        )
+
+            except KeyError:
+                result = ""
+                indents = {"├": "", "│": "", "└": "", " ": ""}
+
         else:
             result = ""
             indents = {"├": "", "│": "", "└": "", " ": ""}
