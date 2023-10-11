@@ -146,6 +146,29 @@ class GraphFrame:
         ).read()
 
     @staticmethod
+    def from_timeseries(
+        filename_or_caliperreader,
+        level="loop.start_iteration",
+        native=False,
+        string_attributes=[],
+    ):
+        """Read in a native Caliper timeseries `cali` file using Caliper's python reader.
+
+        Args:
+            filename_or_caliperreader (str or CaliperReader): name of a Caliper
+                output file in `.cali` format, or a CaliperReader object
+            native (bool): use native or user-readable metric names (default)
+            string_attributes (str or list, optional): Adds existing string
+                attributes from within the caliper file to the dataframe
+        """
+        # import this lazily to avoid circular dependencies
+        from .readers.caliper_native_reader import CaliperNativeReader
+
+        return CaliperNativeReader(
+            filename_or_caliperreader, native, string_attributes
+        ).read_timeseries(level=level)
+
+    @staticmethod
     def from_spotdb(db_key, list_of_ids=None):
         """Read multiple graph frames from a SpotDB instance
 

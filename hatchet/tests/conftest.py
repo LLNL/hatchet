@@ -1168,3 +1168,27 @@ def caliper_ordered_json_dup(data_dir, tmpdir):
     tmpfile = os.path.join(str(tmpdir), "caliper-region-dup-node-order.json")
 
     return tmpfile
+
+
+@pytest.fixture
+def caliper_timeseries_cali(data_dir, tmpdir):
+    """Builds a temporary directory containing the duplicate value node-ordered lulesh JSON file."""
+    ordered_json_dir = os.path.join(data_dir, "caliper-timeseries-cali")
+    ordered_json_file = os.path.join(ordered_json_dir, "timeseries.cali")
+
+    shutil.copy(ordered_json_file, str(tmpdir))
+    tmpfile = os.path.join(str(tmpdir), "timeseries.cali")
+
+    return tmpfile
+
+
+@pytest.fixture
+def caliper_timeseries_spot_cali(data_dir, tmpdir):
+    """Builds a temporary directory containing the duplicate value node-ordered lulesh JSON file."""
+    ordered_json_dir = os.path.join(data_dir, "caliper-timeseries-cali")
+    ordered_json_file = os.path.join(ordered_json_dir, "spot_timeseries.cali")
+
+    shutil.copy(ordered_json_file, str(tmpdir))
+    tmpfile = os.path.join(str(tmpdir), "spot_timeseries.cali")
+
+    return tmpfile

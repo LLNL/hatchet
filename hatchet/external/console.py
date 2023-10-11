@@ -147,9 +147,9 @@ class ConsoleRenderer:
         self.min_metric = self.min_value if self.min_value else filtered_series.min()
 
         if self.unicode:
-            self.lr_arrows = {"◀": u"◀ ", "▶": u"▶ "}
+            self.lr_arrows = {"◀": "◀ ", "▶": "▶ "}
         else:
-            self.lr_arrows = {"◀": u"< ", "▶": u"> "}
+            self.lr_arrows = {"◀": "< ", "▶": "> "}
 
         for root in sorted(roots, key=lambda n: n._hatchet_nid):
             result += self.render_frame(root, dataframe)
@@ -183,7 +183,7 @@ class ConsoleRenderer:
 
             return (
                 self.colors.colormap[index]
-                + u"█ "
+                + "█ "
                 + self.colors.end
                 + "{:.2f}".format(low * metric_range + self.min_metric)
                 + " - "
@@ -220,6 +220,7 @@ class ConsoleRenderer:
         legend += " Only in right graph\n"
 
         if self.annotation_column is not None:
+
             # extra-p model complexity analysis legend customization
             if "_complexity" in self.annotation_column:
 
@@ -254,9 +255,38 @@ class ConsoleRenderer:
                         str(model_wrapper_object.default_param_names[i]) + " -> " + \
                         str(model_wrapper_object.parameters[i])
 
+            # temporal pattern legend customization
+            if "_pattern" in self.annotation_column:
+                score_ranges = [0.0, 0.2, 0.4, 0.6, 1.0]
+                legend += "\nTemporal Pattern"
+                for k in self.temporal_symbols.keys():
+                    if "none" not in k:
+                        legend += "   " + self.temporal_symbols[k] + " " + k
+                legend += "\nTemporal Score  "
+                if self.colormap_annotations:
+                    legend_color_mapping = sorted(score_ranges)
+                    legend_colormap = ColorMaps().get_colors(
+                        self.colormap_annotations, False
+                    )
+                    for i in range(len(score_ranges) - 1):
+                        color = legend_colormap[
+                            legend_color_mapping.index(score_ranges[i + 1])
+                            % len(legend_colormap)
+                        ]
+                        legend += "{}".format(color)
+                        legend += "   {} - {}".format(
+                            score_ranges[i], score_ranges[i + 1]
+                        )
+                        legend += "{}".format(self.colors_annotations.end)
+                else:  # no color map passed in
+                    for i in range(len(score_ranges) - 1):
+                        legend += "   {} - {}".format(
+                            score_ranges[i], score_ranges[i + 1]
+                        )
+
         return legend
 
-    def render_frame(self, node, dataframe, indent=u"", child_indent=u""):
+    def render_frame(self, node, dataframe, indent="", child_indent=""):
         node_depth = node._depth
         if node_depth < self.depth:
             # set dataframe index based on whether rank and thread are part of
@@ -280,7 +310,7 @@ class ConsoleRenderer:
             )
 
             if self.second_metric is not None:
-                metric_str += u" {c.faint}{second_metric:.{precision}f}{c.end}".format(
+                metric_str += " {c.faint}{second_metric:.{precision}f}{c.end}".format(
                     second_metric=dataframe.loc[df_index, self.second_metric],
                     precision=self.precision,
                     c=self.colors,
@@ -304,6 +334,53 @@ class ConsoleRenderer:
 
                     metric_str += " [{}".format(
                         color_map_dict[annotation_content])
+
+                # custom visualization for temporal pattern metrics if it is the annotation column
+                if "_pattern" in self.annotation_column:
+                    self.temporal_symbols = {
+                        "none": "",
+                        "constant": "\U00002192",
+                        "phased": "\U00002933",
+                        "dynamic": "\U000021DD",
+                        "sporadic": "\U0000219D",
+                    }
+                    pattern_metric = dataframe.loc[df_index,
+                                                   self.annotation_column]
+                    annotation_content = self.temporal_symbols[pattern_metric]
+                    if self.colormap_annotations:
+                        self.colors_annotations_mapping = list(
+                            dataframe[self.annotation_column].apply(
+                                str).unique()
+                        )
+                        coloring_content = pattern_metric
+                        if coloring_content != "none":
+                            color_annotation = self.colors_annotations.colormap[
+                                self.colors_annotations_mapping.index(
+                                    coloring_content)
+                                % len(self.colors_annotations.colormap)
+                            ]
+                            metric_str += " {}".format(color_annotation)
+                            metric_str += "{}".format(annotation_content)
+                            metric_str += "{}".format(
+                                self.colors_annotations.end)
+                        else:
+                            metric_str += "{}".format(annotation_content)
+                    else:  # no colormap passed in
+                        metric_str += " {}".format(annotation_content)
+
+                # no pattern column
+                elif self.colormap_annotations:
+                    if isinstance(self.colormap_annotations, dict):
+                        color_annotation = self.colors_annotations_mapping[
+                            annotation_content
+                        ]
+                    else:
+                        color_annotation = self.colors_annotations.colormap[
+                            self.colors_annotations_mapping.index(
+                                annotation_content)
+                            % len(self.colors_annotations.colormap)
+                        ]
+                    metric_str += " [{}".format(color_annotation)
                     metric_str += "{}".format(annotation_content)
                     metric_str += "{}]".format("\033[0m")
 
@@ -342,17 +419,17 @@ class ConsoleRenderer:
             if "_missing_node" in dataframe.columns:
                 left_or_right = dataframe.loc[df_index, "_missing_node"]
                 if left_or_right == 0:
-                    lr_decorator = u""
+                    lr_decorator = ""
                 elif left_or_right == 1:
-                    lr_decorator = u" {c.left}{decorator}{c.end}".format(
+                    lr_decorator = " {c.left}{decorator}{c.end}".format(
                         decorator=self.lr_arrows["◀"], c=self.colors
                     )
                 elif left_or_right == 2:
-                    lr_decorator = u" {c.right}{decorator}{c.end}".format(
+                    lr_decorator = " {c.right}{decorator}{c.end}".format(
                         decorator=self.lr_arrows["▶"], c=self.colors
                     )
 
-            result = u"{indent}{metric_str} {name_str}".format(
+            result = "{indent}{metric_str} {name_str}".format(
                 indent=indent, metric_str=metric_str, name_str=name_str
             )
             if "_missing_node" in dataframe.columns:
@@ -363,18 +440,19 @@ class ConsoleRenderer:
                                           self.context], c=self.colors
                 )
             else:
-                result += u"\n"
+                result += "\n"
 
             if self.unicode:
-                indents = {"├": u"├─ ", "│": u"│  ", "└": u"└─ ", " ": u"   "}
+                indents = {"├": "├─ ", "│": "│  ", "└": "└─ ", " ": "   "}
             else:
-                indents = {"├": u"|- ", "│": u"|  ", "└": u"`- ", " ": u"   "}
+                indents = {"├": "|- ", "│": "|  ", "└": "`- ", " ": "   "}
 
             # ensures that we never revisit nodes in the case of
             # large complex graphs
             if node not in self.visited:
                 self.visited.append(node)
-                sorted_children = sorted(node.children, key=lambda n: n._hatchet_nid)
+                sorted_children = sorted(
+                    node.children, key=lambda n: n._hatchet_nid)
                 if sorted_children:
                     last_child = sorted_children[-1]
 
@@ -390,7 +468,7 @@ class ConsoleRenderer:
                     )
         else:
             result = ""
-            indents = {"├": u"", "│": u"", "└": u"", " ": u""}
+            indents = {"├": "", "│": "", "└": "", " ": ""}
 
         return result
 

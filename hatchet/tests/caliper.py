@@ -864,3 +864,44 @@ def test_sw4_cuda_summary_from_caliperreader(
     assert type(gf.metadata["mpi.world.size"]) == int
     assert type(gf.metadata["cali.caliper.version"]) == str
     assert type(gf.metadata["cali.channel"]) == str
+
+
+def test_graphframe_timeseries_lulesh_from_file(caliper_timeseries_cali):
+    """Sanity check the timeseries Caliper reader by examining a known input."""
+
+    gf_list = GraphFrame.from_timeseries(str(caliper_timeseries_cali))
+
+    assert (type(gf_list)) == list
+    gf = gf_list[0]
+    gf2 = gf_list[2]
+
+    assert len(gf.dataframe.groupby("name")) == 19
+    assert "cali.caliper.version" in gf.metadata.keys()
+
+    for col in gf.dataframe.columns:
+        if col in ("time (inc)", "time"):
+            assert gf.dataframe[col].dtype == np.float64
+        elif col in ("nid", "rank"):
+            assert gf.dataframe[col].dtype == pd.Int64Dtype()
+        elif col in ("name", "node"):
+            assert gf.dataframe[col].dtype == object
+
+    assert type(gf.metadata["cali.channel"]) == str
+    assert type(gf.metadata["cali.caliper.version"]) == str
+
+    # check for the expected timeseries and memory allocation columns
+    timeseries_cols = [
+        "timeseries.starttime",
+        "timeseries.duration",
+        "loop.start_iteration",
+        "loop.iterations",
+        "alloc.region.highwatermark",
+    ]
+    for tcol in timeseries_cols:
+        assert tcol in gf.dataframe.columns
+
+    # verify some values are as expected
+    assert gf.dataframe["alloc.region.highwatermark"].iloc[0] == 25824351.0
+    assert gf.dataframe["alloc.region.highwatermark"].iloc[1] == 63732320.0
+    assert np.isnan(gf2.dataframe["loop.start_iteration"].iloc[0])
+    assert np.isnan(gf2.dataframe["alloc.region.highwatermark"].iloc[0])
