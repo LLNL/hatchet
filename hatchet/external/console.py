@@ -501,8 +501,7 @@ class ConsoleRenderer:
                             child, dataframe, indent=c_indent, child_indent=cc_indent
                         )
 
-            except KeyError as e:
-                raise (e)
+            except KeyError:
                 result = ""
                 indents = {"├": "", "│": "", "└": "", " ": ""}
 
