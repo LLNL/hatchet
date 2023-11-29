@@ -70,6 +70,10 @@ class ConsoleRenderer:
         self.colormap_annotations = kwargs["colormap_annotations"]
         self.min_value = kwargs["min_value"]
         self.max_value = kwargs["max_value"]
+        try:
+            self.modeler_config = kwargs["modeler_config"]
+        except KeyError:
+            self.modeler_config = None
 
         if self.color:
             self.colors = self.colors_enabled
@@ -88,7 +92,7 @@ class ConsoleRenderer:
                     elif isinstance(self.colormap_annotations, list):
                         self.colors_annotations.colormap = self.colormap_annotations
                     self.colors_annotations_mapping = sorted(
-                        list(dataframe[self.annotation_column].apply(
+                        list(dataframe[self.modeler_config][self.annotation_column].apply(
                             str).unique())
                     )
                 elif isinstance(self.colormap_annotations, dict):
@@ -114,7 +118,7 @@ class ConsoleRenderer:
                 self.primary_metric = self.metric_columns[0]
                 self.second_metric = None
 
-        if self.primary_metric not in dataframe.columns:
+        if self.primary_metric not in dataframe.columns and self.primary_metric not in dataframe[self.modeler_config].columns:
             raise KeyError(
                 "metric_column={} does not exist in the dataframe, please select a valid column. See a list of the available metrics with GraphFrame.show_metric_columns().".format(
                     self.primary_metric
@@ -137,7 +141,10 @@ class ConsoleRenderer:
             metric_series = (dataframe.xs(self.rank, level=1))[
                 self.primary_metric]
         else:
-            metric_series = dataframe[self.primary_metric]
+            if self.modeler_config is not None and self.primary_metric not in dataframe.columns:
+                metric_series = dataframe[self.modeler_config][self.primary_metric]
+            else:
+                metric_series = dataframe[self.primary_metric]
         isfinite_mask = np.isfinite(metric_series.values)
         filtered_series = pd.Series(
             metric_series.values[isfinite_mask], metric_series.index[isfinite_mask]
@@ -243,13 +250,21 @@ class ConsoleRenderer:
                 # create a legend for the model parameters
                 legend += "\n\033[4mLegend Model Parameters" + \
                     self.colors.end
-                column_headers = list(dataframe.columns.values)
+                if self.modeler_config is None:
+                    column_headers = list(dataframe.columns.values)
+                else:
+                    column_headers = list(
+                        dataframe[self.modeler_config].columns.values)
                 column_name = None
                 for column in column_headers:
-                    if "_extrap-model" in column:
+                    if "_extrap-model" in column and "AR2" not in column and "RE" not in column and "RSS" not in column and "SMAPE" not in column and "coefficient" not in column and "complexity" not in column and "growth_rank" not in column:
                         column_name = column
                         break
-                model_wrapper_object = dataframe[column_name].iloc[0]
+                if self.modeler_config is None:
+                    model_wrapper_object = dataframe[column_name].iloc[0]
+                else:
+                    model_wrapper_object = dataframe[self.modeler_config][column_name].iloc[0]
+                # Avg time/rank_extrap-model
                 for i in range(len(model_wrapper_object.parameters)):
                     legend += "\n" + \
                         str(model_wrapper_object.default_param_names[i]) + " -> " + \
@@ -301,7 +316,14 @@ class ConsoleRenderer:
                 df_index = node
 
             try:
-                node_metric = dataframe.loc[df_index, self.primary_metric]
+                if self.modeler_config is not None and self.primary_metric not in dataframe.columns:
+                    node_metric = dataframe[self.modeler_config].loc[df_index,
+                                                                     self.primary_metric]
+                else:
+                    node_metric = dataframe.loc[df_index,
+                                                self.primary_metric]
+                if self.modeler_config is not None:
+                    node_metric = float(node_metric)
 
                 metric_precision = "{:." + str(self.precision) + "f}"
                 metric_str = (
@@ -319,9 +341,15 @@ class ConsoleRenderer:
                     )
 
                 if self.annotation_column is not None:
-                    annotation_content = str(
-                        dataframe.loc[df_index, self.annotation_column]
-                    )
+                    if self.modeler_config is None:
+                        annotation_content = str(
+                            dataframe.loc[df_index, self.annotation_column]
+                        )
+                    else:
+                        annotation_content = str(
+                            dataframe[self.modeler_config].loc[df_index,
+                                                               self.annotation_column]
+                        )
 
                     # custom visualization for complexity class analysis with extra-p models
                     if "_complexity" in self.annotation_column:
@@ -406,7 +434,10 @@ class ConsoleRenderer:
                         else:
                             metric_str += " [{}]".format(annotation_content)
 
-                node_name = dataframe.loc[df_index, self.name]
+                if self.modeler_config is None:
+                    node_name = dataframe.loc[df_index, self.name]
+                else:
+                    node_name = dataframe[self.modeler_config].loc[df_index, self.name]
                 if self.expand is False:
                     if len(node_name) > 39:
                         node_name = (
@@ -470,7 +501,8 @@ class ConsoleRenderer:
                             child, dataframe, indent=c_indent, child_indent=cc_indent
                         )
 
-            except KeyError:
+            except KeyError as e:
+                raise (e)
                 result = ""
                 indents = {"├": "", "│": "", "└": "", " ": ""}
 
@@ -482,10 +514,16 @@ class ConsoleRenderer:
 
     def get_unique_complexity_classes(self, dataframe):
         unique_complexity_classes = []
-        for i in range(len(dataframe[self.annotation_column])):
-            if str(dataframe[self.annotation_column].iloc[i]) not in unique_complexity_classes:
-                unique_complexity_classes.append(
-                    str(dataframe[self.annotation_column].iloc[i]))
+        if self.modeler_config is None:
+            for i in range(len(dataframe[self.annotation_column])):
+                if str(dataframe[self.annotation_column].iloc[i]) not in unique_complexity_classes:
+                    unique_complexity_classes.append(
+                        str(dataframe[self.annotation_column].iloc[i]))
+        else:
+            for i in range(len(dataframe[self.modeler_config][self.annotation_column])):
+                if str(dataframe[self.modeler_config][self.annotation_column].iloc[i]) not in unique_complexity_classes:
+                    unique_complexity_classes.append(
+                        str(dataframe[self.modeler_config][self.annotation_column].iloc[i]))
         return unique_complexity_classes
 
     def colormap_for_complexity_classes(self, unique_complexity_classes):
