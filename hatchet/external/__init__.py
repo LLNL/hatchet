@@ -2,7 +2,7 @@
 # Hatchet Project Developers. See the top-level LICENSE file for details.
 #
 # SPDX-License-Identifier: MIT
-import traceback
+
 
 class VersionError(Exception):
     '''
@@ -11,6 +11,7 @@ class VersionError(Exception):
     '''
     pass
 
+
 try:
     from .roundtrip.roundtrip.manager import Roundtrip
     import IPython
@@ -18,8 +19,8 @@ try:
     # Refrencing Roundtrip here to resolve scope issues with import
     Roundtrip
 
-    #Testing IPython version
-    if(int(IPython.__version__.split('.')[0]) > 7):
+    # Testing IPython version
+    if (int(IPython.__version__.split('.')[0]) > 7):
         raise VersionError()
 
 except ImportError:
