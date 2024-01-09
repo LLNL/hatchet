@@ -187,6 +187,7 @@ class Graph:
                 new.children.append(old_to_new[old_child])
 
         graph = Graph([old_to_new[r] for r in self.roots])
+        graph.node_ordering = self.node_ordering
         graph.enumerate_traverse()
 
         return graph
