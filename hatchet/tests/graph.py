@@ -40,7 +40,10 @@ def test_copy():
     diamond_subdag = Node.from_lists(("a", ("b", d), ("c", d)))
     g = Graph.from_lists(("e", "f", diamond_subdag), ("g", diamond_subdag, "h"))
 
-    assert g.copy() == g
+    gc = g.copy()
+
+    assert gc == g
+    assert gc.node_ordering == g.node_ordering
 
 
 def test_union_dag():
