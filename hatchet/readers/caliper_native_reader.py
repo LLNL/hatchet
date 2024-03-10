@@ -527,7 +527,7 @@ class CaliperNativeReader:
             with self.timer.phase("data frame"):
                 # merge the metrics and node dataframes on the nid column
                 dataframe = pd.merge(df_metrics, self.df_nodes, on="nid")
-                dataframe["nid"] = dataframe["nid"].astype(pd.Int64Dtype())
+                dataframe["nid"] = dataframe["nid"].astype(np.int64)
 
                 # set the index to be a MultiIndex
                 indices = ["node"]
