@@ -26,12 +26,12 @@ import pkg_resources
 
 project = "hatchet"
 copyright = "2017-2023, Lawrence Livermore National Security, LLC"
-author = "LLNL Developerss"
+author = "LLNL Developers"
 
 # The short X.Y version
-version = "2023.1.1"
+version = "2024.1.0"
 # The full version, including alpha/beta/rc tags
-release = "2023.1.1"
+release = "2024.1.0"
 
 
 # -- General configuration ---------------------------------------------------
