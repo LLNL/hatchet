@@ -5,10 +5,11 @@
 
 
 class VersionError(Exception):
-    '''
-        Define a version error class with the same features of the base exception class.
-        Allows us to catch the very specific ipython version error and throw a warning.
-    '''
+    """
+    Define a version error class with the same features of the base exception class.
+    Allows us to catch the very specific ipython version error and throw a warning.
+    """
+
     pass
 
 
@@ -20,11 +21,13 @@ try:
     Roundtrip
 
     # Testing IPython version
-    if (int(IPython.__version__.split('.')[0]) > 7):
+    if int(IPython.__version__.split(".")[0]) > 7:
         raise VersionError()
 
 except ImportError:
     pass
 
 except VersionError:
-    print("Warning: Roundtrip module could not be loaded. Requires jupyter notebook version <= 7.x.")
+    print(
+        "Warning: Roundtrip module could not be loaded. Requires jupyter notebook version <= 7.x."
+    )
