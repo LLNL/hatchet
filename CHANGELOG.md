@@ -1,3 +1,18 @@
+# 2024.1.0 (2024-03-11)
+
+Version `2024.1.0` is a major release.
+
+### Notable Changes
+* Added Jupyter Version Check to Roundtrip Import (#116)
+* Update node ordering of child graph when making a copy (#117)
+* Updates CaliperNativeReader to support all Caliper data types
+* Support for reading in a timeseries cali file and viewing annotations on tree
+
+### Internal Updates
+* Update old-style query warning to include hatchet version (#115)
+* Removed unicode string formatting needed for python2 only
+* Allows push to PyPI to be triggered through workflow_dispatch (#114)
+
 # 2023.1.1 (2023-09-20)
 
 Version `2023.1.1` is a minor release on the `2023.1` series.
