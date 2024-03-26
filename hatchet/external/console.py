@@ -327,7 +327,10 @@ class ConsoleRenderer:
                 else:
                     metric_str += " [{}]".format(annotation_content)
 
-            node_name = dataframe.loc[df_index, self.name]
+            if isinstance(dataframe.columns, pd.MultiIndex):
+                node_name = dataframe.loc[df_index, (self.name, "")]
+            else:
+                node_name = dataframe.loc[df_index, self.name]
             if self.expand is False:
                 if len(node_name) > 39:
                     node_name = (
