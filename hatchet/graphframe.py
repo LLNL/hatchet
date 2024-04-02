@@ -974,6 +974,7 @@ class GraphFrame:
         render_header=True,
         min_value=None,
         max_value=None,
+        modeler_config=None
     ):
         """Visualize the Hatchet graphframe as a tree
 
@@ -994,6 +995,7 @@ class GraphFrame:
             render_header (bool, optional): Shows the Preamble. Defaults to True.
             min_value (int, optional): Overwrites the min value for the coloring legend. Defaults to None.
             max_value (int, optional): Overwrites the max value for the coloring legend. Defaults to None.
+            modeler_config (str, optional): Used when using Extra-P modeler configurations in the thicket dataframe to access the correct multi-column index.
 
         Returns:
             str: String representation of the tree, ready to print
@@ -1019,26 +1021,50 @@ class GraphFrame:
         elif sys.version_info.major == 3:
             unicode = True
 
-        return ConsoleRenderer(unicode=unicode, color=color).render(
-            self.graph.roots,
-            self.dataframe,
-            metric_column=metric_column,
-            annotation_column=annotation_column,
-            precision=precision,
-            name_column=name_column,
-            expand_name=expand_name,
-            context_column=context_column,
-            rank=rank,
-            thread=thread,
-            depth=depth,
-            highlight_name=highlight_name,
-            colormap=colormap,
-            invert_colormap=invert_colormap,
-            colormap_annotations=colormap_annotations,
-            render_header=render_header,
-            min_value=min_value,
-            max_value=max_value,
-        )
+        if modeler_config is None:
+            return ConsoleRenderer(unicode=unicode, color=color).render(
+                self.graph.roots,
+                self.dataframe,
+                metric_column=metric_column,
+                annotation_column=annotation_column,
+                precision=precision,
+                name_column=name_column,
+                expand_name=expand_name,
+                context_column=context_column,
+                rank=rank,
+                thread=thread,
+                depth=depth,
+                highlight_name=highlight_name,
+                colormap=colormap,
+                invert_colormap=invert_colormap,
+                colormap_annotations=colormap_annotations,
+                render_header=render_header,
+                min_value=min_value,
+                max_value=max_value,
+            )
+        else:
+            return ConsoleRenderer(unicode=unicode, color=color).render(
+                self.graph.roots,
+                self.dataframe,
+                metric_column=metric_column,
+                annotation_column=annotation_column,
+                precision=precision,
+                name_column=name_column,
+                expand_name=expand_name,
+                context_column=context_column,
+                rank=rank,
+                thread=thread,
+                depth=depth,
+                highlight_name=highlight_name,
+                colormap=colormap,
+                invert_colormap=invert_colormap,
+                colormap_annotations=colormap_annotations,
+                render_header=render_header,
+                min_value=min_value,
+                max_value=max_value,
+                modeler_config=modeler_config,
+            )
+            
 
     def to_dot(self, metric=None, name="name", rank=0, thread=0, threshold=0.0):
         """Write the graph in the graphviz dot format:
