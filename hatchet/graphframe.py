@@ -646,6 +646,7 @@ class GraphFrame:
         )
         if update_inc_cols:
             new_gf.update_inclusive_columns()
+        new_gf.old_to_new = old_to_new
         return new_gf
 
     def _init_sum_columns(self, columns, out_columns):
