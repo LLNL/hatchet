@@ -1,3 +1,14 @@
+# 2024.1.1 (2024-04-09)
+
+Version `2024.1.1` is a minor release on the `2024.1` series.
+
+### Notable Changes
+* Add support for terminal tree printout for dataframe with multi-indexed
+  columns (#120)
+
+### Internal Updates
+* caliper_native_reader: Change "nid" casted value to np.int64 (#118)
+
 # 2024.1.0 (2024-03-11)
 
 Version `2024.1.0` is a major release.
