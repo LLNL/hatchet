@@ -39,7 +39,7 @@ class PerfFlowAspectReader:
             # Create a Frame and Node for the function
             # Frame stores information about the node
             # Node represents a node in the hierarchical graph structure
-            frame = Frame({"name": name, "type": "function"})
+            frame = Frame({"name": name, "type": "function", "ts": ts, "dur": dur})
             node = Node(frame, parent=None, hnid=-1)
 
             # check the relationships between node and roots
