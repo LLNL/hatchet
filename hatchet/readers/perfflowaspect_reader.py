@@ -7,7 +7,7 @@ from hatchet.graph import Graph
 from hatchet.frame import Frame
 
 class PerfFlowAspectReader:
-    """ Create a GraphFrame from a json string of the following format.
+    """ Create a GraphFrame from JSON array format.
 
     Return:
         (GraphFrame): graphframe containing data from dictionaries
@@ -21,11 +21,11 @@ class PerfFlowAspectReader:
         with open(filename, 'r') as file:
             content = file.read()
             self.spec_dict = json.loads(content)
-   
+
     def sort(self):
         # Sort the spec_dict based on the end time (ts + dur) of each function
         self.spec_dict = sorted(self.spec_dict, key=lambda item: item["ts"] + item["dur"])
- 
+
     def read(self):
         roots = []
         node_mapping = {}
@@ -37,14 +37,14 @@ class PerfFlowAspectReader:
             dur = item["dur"]
 
             # Create a Frame and Node for the function
-            # Frame stores performance data related to each function
+            # Frame stores information about the node
             # Node represents a node in the hierarchical graph structure
-            frame = Frame({"name": name, "type": "function", "ts": ts, "dur": dur})
+            frame = Frame({"name": name, "type": "function"})
             node = Node(frame, parent=None, hnid=-1)
 
             # check the relationships between node and roots
             for root in reversed(roots):
-                # if node is a parent of root node 
+                # if node is a parent of root node
                 if (ts < root.frame["ts"]) and (ts + dur > root.frame["ts"] + root.frame["dur"]):
                     node.add_child(root)
                     root.add_parent(node)
