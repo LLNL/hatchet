@@ -1178,6 +1178,18 @@ def caliper_timeseries_cali(data_dir, tmpdir):
 
     shutil.copy(ordered_json_file, str(tmpdir))
     tmpfile = os.path.join(str(tmpdir), "timeseries.cali")
+    
+    return tmpfile
+
+
+@pytest.fixture
+def laghos_perfflowaspect_array(data_dir, tmpdir):
+    """Builds a temporary directory containing the laghos PerfFlowAspect file."""
+    pfa_dir = os.path.join(data_dir, "perfflowaspect-laghos")
+    pfa_file = os.path.join(pfa_dir, "laghos_1iter.pfw")
+
+    shutil.copy(pfa_file, str(tmpdir))
+    tmpfile = os.path.join(str(tmpdir), "laghos_1iter.pfw")
 
     return tmpfile
 
@@ -1190,6 +1202,18 @@ def caliper_timeseries_spot_cali(data_dir, tmpdir):
 
     shutil.copy(ordered_json_file, str(tmpdir))
     tmpfile = os.path.join(str(tmpdir), "spot_timeseries.cali")
+    
+    return tmpfile
+
+
+@pytest.fixture
+def foobar_perfflowaspect_array(data_dir, tmpdir):
+    """Builds a temporary directory containing the foobar PerfFlowAspect file."""
+    pfa_dir = os.path.join(data_dir, "perfflowaspect-foobar")
+    pfa_file = os.path.join(pfa_dir, "perfflow.quartz1532.3570764-1iter.pfw")
+
+    shutil.copy(pfa_file, str(tmpdir))
+    tmpfile = os.path.join(str(tmpdir), "perfflow.quartz1532.3570764-1iter.pfw")
 
     return tmpfile
 
