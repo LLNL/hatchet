@@ -22,6 +22,6 @@ if __name__ == "__main__":
     for i, node in enumerate(gf.graph.traverse()):
         print(node._hatchet_nid, node, list(node.parents), list(node.children))
 
-#    # Printout the graph component of the GraphFrame.
-#    # Use "time (inc)" as the metric column to be displayed
+    # Printout the graph component of the GraphFrame.
+    # Use "ts" as the metric column to be displayed
     print(gf.tree(metric_column="ts"))
