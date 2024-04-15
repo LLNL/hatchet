@@ -1439,8 +1439,6 @@ def ams_mpi_perfflowaspect_array(data_dir, tmpdir):
     pfa_dir = os.path.join(data_dir, "perfflowaspect-ams/ams_mpi_test1")
     write_file(data_dir)
     pfa_file = os.path.join(pfa_dir, "ams_mpi_allranks.pfw")
-    with open(pfa_file) as f:
-        s = f.read()
 
     shutil.copy(pfa_file, str(tmpdir))
     tmpfile = os.path.join(str(tmpdir), "ams_mpi_allranks.pfw")

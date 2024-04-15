@@ -6,8 +6,9 @@ from hatchet.node import Node
 from hatchet.graph import Graph
 from hatchet.frame import Frame
 
+
 class PerfFlowAspectReader:
-    """ Create a GraphFrame from JSON array format.
+    """Create a GraphFrame from JSON array format.
 
     Return:
         (GraphFrame): graphframe containing data from dictionaries
@@ -18,17 +19,19 @@ class PerfFlowAspectReader:
 
         json (string): Json specification of a graphframe.
         """
-        with open(filename, 'r') as file:
+        with open(filename, "r") as file:
             content = file.read()
             self.spec_dict = json.loads(content)
 
     def sort(self):
         # Sort the spec_dict based on the end time (ts + dur) of each function
-        self.spec_dict = sorted(self.spec_dict, key=lambda item: item["ts"] + item["dur"])
+        self.spec_dict = sorted(
+            self.spec_dict, key=lambda item: item["ts"] + item["dur"]
+        )
 
     def read(self):
         roots = []
-        node_mapping = {}
+        node_mapping = {}  # Dictionary to keep track of the nodes
         node_dicts = []
 
         for item in self.spec_dict:
@@ -45,7 +48,9 @@ class PerfFlowAspectReader:
             # check the relationships between node and roots
             for root in reversed(roots):
                 # if node is a parent of root node
-                if (ts < root.frame["ts"]) and (ts + dur > root.frame["ts"] + root.frame["dur"]):
+                if (ts < root.frame["ts"]) and (
+                    ts + dur > root.frame["ts"] + root.frame["dur"]
+                ):
                     node.add_child(root)
                     root.add_parent(node)
                     roots.pop()
