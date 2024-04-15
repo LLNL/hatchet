@@ -1272,7 +1272,7 @@ def write_file(data_dir):
 
 @pytest.fixture
 def ams_mpi_perfflowaspect_array(data_dir, tmpdir):
-    """Builds a temporary directory containing the ams PerfFlowAspect file."""
+    """Builds a temporary directory containing the AMS PerfFlowAspect file."""
     pfa_dir = os.path.join(data_dir, "perfflowaspect-ams/ams_mpi_test1")
     write_file(data_dir)
     pfa_file = os.path.join(pfa_dir, "ams_mpi_allranks.pfw")
