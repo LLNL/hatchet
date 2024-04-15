@@ -8,6 +8,6 @@ case *"$PWD"* in
         PYTHONPATH=$PWD:$PYTHONPATH
         ;;
 esac
-python setup.py clean --all
-python setup.py build_ext --inplace
-python hatchet/vis/static_fixer.py
+~/wksp-brink2/python-virtualenv/anaconda3/bin/python setup.py clean --all
+~/wksp-brink2/python-virtualenv/anaconda3/bin/python setup.py build_ext --inplace
+~/wksp-brink2/python-virtualenv/anaconda3/bin/python hatchet/vis/static_fixer.py
