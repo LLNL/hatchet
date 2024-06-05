@@ -1,0 +1,13 @@
+hatchet/tests export-ignore
+screenshot.png export-ignore
+pytest.ini export-ignore
+logo.png export-ignore
+logo-hex.png export-ignore
+install.sh export-ignore
+CHANGELOG.md export-ignore
+.pre-commit-config.yaml export-ignore
+.flake8 export-ignore
+.coveragerc export-ignore
+.codecov.yml export-ignore
+docs export-ignore
+.github export-ignore

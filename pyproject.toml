@@ -1,33 +1,65 @@
 [build-system]
-requires = ["setuptools", "wheel", "Cython"]
-build-backend = "setuptools.build_meta"
+requires = ["meson-python", "meson[ninja]", "Cython"]
+build-backend = "mesonpy"
 
-[tool.poetry]
+[project]
 name = "llnl-hatchet"
-version = "2024.1.1"
-description = "A Python library for analyzing hierarchical performance data."
-authors = [
-    "Abhinav Bhatele <bhatele@cs.umd.edu>",
-    "Stephanie Brink <brink2@llnl.gov>",
-    "Todd Gamblin <tgamblin@llnl.gov>",
+description = "A Python library for analyzing hierarchical performance data"
+dynamic = ["version"]
+readme = "./README.md"
+license = { file="LICENSE" }
+classifiers = [
+  "Development Status :: 5 - Production/Stable",
+  "License :: OSI Approved :: MIT License",
 ]
-license = "MIT"
+authors = [
+  { name = "Abhinav Bhatele", email = "bhatele@cs.umd.edu" },
+  { name = "Stephanie Brink", email = "brink2@llnl.gov" },
+  { name = "Todd Gamblin", email = "tgamblin@llnl.gov" }
+]
+maintainers = [
+  { name = "Olga Pearce", email = "pearce8@llnl.gov" },
+  { name = "Ian Lumsden", email = "ilumsden@vols.utk.edu" },
+  { name = "Connor Scully-Allison", email = "cscullyallison@sci.utah.edu" },
+  { name = "Dewi Yokelson", email = "dewiy@cs.uoregon.edu" },
+  { name = "Michael McKinsey", email = "michaelmckinsey@tamu.edu" }
+]
+requires-python = ">= 3.7"
+dependencies = [
+  "pydot",
+  "PyYAML",
+  "matplotlib",
+  "numpy",
+  "pandas",
+  "textX >= 3.0.0",
+  "multiprocess",
+  "caliper-reader",
+]
+
+[project.urls]
+source_code = "https://github.com/llnl/hatchet"
+documentation = "https://llnl-hatchet.readthedocs.io/en/latest/"
+
+[project.optional-dependencies]
+hdf_writer = [
+  "tables"
+]
 
 [tool.ruff]
 line-length = 88
 target-version = 'py39'
 include = ['\.pyi?$']
 exclude = [
-    ".eggs",
-    ".git",
-    ".hg",
-    ".mypy_cache",
-    ".tox",
-    ".venv",
-    "_build",
-    "buck-out",
-    "build",
-    "dist",
+  ".eggs",
+  ".git",
+  ".hg",
+  ".mypy_cache",
+  ".tox",
+  ".venv",
+  "_build",
+  "buck-out",
+  "build",
+  "dist",
 ]
 
 [tool.black]

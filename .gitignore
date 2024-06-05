@@ -14,3 +14,4 @@ hatchet/vis/static/*_bundle*
 
 dist/
 llnl_hatchet.egg-info/
+**/__pycache__/
