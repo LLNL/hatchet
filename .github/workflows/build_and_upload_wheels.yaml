@@ -32,6 +32,7 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
+          name: hatchet_build_artifacts_wheels_linux_3
           path: ./wheelhouse/*.whl
 
   # TODO: uncomment if/when we decide to build wheels for macOS
@@ -81,6 +82,7 @@ jobs:
 
       - uses: actions/upload-artifact@v3
         with:
+          name: hatchet_build_artifacts_sdist
           path: dist/*.tar.gz
 
   test_upload_to_pypi:
@@ -94,7 +96,8 @@ jobs:
     steps:
       - uses: actions/download-artifact@v4
         with:
-          name: artifact
+          pattern: hatchet_build_artifacts_*
+          merge-multiple: true
           path: dist
 
       - uses: pypa/gh-action-pypi-publish@release/v1
@@ -114,12 +117,17 @@ jobs:
     steps:
       - uses: actions/download-artifact@v4
         with:
-          name: artifact
+          pattern: hatchet_build_artifacts_*
+          merge-multiple: true
           path: dist
+          
+      - name: Check build artifacts
+        run: |
+          ls -lah dist
 
-      - uses: pypa/gh-action-pypi-publish@release/v1
-        with:
-          user: __token__
-          password: ${{ secrets.PYPI_API_TOKEN }}
-          # Uncomment the line below if you want to upload to PyPI
-          # repository_url: https://test.pypi.org/legacy/
+      # - uses: pypa/gh-action-pypi-publish@release/v1
+      #   with:
+      #     user: __token__
+      #     password: ${{ secrets.PYPI_API_TOKEN }}
+      #     # Uncomment the line below if you want to upload to PyPI
+      #     # repository_url: https://test.pypi.org/legacy/
