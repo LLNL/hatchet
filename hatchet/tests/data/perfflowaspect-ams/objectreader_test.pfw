@@ -1,0 +1,114 @@
+{
+  "displayTimeUnit": "us",
+  "otherData": {},
+  "traceEvents": [
+    {
+      "name": "bas",
+      "cat": "/home/zyang12/perflow/PerfFlowAspect/src/c/test/smoketest.cpp",
+      "pid": 3515331,
+      "tid": 3515331,
+      "ts": 1719943252600542,
+      "ph": "X",
+      "dur": 5362
+    },
+    {
+      "name": "bar",
+      "cat": "/home/zyang12/perflow/PerfFlowAspect/src/c/test/smoketest.cpp",
+      "pid": 3515331,
+      "tid": 3515331,
+      "ts": 1719943252594309,
+      "ph": "X",
+      "dur": 15916
+    },
+    {
+      "name": "foo",
+      "cat": "/home/zyang12/perflow/PerfFlowAspect/src/c/test/smoketest.cpp",
+      "pid": 3515331,
+      "tid": 3515331,
+      "ts": 1719943252586476,
+      "ph": "X",
+      "dur": 28946
+    },
+    {
+      "name": "bas",
+      "cat": "/home/zyang12/perflow/PerfFlowAspect/src/c/test/smoketest.cpp",
+      "pid": 3515331,
+      "tid": 3515331,
+      "ts": 1719943252633900,
+      "ph": "X",
+      "dur": 6171
+    },
+    {
+      "name": "bar",
+      "cat": "/home/zyang12/perflow/PerfFlowAspect/src/c/test/smoketest.cpp",
+      "pid": 3515331,
+      "tid": 3515331,
+      "ts": 1719943252627695,
+      "ph": "X",
+      "dur": 17722
+    },
+    {
+      "name": "foo",
+      "cat": "/home/zyang12/perflow/PerfFlowAspect/src/c/test/smoketest.cpp",
+      "pid": 3515331,
+      "tid": 3515331,
+      "ts": 1719943252620281,
+      "ph": "X",
+      "dur": 30211
+    },
+    {
+      "name": "bas",
+      "cat": "/home/zyang12/perflow/PerfFlowAspect/src/c/test/smoketest.cpp",
+      "pid": 3515331,
+      "tid": 3515331,
+      "ts": 1719943252669185,
+      "ph": "X",
+      "dur": 4118
+    },
+    {
+      "name": "bar",
+      "cat": "/home/zyang12/perflow/PerfFlowAspect/src/c/test/smoketest.cpp",
+      "pid": 3515331,
+      "tid": 3515331,
+      "ts": 1719943252662741,
+      "ph": "X",
+      "dur": 16776
+    },
+    {
+      "name": "foo",
+      "cat": "/home/zyang12/perflow/PerfFlowAspect/src/c/test/smoketest.cpp",
+      "pid": 3515331,
+      "tid": 3515331,
+      "ts": 1719943252655285,
+      "ph": "X",
+      "dur": 28653
+    },
+    {
+      "name": "bas",
+      "cat": "/home/zyang12/perflow/PerfFlowAspect/src/c/test/smoketest.cpp",
+      "pid": 3515331,
+      "tid": 3515331,
+      "ts": 1719943252702754,
+      "ph": "X",
+      "dur": 4609
+    },
+    {
+      "name": "bar",
+      "cat": "/home/zyang12/perflow/PerfFlowAspect/src/c/test/smoketest.cpp",
+      "pid": 3515331,
+      "tid": 3515331,
+      "ts": 1719943252695929,
+      "ph": "X",
+      "dur": 16893
+    },
+    {
+      "name": "foo",
+      "cat": "/home/zyang12/perflow/PerfFlowAspect/src/c/test/smoketest.cpp",
+      "pid": 3515331,
+      "tid": 3515331,
+      "ts": 1719943252688590,
+      "ph": "X",
+      "dur": 28618
+    }
+  ]
+}
