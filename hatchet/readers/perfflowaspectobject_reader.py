@@ -23,6 +23,8 @@ class PerfFlowAspectObjectReader:
             content = file.read()
             data = json.loads(content)
             self.spec_dict = data["traceEvents"]
+            self.displayTimeUnit = data["displayTimeUnit"]
+            self.metadata = data["otherData"]
 
     def sort(self):
         # Sort the spec_dict based on the end time (ts + dur) of each function
