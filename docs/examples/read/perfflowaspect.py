@@ -10,9 +10,10 @@ import hatchet as ht
 
 if __name__ == "__main__":
     # pfa_file = "../../../hatchet/tests/data/perfflow.quartz1532.3570764-1iter.pfw"
-    pfa_file = "../../../hatchet/tests/data/laghos_1iter.pfw"
-
-    gf = ht.GraphFrame.from_perfflowaspect(pfa_file)
+    #pfa_file = "../../../hatchet/tests/data/perfflowaspect-foobar/perfflow.quartz1532.3570764.pfw"
+    pfa_file = "../../../hatchet/tests/data/perfflowaspect-cpu-mem/foobar_compact_usage.pfw"
+    
+    gf = ht.GraphFrame.from_perfflowaspect(pfa_file, True, True)
 
     # Printout the DataFrame component of the GraphFrame.
     print(gf.dataframe)
@@ -25,3 +26,4 @@ if __name__ == "__main__":
     # Printout the graph component of the GraphFrame.
     # Use "ts" as the metric column to be displayed
     print(gf.tree(metric_column="ts"))
+    
