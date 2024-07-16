@@ -10,7 +10,7 @@ from hatchet import GraphFrame
 
 def test_laghos_graphframe(laghos_perfflowaspect_array):
     """Sanity test a GraphFrame object with known data."""
-    gf = GraphFrame.from_perfflowaspect(str(laghos_perfflowaspect_array))
+    gf = GraphFrame.from_perfflowaspect(str(laghos_perfflowaspect_array), False, False)
 
     assert len(gf.dataframe.groupby("name")) == 4
 
@@ -27,7 +27,7 @@ def test_laghos_graphframe(laghos_perfflowaspect_array):
 
 def test_foobar_graphframe(foobar_perfflowaspect_array):
     """Sanity test a GraphFrame object with known data."""
-    gf = GraphFrame.from_perfflowaspect(str(foobar_perfflowaspect_array))
+    gf = GraphFrame.from_perfflowaspect(str(foobar_perfflowaspect_array), False, False)
 
     assert len(gf.dataframe.groupby("name")) == 3
 
@@ -44,7 +44,8 @@ def test_foobar_graphframe(foobar_perfflowaspect_array):
 
 def test_ams_mpi_graphframe(ams_mpi_perfflowaspect_array):
     """Sanity test a GraphFrame object with known data."""
-    gf = GraphFrame.from_perfflowaspect(str(ams_mpi_perfflowaspect_array))
+    gf = GraphFrame.from_perfflowaspect(str(ams_mpi_perfflowaspect_array),
+                                        False, False)
 
     assert len(gf.dataframe.groupby("name")) == 34
 
@@ -57,3 +58,10 @@ def test_ams_mpi_graphframe(ams_mpi_perfflowaspect_array):
             assert gf.dataframe[col].dtype == object
 
     # TODO: add tests to confirm values in dataframe
+
+
+def test_perfflowaspect_foobar_usage_array(perfflowaspect_foobar_usage_array):
+    gf = GraphFrame.from_perfflowaspect(str(perfflowaspect_foobar_usage_array),
+                                        True, True)
+    
+    assert len(gf.dataframe.groupby("name")) == 3
