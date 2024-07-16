@@ -35,42 +35,43 @@ class PerfFlowAspectReader:
         roots = []
         node_mapping = {}  # Dictionary to keep track of the nodes
         node_dicts = []
-        is_compact = True
+        is_compact = True  # TODO: Assumes log is compact PFA output.
         usage_pairings = {}
 
-        # Sanity check, determine log is verbose or compact by 
-        # accessing the first log event.
-        # if self.spec_dict[0]["ph"] == "X":
-        #     is_compact = True
-        
         for item in self.spec_dict:
+            # the following values always appear in a PerfFlowAspect log
             name = item["name"]
             ts = item["ts"]
-            dur = None
             ph = item["ph"]
-            
-            # If statistic event, get the statistics and match with the timestamp.
+
+            # these items may or may not appear.
+            dur = None
+            memory = 0
+            cpu = 0
+
+            # If statistic event, get the statistics and match with
+            # the timestamp.
             if ph == "C":
-                memory = 0
-                cpu = 0.0
-                valid_log = False
+                if not self.scan_cpu or not self.scan_memory:
+                    continue
+                valid_statistic = False
                 if self.scan_memory:
-                    if item["args"]["memory_usage"] != 0: 
+                    if item["args"]["memory_usage"] != 0:
                         memory = item["args"]["memory_usage"]
-                        valid_log = True
+                        valid_statistic = True
                 if self.scan_cpu:
-                    if item["args"]["cpu_usage"] != 0.0: 
+                    if item["args"]["cpu_usage"] != 0.0:
                         cpu = item["args"]["cpu_usage"]
-                        valid_log = True
-                
-                if valid_log: usage_pairings[ts] = (memory, cpu)
+                        valid_statistic = True
+                if valid_statistic:
+                    usage_pairings[ts] = (memory, cpu)
                 continue
-            
+
             if is_compact:
                 dur = item["dur"]
             else:
-                dur = 1 # impl in future for verbose
-            
+                dur = 1   # impl in future for verbose
+
             # A Frame always consists of these values
             frame_values = {
                 "name": name,
@@ -78,18 +79,16 @@ class PerfFlowAspectReader:
                 "ts": ts,
                 "dur": dur
             }
-            
-            # Optionally, if logging statistics, insert memory and cpu usage into the Frame
-            memory = None
-            cpu = None
+
+            # Optionally, if logging statistics, insert memory and cpu usage
+            # into the Frame
             if self.scan_memory:
                 memory = usage_pairings[ts][0]
-                frame_values["memory"] = memory
+                frame_values["usage_memory"] = memory
             if self.scan_cpu:
                 cpu = usage_pairings[ts][1]
-                frame_values["cpu"] = cpu
-                
-                
+                frame_values["usage_cpu"] = cpu
+
             # Create a Frame and Node for the function
             # Frame stores information about the node
             # Node represents a node in the hierarchical graph structure
@@ -106,7 +105,7 @@ class PerfFlowAspectReader:
                     root.add_parent(node)
                     roots.pop()
             roots.append(node)
-            
+
             node_dict_vals = {
                 "node": node,
                 "name": name,
@@ -116,10 +115,11 @@ class PerfFlowAspectReader:
                 "tid": item["tid"],
                 "ph": item["ph"]
             }
-            
-            if memory is not None: node_dict_vals["memory"] = memory
-            if cpu is not None: node_dict_vals["cpu"] = cpu
-            
+            if self.scan_memory:
+                node_dict_vals["usage_memory"] = memory
+            if self.scan_cpu:
+                node_dict_vals["usage_cpu"] = cpu
+
             node_dict = dict(
                 node_dict_vals
             )

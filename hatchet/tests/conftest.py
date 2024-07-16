@@ -1218,6 +1218,19 @@ def foobar_perfflowaspect_array(data_dir, tmpdir):
     return tmpfile
 
 
+@pytest.fixture
+def perfflowaspect_foobar_usage_array(data_dir, tmpdir):
+    """Builds a temporary directory containining the foobar PerfFlowAspect
+    file with usage statistics"""
+    pfa_dir = os.path.join(data_dir, "perfflowaspect-cpu-mem")
+    pfa_file = os.path.join(pfa_dir, "foobar_compact_usage.pfw")
+
+    shutil.copy(pfa_file, str(tmpdir))
+    tmpfile = os.path.join(str(tmpdir), "foobar_compact_usage.pfw")
+
+    return tmpfile
+
+
 def write_file(data_dir):
     filename = "ams_mpi_allranks.pfw"
     pfa_dir = os.path.join(data_dir, "perfflowaspect-ams/ams_mpi_test1")
