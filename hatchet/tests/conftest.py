@@ -1219,14 +1219,27 @@ def foobar_perfflowaspect_array(data_dir, tmpdir):
 
 
 @pytest.fixture
-def perfflowaspect_foobar_usage_array(data_dir, tmpdir):
-    """Builds a temporary directory containining the foobar PerfFlowAspect
-    file with usage statistics"""
+def smoketest_perfflowaspect_array(data_dir, tmpdir):
+    """Builds a temporary directory containining the smoketest PerfFlowAspect
+    file without usage statistics"""
     pfa_dir = os.path.join(data_dir, "perfflowaspect-cpu-mem")
-    pfa_file = os.path.join(pfa_dir, "foobar_compact_usage.pfw")
+    pfa_file = os.path.join(pfa_dir, "smoketest.array.turing.pfw")
 
     shutil.copy(pfa_file, str(tmpdir))
-    tmpfile = os.path.join(str(tmpdir), "foobar_compact_usage.pfw")
+    tmpfile = os.path.join(str(tmpdir), "smoketest.array.turing.pfw")
+
+    return tmpfile
+
+
+@pytest.fixture
+def smoketest_statistics_perfflowaspect_array(data_dir, tmpdir):
+    """Builds a temporary directory containining the smoketest PerfFlowAspect
+    file with usage statistics"""
+    pfa_dir = os.path.join(data_dir, "perfflowaspect-cpu-mem")
+    pfa_file = os.path.join(pfa_dir, "smoketest.withusage.array.turing.pfw")
+
+    shutil.copy(pfa_file, str(tmpdir))
+    tmpfile = os.path.join(str(tmpdir), "smoketest.withusage.array.turing.pfw")
 
     return tmpfile
 

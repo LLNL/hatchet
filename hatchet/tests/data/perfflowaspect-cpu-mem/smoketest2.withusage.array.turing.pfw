@@ -1,0 +1,5 @@
+[
+{"name": "foo", "cat": "/home/ssgreene/PerfFlowAspect/src/c/test/smoketest2.cpp", "pid": 180138, "tid": 180138, "ts": 1721160076802276.0, "ph": "C", "args": {"cpu_usage": 17.105935810882745, "memory_usage": 7952}},
+{"name": "foo", "cat": "/home/ssgreene/PerfFlowAspect/src/c/test/smoketest2.cpp", "pid": 180138, "tid": 180138, "ts": 1721160076809325.0, "ph": "C", "args": {"cpu_usage": 0.0, "memory_usage": 0}},
+{"name": "foo", "cat": "/home/ssgreene/PerfFlowAspect/src/c/test/smoketest2.cpp", "pid": 180138, "tid": 180138, "ts": 1721160076802276.0, "ph": "X", "dur": 7049.0}
+]

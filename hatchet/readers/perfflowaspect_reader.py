@@ -35,8 +35,15 @@ class PerfFlowAspectReader:
         roots = []
         node_mapping = {}  # Dictionary to keep track of the nodes
         node_dicts = []
-        is_compact = True  # TODO: Assumes log is compact PFA output.
-        usage_pairings = {}
+        is_compact = True  # TODO: This currently log is compact PFA log.
+        usage_pairings = {}  # usage_pairings[ts] = (memory, cpu)
+
+        # Error if attempt is made to retrieve statistics,
+        # but no statistics exist.
+        if all("C" not in item["ph"] for item in self.spec_dict) and (
+            self.scan_cpu or self.scan_memory
+        ):
+            raise ValueError("No statistics in the provided file!")
 
         for item in self.spec_dict:
             # the following values always appear in a PerfFlowAspect log
@@ -52,8 +59,6 @@ class PerfFlowAspectReader:
             # If statistic event, get the statistics and match with
             # the timestamp.
             if ph == "C":
-                if not self.scan_cpu or not self.scan_memory:
-                    continue
                 valid_statistic = False
                 if self.scan_memory:
                     if item["args"]["memory_usage"] != 0:

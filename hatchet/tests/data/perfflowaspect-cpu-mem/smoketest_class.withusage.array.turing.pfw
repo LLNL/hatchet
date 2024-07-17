@@ -1,0 +1,8 @@
+[
+{"name": "SmokeTest::bar", "cat": "/home/ssgreene/PerfFlowAspect/src/c/test/smoketest_class.cpp", "pid": 184107, "tid": 184107, "ts": 1721160587167725.0, "ph": "C", "args": {"cpu_usage": 0.060419948925585512, "memory_usage": 8060}},
+{"name": "SmokeTest::bar", "cat": "/home/ssgreene/PerfFlowAspect/src/c/test/smoketest_class.cpp", "pid": 184107, "tid": 184107, "ts": 1721160588175449.0, "ph": "C", "args": {"cpu_usage": 0.0, "memory_usage": 0}},
+{"name": "SmokeTest::bar", "cat": "/home/ssgreene/PerfFlowAspect/src/c/test/smoketest_class.cpp", "pid": 184107, "tid": 184107, "ts": 1721160587167725.0, "ph": "X", "dur": 1007724.0},
+{"name": "SmokeTest::foo", "cat": "/home/ssgreene/PerfFlowAspect/src/c/test/smoketest_class.cpp", "pid": 184107, "tid": 184107, "ts": 1721160586158258.0, "ph": "C", "args": {"cpu_usage": 0.10995128166788122, "memory_usage": 8060}},
+{"name": "SmokeTest::foo", "cat": "/home/ssgreene/PerfFlowAspect/src/c/test/smoketest_class.cpp", "pid": 184107, "tid": 184107, "ts": 1721160588180456.0, "ph": "C", "args": {"cpu_usage": 0.0, "memory_usage": 0}},
+{"name": "SmokeTest::foo", "cat": "/home/ssgreene/PerfFlowAspect/src/c/test/smoketest_class.cpp", "pid": 184107, "tid": 184107, "ts": 1721160586158258.0, "ph": "X", "dur": 2022198.0}
+]

@@ -1,0 +1,11 @@
+[
+{"name": "bas", "cat": "/home/ssgreene/PerfFlowAspect/src/c/test/smoketest3.cpp", "pid": 180157, "tid": 180157, "ts": 1721160143186714.0, "ph": "C", "args": {"cpu_usage": 3.8653881047871144, "memory_usage": 8164}},
+{"name": "bas", "cat": "/home/ssgreene/PerfFlowAspect/src/c/test/smoketest3.cpp", "pid": 180157, "tid": 180157, "ts": 1721160143193510.0, "ph": "C", "args": {"cpu_usage": 0.0, "memory_usage": 0}},
+{"name": "bas", "cat": "/home/ssgreene/PerfFlowAspect/src/c/test/smoketest3.cpp", "pid": 180157, "tid": 180157, "ts": 1721160143186714.0, "ph": "X", "dur": 6796.0},
+{"name": "bar", "cat": "/home/ssgreene/PerfFlowAspect/src/c/test/smoketest3.cpp", "pid": 180157, "tid": 180157, "ts": 1721160143180173.0, "ph": "C", "args": {"cpu_usage": 5.2164429253105107, "memory_usage": 8164}},
+{"name": "bar", "cat": "/home/ssgreene/PerfFlowAspect/src/c/test/smoketest3.cpp", "pid": 180157, "tid": 180157, "ts": 1721160143198393.0, "ph": "C", "args": {"cpu_usage": 0.0, "memory_usage": 0}},
+{"name": "bar", "cat": "/home/ssgreene/PerfFlowAspect/src/c/test/smoketest3.cpp", "pid": 180157, "tid": 180157, "ts": 1721160143180173.0, "ph": "X", "dur": 18220.0},
+{"name": "foo", "cat": "/home/ssgreene/PerfFlowAspect/src/c/test/smoketest3.cpp", "pid": 180157, "tid": 180157, "ts": 1721160143171108.0, "ph": "C", "args": {"cpu_usage": 80.765738305351547, "memory_usage": 12244}},
+{"name": "foo", "cat": "/home/ssgreene/PerfFlowAspect/src/c/test/smoketest3.cpp", "pid": 180157, "tid": 180157, "ts": 1721160143346163.0, "ph": "C", "args": {"cpu_usage": 0.0, "memory_usage": 0}},
+{"name": "foo", "cat": "/home/ssgreene/PerfFlowAspect/src/c/test/smoketest3.cpp", "pid": 180157, "tid": 180157, "ts": 1721160143171108.0, "ph": "X", "dur": 175055.0}
+]
