@@ -1257,6 +1257,34 @@ def smoketest_two_perfflowaspect_stats(data_dir, tmpdir):
     return tmpfile
 
 
+@pytest.fixture
+def smoketest_three_perfflowaspect_stats(data_dir, tmpdir):
+    """Builds a temporary directory containining the smoketest3 PerfFlowAspect
+    file with usage statistics. This file is intentionally left as PerfFlowAspect
+    constructed it - to ensure that the reader properly fixes it."""
+    pfa_dir = os.path.join(data_dir, "perfflowaspect-cpu-mem")
+    pfa_file = os.path.join(pfa_dir, "smoketest3.withusage.array.turing.pfw")
+
+    shutil.copy(pfa_file, str(tmpdir))
+    tmpfile = os.path.join(str(tmpdir), "smoketest3.withusage.array.turing.pfw")
+
+    return tmpfile
+
+
+@pytest.fixture
+def smoketest_three_perfflowaspect(data_dir, tmpdir):
+    """Builds a temporary directory containining the smoketest3 PerfFlowAspect
+    file with usage statistics. This file is intentionally left as PerfFlowAspect
+    constructed it - to ensure that the reader properly fixes it."""
+    pfa_dir = os.path.join(data_dir, "perfflowaspect-cpu-mem")
+    pfa_file = os.path.join(pfa_dir, "smoketest3.array.turing.pfw")
+
+    shutil.copy(pfa_file, str(tmpdir))
+    tmpfile = os.path.join(str(tmpdir), "smoketest3.array.turing.pfw")
+
+    return tmpfile
+
+
 def write_file(data_dir):
     filename = "ams_mpi_allranks.pfw"
     pfa_dir = os.path.join(data_dir, "perfflowaspect-ams/ams_mpi_test1")

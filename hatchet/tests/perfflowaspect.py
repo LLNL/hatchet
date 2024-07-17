@@ -99,7 +99,7 @@ def test_smoketest_perfflowaspect_stats_memory(smoketest_perfflowaspect_stats):
                                         True, False)
 
     assert len(gf.dataframe.groupby("name")) == 3
-    
+
     assert all(column in gf.dataframe.columns for column in (
         "ts", "dur", "usage_memory", "pid", "name", "ph"
     ))
@@ -169,6 +169,53 @@ def test_smoketest_two_perfflowaspect_stats(smoketest_two_perfflowaspect_stats):
                                         True, True)
 
     assert len(gf.dataframe.groupby("name")) == 1
+
+    assert all(column in gf.dataframe.columns for column in (
+        "ts", "dur", "usage_cpu", "usage_memory", "pid", "name", "ph"
+    ))
+
+    for col in gf.dataframe.columns:
+        if col in ("ts", "dur", "usage_cpu"):
+            assert gf.dataframe[col].dtype == np.float64
+        elif col in ("pid", "tid", "usage_memory"):
+            assert gf.dataframe[col].dtype == np.int64
+        elif col in ("name", "ph"):
+            assert gf.dataframe[col].dtype == object
+
+
+def test_smoketest_three_perfflowaspect(smoketest_three_perfflowaspect):
+    """Confirm perfflowaspect_reader reads both usage statistics in a
+    smoketest2 example with statistics. There should be cpu/memory stats.
+    """
+    gf = GraphFrame.from_perfflowaspect(str(smoketest_three_perfflowaspect),
+                                        False, False)
+
+    assert len(gf.dataframe.groupby("name")) == 3
+
+    assert all(column in gf.dataframe.columns for column in (
+        "ts", "dur",  "pid", "name", "ph"
+    ))
+
+    assert "usage_cpu" not in gf.dataframe.columns
+    assert "usage_memory" not in gf.dataframe.columns
+
+    for col in gf.dataframe.columns:
+        if col in ("ts", "dur", "usage_cpu"):
+            assert gf.dataframe[col].dtype == np.float64
+        elif col in ("pid", "tid", "usage_memory"):
+            assert gf.dataframe[col].dtype == np.int64
+        elif col in ("name", "ph"):
+            assert gf.dataframe[col].dtype == object
+
+
+def test_smoketest_three_perfflowaspect_stats(smoketest_three_perfflowaspect_stats):
+    """Confirm perfflowaspect_reader reads both usage statistics in a
+    smoketest2 example with statistics. There should be cpu/memory stats.
+    """
+    gf = GraphFrame.from_perfflowaspect(str(smoketest_three_perfflowaspect_stats),
+                                        True, True)
+
+    assert len(gf.dataframe.groupby("name")) == 3
 
     assert all(column in gf.dataframe.columns for column in (
         "ts", "dur", "usage_cpu", "usage_memory", "pid", "name", "ph"

@@ -8,18 +8,28 @@ from hatchet.frame import Frame
 
 
 class PerfFlowAspectReader:
-    """Create a GraphFrame from JSON array format.
+    """Create a GraphFrame from PerfFlowAspect trace files.
 
     Return:
         (GraphFrame): graphframe containing data from dictionaries
     """
 
     def __init__(self, filename, scan_memory=False, scan_cpu=False):
-        """Read from a json string specification of a graphframe
-
-        json (string): Json specification of a graphframe.
         """
-        with open(filename, "r") as file:
+        filename (str): A path to a PerfFlowAspect trace file.
+        scan_memory (bool): Whether or not to include memory usage statistics
+        scan_cpu (bool): Whether or not to include CPU usage statistics
+        """
+        with open(filename, "r+") as file:
+            # PerfFlow files do not conform to JSON Spec. Modify the file so it does
+            lines = file.readlines()
+            line = lines[-1].strip()
+            if line.endswith("},"):  # Indicates that the file will not handled by JSON
+                line = line.replace("},", "}]")
+                lines[-1] = line
+                file.seek(0, 0)  # Return to start of file to replace the lines
+                file.writelines(lines)
+            file.seek(0, 0)  # Return to start of file to read into content.
             content = file.read()
             self.spec_dict = json.loads(content)
         self.scan_memory = scan_memory

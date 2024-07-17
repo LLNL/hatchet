@@ -1,5 +1,4 @@
 [
 {"name": "bas", "cat": "/home/ssgreene/PerfFlowAspect/src/c/test/smoketest3.cpp", "pid": 184403, "tid": 184403, "ts": 1721161211424915.0, "ph": "X", "dur": 11077.0},
 {"name": "bar", "cat": "/home/ssgreene/PerfFlowAspect/src/c/test/smoketest3.cpp", "pid": 184403, "tid": 184403, "ts": 1721161211406352.0, "ph": "X", "dur": 35922.0},
-{"name": "foo", "cat": "/home/ssgreene/PerfFlowAspect/src/c/test/smoketest3.cpp", "pid": 184403, "tid": 184403, "ts": 1721161211395933.0, "ph": "X", "dur": 188789.0}
-]
+{"name": "foo", "cat": "/home/ssgreene/PerfFlowAspect/src/c/test/smoketest3.cpp", "pid": 184403, "tid": 184403, "ts": 1721161211395933.0, "ph": "X", "dur": 188789.0},
