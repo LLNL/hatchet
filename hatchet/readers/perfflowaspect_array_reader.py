@@ -7,7 +7,7 @@ from hatchet.graph import Graph
 from hatchet.frame import Frame
 
 
-class PerfFlowAspectReader:
+class PerfFlowAspectArrayReader:
     """Create a GraphFrame from PerfFlowAspect trace files.
 
     Return:

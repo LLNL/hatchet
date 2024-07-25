@@ -13,7 +13,7 @@ if __name__ == "__main__":
     # pfa_file = "../../../hatchet/tests/data/perfflowaspect-foobar/perfflow.quartz1532.3570764.pfw"
     pfa_file = "../../../hatchet/tests/data/perfflowaspect-cpu-mem/smoketest3.withusage.array.turing.pfw"
 
-    gf = ht.GraphFrame.from_perfflowaspect(pfa_file, False, False)
+    gf = ht.GraphFrame.from_perfflowaspect_array(pfa_file, False, False)
 
     # Printout the DataFrame component of the GraphFrame.
     print(gf.dataframe)
