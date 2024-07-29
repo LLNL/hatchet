@@ -456,7 +456,7 @@ class GraphFrame:
     @staticmethod
     def from_perfflowaspect_object(filename):
 		# import this lazily to avoid circular dependencies
-        from .readers.perfflowaspectobject_reader import PerfFlowAspectObjectReader
+        from .readers.perfflowaspect_object_reader import PerfFlowAspectObjectReader
 
         return PerfFlowAspectObjectReader(filename).read()
 

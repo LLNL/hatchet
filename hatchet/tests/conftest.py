@@ -1370,6 +1370,7 @@ def caliper_hatchet_sample_profile(data_dir, tmpdir):
     tmpfile = os.path.join(str(tmpdir), "amg-sample.cali")
 
 
+@pytest.fixture
 def laghos_perfflowaspect_array(data_dir, tmpdir):
     """Builds a temporary directory containing the laghos PerfFlowAspect file."""
     pfa_dir = os.path.join(data_dir, "perfflowaspect-laghos")
@@ -1377,6 +1378,18 @@ def laghos_perfflowaspect_array(data_dir, tmpdir):
 
     shutil.copy(pfa_file, str(tmpdir))
     tmpfile = os.path.join(str(tmpdir), "laghos_1iter.pfw")
+
+    return tmpfile
+
+
+@pytest.fixture
+def foobar_perfflowaspect_array(data_dir, tmpdir):
+    """Builds a temporary directory containing the foobar PerfFlowAspect file."""
+    pfa_dir = os.path.join(data_dir, "perfflowaspect-foobar")
+    pfa_file = os.path.join(pfa_dir, "perfflow.quartz1532.3570764-1iter.pfw")
+
+    shutil.copy(pfa_file, str(tmpdir))
+    tmpfile = os.path.join(str(tmpdir), "perfflow.quartz1532.3570764-1iter.pfw")
 
     return tmpfile
 
@@ -1444,3 +1457,8 @@ def ams_mpi_perfflowaspect_array(data_dir, tmpdir):
     tmpfile = os.path.join(str(tmpdir), "ams_mpi_allranks.pfw")
 
     return tmpfile
+
+@pytest.fixture
+def perfflowaspectobjectreader_test_file():
+    base_dir = os.path.dirname(__file__)
+    return os.path.join(base_dir, 'data', 'perfflowaspect-object', 'object-reader-test1.pfw')

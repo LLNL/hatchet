@@ -32,6 +32,18 @@ class PerfFlowAspectObjectReader:
             self.spec_dict, key=lambda item: item["ts"] + item["dur"]
         )
 
+    def convert_time_units(self, ts, dur, unit):
+        if unit == "s":
+            return ts, dur
+        
+        time_unit_conversion = {
+            "ns": 1e-9,
+            "us": 1e-6,
+            "ms": 1e-3,
+        }
+        conversion_factor = time_unit_conversion.get(unit, 1)
+        return ts * conversion_factor, dur * conversion_factor
+    
     def read(self):
         roots = []
         node_mapping = {}  # Dictionary to keep track of the nodes
@@ -41,6 +53,9 @@ class PerfFlowAspectObjectReader:
             name = item["name"]
             ts = item["ts"]
             dur = item["dur"]
+            unit = self.displayTimeUnit
+            
+            ts, dur = self.convert_time_units(ts, dur, unit)
 
             # Create a Frame and Node for the function
             # Frame stores information about the node
