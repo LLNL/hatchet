@@ -139,16 +139,16 @@ class GraphFrame:
         Arguments:
             dirname (str): directory of an HPCToolkit performance database
             directory_mapping (dict): Python dictionary that maps file system location to a name
-            parallel_profiles_mode (bool): fleg whether the reader should extract parallel profiles from the database (true) or the summary profile (false)
+            parallel_profiles_mode (bool): flag whether the reader should extract parallel profiles from the database (true) or the summary profile (false)
             max_depth (int): maximum depth that nodes in the tree should have
             min_percentage_of_application_time (int): minimum percentage of the application time that nodes in the tree should have
-            exclude_mpi_function_details (bool): fleg whether to exclude subtrees of MPI function nodes
-            exclude_openmp_function_details (bool): fleg whether to exclude subtrees of OpenMP function nodes
-            exclude_cuda_function_details (bool): fleg whether to exclude subtrees of CUDA function nodes
-            exclude_system_libraries_source_code (bool): fleg whether the reader should exclude subtree of a system library node
-            exclude_function_call_lines (bool): fleg whether to exclude source line nodes that represent place of a function call
-            exclude_no_source_code_instructions (bool): fleg whether to exclude nodes with no source code mapping information
-            label_function_nodes (bool): fleg whether to label function nodes with 'function' prefix
+            exclude_mpi_function_details (bool): flag whether to exclude subtrees of MPI function nodes
+            exclude_openmp_function_details (bool): flag whether to exclude subtrees of OpenMP function nodes
+            exclude_cuda_function_details (bool): flag whether to exclude subtrees of CUDA function nodes
+            exclude_system_libraries_source_code (bool): flag whether the reader should exclude subtree of a system library node
+            exclude_function_call_lines (bool): flag whether to exclude source line nodes that represent place of a function call
+            exclude_no_source_code_instructions (bool): flag whether to exclude nodes with no source code mapping information
+            label_function_nodes (bool): flag whether to label function nodes with 'function' prefix
             metric_names (list): list of metrics to extract for selected profiles
             metric_scopes (list): list of metric scopes to extract for selected profiles
             summary_metrics (list): list of summary metrics to extract from the summary profile
