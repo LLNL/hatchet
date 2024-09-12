@@ -666,9 +666,10 @@ class HPCToolkitReaderLatest:
             )
 
             if entryPoint == 1:
-                self._total_execution_time = self._summary_profile[ctxId][
-                    self._time_metric
-                ]
+                if not self._parallel_profiles_mode or self._min_application_percentage_time is not None:
+                    self._total_execution_time = self._summary_profile[ctxId][
+                        self._time_metric
+                    ]
 
                 node = self._store_cct_node(
                     ctxId,
