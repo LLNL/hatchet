@@ -3,5 +3,5 @@
 #
 # SPDX-License-Identifier: MIT
 
-__version_info__ = ("2024", "1", "2")
+__version_info__ = ("2024", "1", "3")
 __version__ = ".".join(__version_info__)
