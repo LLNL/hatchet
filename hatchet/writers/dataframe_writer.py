@@ -4,22 +4,13 @@
 # SPDX-License-Identifier: MIT
 
 from hatchet.node import Node
+from hatchet.graphframe import GraphFrame
+import pandas as pd
 
-from abc import abstractmethod
-
-# TODO The ABC class was introduced in Python 3.4.
-# When support for earlier versions is (eventually) dropped,
-# this entire "try-except" block can be reduced to:
-# from abc import ABC
-try:
-    from abc import ABC
-except ImportError:
-    from abc import ABCMeta
-
-    ABC = ABCMeta("ABC", (object,), {"__slots__": ()})
+from abc import abstractmethod, ABC
 
 
-def _get_node_from_df_iloc(df, ind):
+def _get_node_from_df_iloc(df: pd.DataFrame, ind: int) -> Node:
     node = None
     if isinstance(df.iloc[ind].name, tuple):
         node = df.iloc[ind].name[0]
@@ -32,7 +23,7 @@ def _get_node_from_df_iloc(df, ind):
     return node
 
 
-def _fill_children_and_parents(dump_df):
+def _fill_children_and_parents(dump_df: pd.DataFrame) -> pd.DataFrame:
     dump_df["children"] = [[] for _ in range(len(dump_df))]
     dump_df["parents"] = [[] for _ in range(len(dump_df))]
     for i in range(len(dump_df)):
@@ -49,14 +40,14 @@ def _fill_children_and_parents(dump_df):
 
 
 class DataframeWriter(ABC):
-    def __init__(self, filename):
+    def __init__(self, filename: str) -> None:
         self.filename = filename
 
     @abstractmethod
-    def _write_dataframe_to_file(self, df, **kwargs):
+    def _write_dataframe_to_file(self, df: pd.DataFrame, **kwargs) -> None:
         pass
 
-    def write(self, gf, **kwargs):
+    def write(self, gf: GraphFrame, **kwargs) -> None:
         gf_cpy = gf.deepcopy()
         dump_df = _fill_children_and_parents(gf_cpy.dataframe)
         dump_df["exc_metrics"] = None

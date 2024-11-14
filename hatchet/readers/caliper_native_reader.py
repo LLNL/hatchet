@@ -7,6 +7,13 @@
 import pandas as pd
 import numpy as np
 import os
+import sys
+from typing import Any, Dict, List, Optional, Tuple, Union, cast
+
+if sys.version_info > (3, 9):
+    from collections.abc import Callable
+else:
+    from typing import Callable
 
 import caliperreader as cr
 
@@ -45,7 +52,12 @@ class CaliperNativeReader:
         ),
     }
 
-    def __init__(self, filename_or_caliperreader, native, string_attributes):
+    def __init__(
+        self,
+        filename_or_caliperreader: Union[str, cr.CaliperReader],
+        native: bool,
+        string_attributes: Union[str, List[str]],
+    ) -> None:
         """Read in a native cali using Caliper's python reader.
 
         Args:
@@ -54,24 +66,26 @@ class CaliperNativeReader:
             native (bool): use native metric names or user-readable metric names
             string_attributes (str or list): Adds existing string attributes from within the caliper file to the dataframe
         """
-        self.filename_or_caliperreader = filename_or_caliperreader
+        self.filename_or_caliperreader: Union[str, cr.CaliperReader] = (
+            filename_or_caliperreader
+        )
         self.filename_ext = ""
         self.use_native_metric_names = native
         self.string_attributes = string_attributes
 
-        self.df_nodes = {}
-        self.metric_cols = []
-        self.record_data_cols = []
-        self.node_dicts = []
-        self.callpath_to_node = {}
-        self.idx_to_node = {}
-        self.callpath_to_idx = {}
-        self.global_nid = 0
-        self.node_ordering = False
-        self.gf_list = []
-        self.timeseries_level = None
+        self.df_nodes: Optional[pd.DataFrame] = None
+        self.metric_cols: List[str] = []
+        self.record_data_cols: List[str] = []
+        # self.node_dicts = []
+        self.callpath_to_node: Dict[Tuple[str, ...], Node] = {}
+        self.idx_to_node: Dict[int, Dict[str, Any]] = {}
+        self.callpath_to_idx: Dict[Tuple[str, ...], int] = {}
+        self.global_nid: int = 0
+        self.node_ordering: bool = False
+        self.gf_list: List[hatchet.graphframe.GraphFrame] = []
+        self.timeseries_level: Optional[str] = None
 
-        self.default_metric = None
+        self.default_metric: Optional[str] = None
 
         self.timer = Timer()
 
@@ -81,8 +95,9 @@ class CaliperNativeReader:
         if isinstance(self.string_attributes, str):
             self.string_attributes = [self.string_attributes]
 
-    def _create_metric_df(self, metrics):
+    def _create_metric_df(self, metrics: List[Dict[str, Any]]) -> pd.DataFrame:
         """Make a list of metric columns and create a dataframe, group by node"""
+        assert isinstance(self.filename_or_caliperreader, cr.CaliperReader)
         for col in self.record_data_cols:
             if self.filename_or_caliperreader.attribute(col).is_value():
                 self.metric_cols.append(col)
@@ -90,7 +105,7 @@ class CaliperNativeReader:
         df_new = df_metrics.groupby(df_metrics["nid"]).aggregate("first").reset_index()
         return df_new
 
-    def _reset_metrics(self, metrics):
+    def _reset_metrics(self, metrics: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """Since the initial functions (i.e. main) are only called once, this keeps a small subset
         of the timeseries data and resets the rest so future iterations will be filled with nans
         """
@@ -106,10 +121,11 @@ class CaliperNativeReader:
                 new_mets.append({k: node_dict.get(k, np.nan) for k in cols_to_keep})
         return new_mets
 
-    def read_metrics(self, ctx="path"):
+    def read_metrics(self, ctx: str = "path") -> List[pd.DataFrame]:
         """append each metrics table to a list and return the list, split on timeseries_level if exists"""
+        assert isinstance(self.filename_or_caliperreader, cr.CaliperReader)
         metric_dfs = []
-        all_metrics = []
+        all_metrics: List[Dict[str, Any]] = []
         next_timestep = 0
         cur_timestep = 0
         records = self.filename_or_caliperreader.records
@@ -169,9 +185,9 @@ class CaliperNativeReader:
                                     or item in self.string_attributes
                                 ):
                                     try:
-                                        node_dict[item] = self.__cali_type_dict[
-                                            attr_type
-                                        ](record[item])
+                                        node_dict[item] = cast(
+                                            Callable, self.__cali_type_dict[attr_type]
+                                        )(record[item])
                                         if item not in self.record_data_cols:
                                             self.record_data_cols.append(item)
                                     except ValueError as e:
@@ -192,10 +208,11 @@ class CaliperNativeReader:
         # will return a list with only one element unless it is a timeseries
         return metric_dfs
 
-    def create_graph(self, ctx="path"):
+    def create_graph(self, ctx: str = "path") -> List[Node]:
+        assert isinstance(self.filename_or_caliperreader, cr.CaliperReader)
         list_roots = []
 
-        def _create_parent(child_node, parent_callpath):
+        def _create_parent(child_node: Node, parent_callpath: Tuple[str, ...]) -> None:
             """We may encounter a parent node in the callpath before we see it
             as a child node. In this case, we need to create a hatchet node for
             the parent.
@@ -347,7 +364,9 @@ class CaliperNativeReader:
 
         return list_roots
 
-    def _parse_metadata(self, mdata):
+    def _parse_metadata(
+        self, mdata: Dict[str, Union[List, str]]
+    ) -> Dict[str, Union[List, int, float, str]]:
         """Convert Caliper Metadata values into correct Python objects.
 
         Args:
@@ -356,7 +375,7 @@ class CaliperNativeReader:
         Return:
             (dict[str: str]): modified metadata
         """
-        parsed_mdata = {}
+        parsed_mdata: Dict[str, Union[List, int, float, str]] = {}
         for k, v in mdata.items():
             # environment information service brings in different metadata types
             if isinstance(v, list):
@@ -385,7 +404,7 @@ class CaliperNativeReader:
                         parsed_mdata[k] = v
         return parsed_mdata
 
-    def read(self):
+    def read(self) -> hatchet.graphframe.GraphFrame:
         """Read the caliper records to extract the calling context tree."""
         if isinstance(self.filename_or_caliperreader, str):
             if self.filename_ext != ".cali":
@@ -414,7 +433,6 @@ class CaliperNativeReader:
 
         # If not a timeseries there will just be one element in the list
         for df_fixed_data in metrics_list:
-
             metrics = pd.DataFrame.from_dict(data=df_fixed_data)
 
             # add missing intermediate nodes to the df_fixed_data dataframe
@@ -423,7 +441,7 @@ class CaliperNativeReader:
                 rank_list = range(0, num_ranks)
 
             # create a standard dict to be used for filling all missing rows
-            default_metric_dict = {}
+            default_metric_dict: Dict[str, Any] = {}
             for idx, col in enumerate(self.record_data_cols):
                 if self.filename_or_caliperreader.attribute(col).is_value():
                     default_metric_dict[list(self.record_data_cols)[idx]] = 0
@@ -432,7 +450,7 @@ class CaliperNativeReader:
             default_metric_dict["nid"] = np.nan
 
             # create a list of dicts, one dict for each missing row
-            missing_nodes = []
+            missing_nodes: List[Dict[str, Any]] = []
             for iteridx, row in self.df_nodes.iterrows():
                 # check if df_nodes row exists in df_fixed_data
                 metric_rows = df_fixed_data.loc[metrics["nid"] == row["nid"]]
@@ -571,7 +589,9 @@ class CaliperNativeReader:
         #  othewise we'll have populated the timeseries list of gfs attribute and can ignore the return value
         return self.gf_list[0]
 
-    def read_timeseries(self, level="loop.start_iteration"):
+    def read_timeseries(
+        self, level: str = "loop.start_iteration"
+    ) -> List[hatchet.graphframe.GraphFrame]:
         """Read in a timeseries Cali file. We need to intercept the read function
         so we can get a list of profiles for thicket
 

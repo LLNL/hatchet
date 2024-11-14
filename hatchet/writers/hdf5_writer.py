@@ -6,17 +6,19 @@
 import warnings
 import sys
 
+import pandas as pd
+
 from .dataframe_writer import DataframeWriter
 
 
 class HDF5Writer(DataframeWriter):
-    def __init__(self, filename):
+    def __init__(self, filename: str) -> None:
         if sys.version_info[0] == 2:
             super(HDF5Writer, self).__init__(filename)
         else:
             super().__init__(filename)
 
-    def _write_dataframe_to_file(self, df, **kwargs):
+    def _write_dataframe_to_file(self, df: pd.DataFrame, **kwargs) -> None:
         if "key" not in kwargs:
             raise KeyError("Writing to HDF5 requires a user-supplied key")
         key = kwargs["key"]

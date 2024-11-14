@@ -8,6 +8,13 @@ import json
 import sys
 import traceback
 from collections import defaultdict
+from typing import Any, Dict, List, Optional, Set, Tuple, Union, cast
+from io import TextIOWrapper
+
+if sys.version_info >= (3, 9):
+    from collections.abc import Callable, Iterable
+else:
+    from typing import Callable, Iterable
 
 import multiprocess as mp
 import numpy as np
@@ -19,6 +26,8 @@ from .graph import Graph
 from .node import Node
 from .query import (
     AbstractQuery,
+    Query,
+    CompoundQuery,
     ObjectQuery,
     QueryEngine,
     is_hatchet_query,
@@ -28,7 +37,7 @@ from .util.deprecated import deprecated_params
 from .util.dot import trees_to_dot
 
 try:
-    from .cython_modules.libs import graphframe_modules as _gfm_cy
+    from .cython_modules.libs import graphframe_modules as _gfm_cy  # type: ignore
 except ImportError:
     print("-" * 80)
     print(
@@ -39,7 +48,21 @@ except ImportError:
     raise
 
 
-def parallel_apply(filter_function, dataframe, queue):
+PandasSingleGroupbyType = Union[Callable, Dict, str, Tuple[str, ...], pd.Grouper]
+PandasMultipleGroupbyType = Union[
+    PandasSingleGroupbyType,
+    List[PandasSingleGroupbyType],
+    Tuple[PandasSingleGroupbyType, ...],
+]
+PandasSingleGroupbyAggType = Union[Callable, str]
+PandasMultipleGroupbyAggType = Union[
+    List[PandasSingleGroupbyAggType],
+    Tuple[PandasSingleGroupbyAggType, ...],
+    Dict[Union[str, List[str], Tuple[str, ...]], PandasSingleGroupbyAggType],
+]
+
+
+def parallel_apply(filter_function: Callable, dataframe: pd.DataFrame, queue: mp.Queue):
     """A function called in parallel, which does a pandas apply on part of a
     dataframe and returns the results via multiprocessing queue function."""
     filtered_rows = dataframe.apply(filter_function, axis=1)
@@ -54,13 +77,13 @@ class GraphFrame:
 
     def __init__(
         self,
-        graph,
-        dataframe,
-        exc_metrics=None,
-        inc_metrics=None,
-        default_metric="time",
-        metadata={},
-    ):
+        graph: Graph,
+        dataframe: pd.DataFrame,
+        exc_metrics: Optional[List[str]] = None,
+        inc_metrics: Optional[List[str]] = None,
+        default_metric: str = "time",
+        metadata: Dict[str, Any] = {},
+    ) -> None:
         """Create a new GraphFrame from a graph and a dataframe.
 
         Likely, you do not want to use this function.
@@ -94,7 +117,7 @@ class GraphFrame:
         self.query_engine = QueryEngine()
 
     @staticmethod
-    def from_hpctoolkit(dirname):
+    def from_hpctoolkit(dirname: str) -> "GraphFrame":
         """Read an HPCToolkit database directory into a new GraphFrame.
 
         Arguments:
@@ -112,10 +135,10 @@ class GraphFrame:
     @staticmethod
     def from_hpctoolkit_latest(
         dirname: str,
-        max_depth: int = None,
-        min_percentage_of_application_time: int = None,
-        min_percentage_of_parent_time: int = None,
-    ):
+        max_depth: Optional[int] = None,
+        min_percentage_of_application_time: Optional[int] = None,
+        min_percentage_of_parent_time: Optional[int] = None,
+    ) -> Optional["GraphFrame"]:
         """
         Read an HPCToolkit database directory into a new GraphFrame
 
@@ -139,7 +162,9 @@ class GraphFrame:
         ).read()
 
     @staticmethod
-    def from_caliper(filename_or_stream, query=None):
+    def from_caliper(
+        filename_or_stream: Union[str, TextIOWrapper], query: Optional[str] = None
+    ) -> "GraphFrame":
         """Read in a Caliper .cali or .json file.
 
         Args:
@@ -155,8 +180,10 @@ class GraphFrame:
 
     @staticmethod
     def from_caliperreader(
-        filename_or_caliperreader, native=False, string_attributes=[]
-    ):
+        filename_or_caliperreader: Any,
+        native: bool = False,
+        string_attributes: Union[List[str], str] = [],
+    ) -> "GraphFrame":
         """Read in a native Caliper `cali` file using Caliper's python reader.
 
         Args:
@@ -175,11 +202,11 @@ class GraphFrame:
 
     @staticmethod
     def from_timeseries(
-        filename_or_caliperreader,
-        level="loop.start_iteration",
-        native=False,
-        string_attributes=[],
-    ):
+        filename_or_caliperreader: Any,
+        level: str = "loop.start_iteration",
+        native: bool = False,
+        string_attributes: Union[List[str], str] = [],
+    ) -> List["GraphFrame"]:
         """Read in a native Caliper timeseries `cali` file using Caliper's python reader.
 
         Args:
@@ -197,7 +224,9 @@ class GraphFrame:
         ).read_timeseries(level=level)
 
     @staticmethod
-    def from_spotdb(db_key, list_of_ids=None):
+    def from_spotdb(
+        db_key: Any, list_of_ids: Optional[List] = None
+    ) -> List["GraphFrame"]:
         """Read multiple graph frames from a SpotDB instance
 
         Args:
@@ -221,7 +250,7 @@ class GraphFrame:
         return SpotDBReader(db_key, list_of_ids).read()
 
     @staticmethod
-    def from_gprof_dot(filename):
+    def from_gprof_dot(filename: str) -> "GraphFrame":
         """Read in a DOT file generated by gprof2dot."""
         # import this lazily to avoid circular dependencies
         from .readers.gprof_dot_reader import GprofDotReader
@@ -229,7 +258,7 @@ class GraphFrame:
         return GprofDotReader(filename).read()
 
     @staticmethod
-    def from_cprofile(filename):
+    def from_cprofile(filename: str) -> "GraphFrame":
         """Read in a pstats/prof file generated using python's cProfile."""
         # import this lazily to avoid circular dependencies
         from .readers.cprofile_reader import CProfileReader
@@ -237,7 +266,7 @@ class GraphFrame:
         return CProfileReader(filename).read()
 
     @staticmethod
-    def from_pyinstrument(filename):
+    def from_pyinstrument(filename: str) -> "GraphFrame":
         """Read in a JSON file generated using Pyinstrument."""
         # import this lazily to avoid circular dependencies
         from .readers.pyinstrument_reader import PyinstrumentReader
@@ -245,7 +274,7 @@ class GraphFrame:
         return PyinstrumentReader(filename).read()
 
     @staticmethod
-    def from_tau(dirname):
+    def from_tau(dirname: str) -> "GraphFrame":
         """Read in a profile generated using TAU."""
         # import this lazily to avoid circular dependencies
         from .readers.tau_reader import TAUReader
@@ -253,7 +282,11 @@ class GraphFrame:
         return TAUReader(dirname).read()
 
     @staticmethod
-    def from_timemory(input=None, select=None, **_kwargs):
+    def from_timemory(
+        input: Optional[Union[str, TextIOWrapper, Dict[str, Any]]] = None,
+        select: Optional[List[str]] = None,
+        **_kwargs,
+    ) -> Optional["GraphFrame"]:
         """Read in timemory data.
 
         Links:
@@ -327,17 +360,20 @@ class GraphFrame:
                 pass
         else:
             try:
-                import timemory
+                import timemory  # type: ignore[import-not-found]
 
-                TimemoryReader(timemory.get(hierarchy=True), select, **_kwargs).read()
+                return TimemoryReader(
+                    timemory.get(hierarchy=True), select, **_kwargs
+                ).read()
             except ImportError:
                 print(
                     "Error! timemory could not be imported. Provide filename, file stream, or dict."
                 )
                 raise
+        return None
 
     @staticmethod
-    def from_literal(graph_dict):
+    def from_literal(graph_dict: List[Dict]) -> "GraphFrame":
         """Create a GraphFrame from a list of dictionaries."""
         # import this lazily to avoid circular dependencies
         from .readers.literal_reader import LiteralReader
@@ -345,7 +381,7 @@ class GraphFrame:
         return LiteralReader(graph_dict).read()
 
     @staticmethod
-    def from_lists(*lists):
+    def from_lists(*lists) -> "GraphFrame":
         """Make a simple GraphFrame from lists.
 
         This creates a Graph from lists (see ``Graph.from_lists()``) and uses
@@ -358,7 +394,11 @@ class GraphFrame:
 
         df = pd.DataFrame({"node": list(graph.traverse())})
         df["time"] = [1.0] * len(graph)
-        df["name"] = [n.frame["name"] for n in graph.traverse()]
+        name_col = []
+        for n in graph.traverse():
+            assert isinstance(n, Node)
+            name_col.append(n.frame["name"])
+        df["name"] = name_col
         df.set_index(["node"], inplace=True)
         df.sort_index(inplace=True)
 
@@ -367,25 +407,25 @@ class GraphFrame:
         return gf
 
     @staticmethod
-    def from_json(json_spec, **kwargs):
+    def from_json(json_spec: str, **kwargs) -> "GraphFrame":
         from .readers.json_reader import JsonReader
 
         return JsonReader(json_spec).read(**kwargs)
 
     @staticmethod
-    def from_hdf(filename, **kwargs):
+    def from_hdf(filename: str, **kwargs) -> "GraphFrame":
         # import this lazily to avoid circular dependencies
         from .readers.hdf5_reader import HDF5Reader
 
         return HDF5Reader(filename).read(**kwargs)
 
-    def to_hdf(self, filename, key="hatchet_graphframe", **kwargs):
+    def to_hdf(self, filename: str, key: str = "hatchet_graphframe", **kwargs) -> None:
         # import this lazily to avoid circular dependencies
         from .writers.hdf5_writer import HDF5Writer
 
         HDF5Writer(filename).write(self, key=key, **kwargs)
 
-    def copy(self):
+    def copy(self) -> "GraphFrame":
         """Return a partially shallow copy of the graphframe.
 
         This copies the DataFrame object, but the data is comprised of references. The Graph is shared between self and the new GraphFrame.
@@ -411,7 +451,7 @@ class GraphFrame:
             copy.copy(self.metadata),
         )
 
-    def deepcopy(self):
+    def deepcopy(self) -> "GraphFrame":
         """Return a deep copy of the graphframe.
 
         Arguments:
@@ -426,7 +466,7 @@ class GraphFrame:
                 default_metric (str): N/A
                 metadata (dict): Copy of self's metadata
         """
-        node_clone = {}
+        node_clone: Dict[Node, Node] = {}
         graph_copy = self.graph.copy(node_clone)
         dataframe_copy = self.dataframe.copy()
 
@@ -446,7 +486,7 @@ class GraphFrame:
             copy.deepcopy(self.metadata),
         )
 
-    def drop_index_levels(self, function=np.mean):
+    def drop_index_levels(self, function: Callable = np.mean):
         """Drop all index levels but `node`."""
         index_names = list(self.dataframe.index.names)
         index_names.remove("node")
@@ -467,13 +507,13 @@ class GraphFrame:
 
     def filter(
         self,
-        filter_obj,
-        squash=True,
-        update_inc_cols=True,
-        num_procs=mp.cpu_count(),
-        rec_limit=1000,
-        multi_index_mode="off",
-    ):
+        filter_obj: Union[Callable, List, str, Query, CompoundQuery, AbstractQuery],
+        squash: bool = True,
+        update_inc_cols: bool = True,
+        num_procs: int = mp.cpu_count(),
+        rec_limit: int = 1000,
+        multi_index_mode: str = "off",
+    ) -> "GraphFrame":
         """Filter the dataframe using a user-supplied function.
 
         Note: Operates in parallel on user-supplied lambda functions.
@@ -533,7 +573,7 @@ class GraphFrame:
 
         elif isinstance(filter_obj, (list, str)) or is_hatchet_query(filter_obj):
             # use a callpath query to apply the filter
-            query = filter_obj
+            query: Union[Query, CompoundQuery]
             # If a raw Object-dialect query is provided (not already passed to ObjectQuery),
             # create a new ObjectQuery object.
             if isinstance(filter_obj, list):
@@ -544,7 +584,10 @@ class GraphFrame:
                 query = parse_string_dialect(filter_obj, multi_index_mode)
             # If an old-style query is provided, extract the underlying new-style query.
             elif issubclass(type(filter_obj), AbstractQuery):
-                query = filter_obj._get_new_query()
+                query = cast(AbstractQuery, filter_obj)._get_new_query()
+            else:
+                assert isinstance(filter_obj, (Query, CompoundQuery))
+                query = filter_obj
             query_matches = self.query_engine.apply(query, self.graph, self.dataframe)
             # match_set = list(set().union(*query_matches))
             # filtered_df = dataframe_copy.loc[dataframe_copy["node"].isin(match_set)]
@@ -571,7 +614,7 @@ class GraphFrame:
             return filtered_gf.squash(update_inc_cols)
         return filtered_gf
 
-    def squash(self, update_inc_cols=True):
+    def squash(self, update_inc_cols: bool = True) -> "GraphFrame":
         """Rewrite the Graph to include only nodes present in the DataFrame's rows.
 
         This can be used to simplify the Graph, or to normalize Graph
@@ -590,7 +633,7 @@ class GraphFrame:
 
         # Maintain sets of connections to make for each old node.
         # Start with old -> new mapping and update as we traverse subgraphs.
-        connections = defaultdict(lambda: set())
+        connections: Dict[Node, Set[Node]] = defaultdict(lambda: set())
         connections.update({k: {v} for k, v in old_to_new.items()})
 
         new_roots = []  # list of new roots
@@ -628,7 +671,7 @@ class GraphFrame:
                 return connections[node]
 
         # run rewire for each root and make a new graph
-        visited = set()
+        visited: Set[Node] = set()
         for root in self.graph.roots:
             rewire(root, None, visited)
         graph = Graph(new_roots)
@@ -676,7 +719,11 @@ class GraphFrame:
             new_gf.update_inclusive_columns()
         return new_gf
 
-    def _init_sum_columns(self, columns, out_columns):
+    def _init_sum_columns(
+        self,
+        columns: List[str],
+        out_columns: List[str],
+    ) -> List[str]:
         """Helper function for subtree_sum and subgraph_sum."""
         if out_columns is None:
             out_columns = columns
@@ -691,7 +738,10 @@ class GraphFrame:
         return out_columns
 
     def subtree_sum(
-        self, columns, out_columns=None, function=lambda x: x.sum(min_count=1)
+        self,
+        columns: List[str],
+        out_columns: Optional[List[str]] = None,
+        function: Callable = lambda x: x.sum(min_count=1),
     ):
         """Compute sum of elements in subtrees.  Valid only for trees.
 
@@ -714,7 +764,8 @@ class GraphFrame:
         out_columns = self._init_sum_columns(columns, out_columns)
 
         # sum over the output columns
-        for node in self.graph.traverse(order="post"):
+        for trav_node in self.graph.traverse(order="post"):
+            node = cast(Node, trav_node)
             if node.children:
                 # TODO: need a better way of aggregating inclusive metrics when
                 # TODO: there is a multi-index
@@ -751,7 +802,10 @@ class GraphFrame:
                         )
 
     def subgraph_sum(
-        self, columns, out_columns=None, function=lambda x: x.sum(min_count=1)
+        self,
+        columns: List[str],
+        out_columns: Optional[List[str]] = None,
+        function: Callable = lambda x: x.sum(min_count=1),
     ):
         """Compute sum of elements in subgraphs.
 
@@ -776,7 +830,8 @@ class GraphFrame:
             return
 
         out_columns = self._init_sum_columns(columns, out_columns)
-        for node in self.graph.traverse():
+        for trav_node in self.graph.traverse():
+            node = cast(Node, trav_node)
             subgraph_nodes = list(node.traverse())
             # TODO: need a better way of aggregating inclusive metrics when
             # TODO: there is a multi-index
@@ -813,7 +868,9 @@ class GraphFrame:
                     function(self.dataframe.loc[(subgraph_nodes), columns])
                 )
 
-    def generate_exclusive_columns(self, inc_metrics=None):
+    def generate_exclusive_columns(
+        self, inc_metrics: Optional[Union[str, List[str]]] = None
+    ):
         """Generates exclusive metrics from available inclusive metrics.
         Arguments:
             inc_metrics (str, list, optional): Instead of generating the exclusive time for each inclusive metric, it is possible to specify those metrics manually. Defaults to None.
@@ -852,13 +909,15 @@ class GraphFrame:
             # suffix) to the generation list.
             else:
                 generation_pairs.append((inc + " (exc)", inc))
+        node: Node
         # Consider each new exclusive metric and its corresponding inclusive metric
         for exc, inc in generation_pairs:
             # Process of obtaining inclusive data for a node differs if the DataFrame has an Index vs a MultiIndex
             if isinstance(self.dataframe.index, pd.MultiIndex):
-                new_data = {}
+                new_data: Dict[Union[Tuple[Any, ...], Node], int] = {}
                 # Traverse every node in the Graph
-                for node in self.graph.traverse():
+                for trav_node in self.graph.traverse():
+                    node = cast(Node, trav_node)
                     # Consider each unique portion of the MultiIndex corresponding to the current node
                     for non_node_idx in self.dataframe.loc[(node)].index.unique():
                         # If there's only 1 index level besides "node", add it to a 1-element list to ensure consistent typing
@@ -889,7 +948,7 @@ class GraphFrame:
                 # Create a basic Node-metric dict for the new exclusive metric
                 new_data = {n: -1 for n in self.dataframe.index.values}
                 # Traverse the graph
-                for node in self.graph.traverse():
+                for node in cast(Iterable[Node], self.graph.traverse()):
                     # Sum up the inclusive metric values of the current node's children
                     inc_sum = 0
                     for child in node.children:
@@ -938,11 +997,11 @@ class GraphFrame:
         self.subgraph_sum(self.exc_metrics, self.inc_metrics)
         self.inc_metrics = list(set(self.inc_metrics + old_inc_metrics))
 
-    def show_metric_columns(self):
+    def show_metric_columns(self) -> List[str]:
         """Returns a list of dataframe column labels."""
         return list(self.exc_metrics + self.inc_metrics)
 
-    def unify(self, other):
+    def unify(self, other: "GraphFrame"):
         """Returns a unified graphframe.
 
         Ensure self and other have the same graph and same node IDs. This may
@@ -953,7 +1012,7 @@ class GraphFrame:
         if self.graph is other.graph:
             return
 
-        node_map = {}
+        node_map: Dict[int, Node] = {}
         union_graph = self.graph.union(other.graph, node_map)
 
         self_index_names = self.dataframe.index.names
@@ -986,23 +1045,23 @@ class GraphFrame:
     )
     def tree(
         self,
-        metric_column=None,
-        annotation_column=None,
-        precision=3,
-        name_column="name",
-        expand_name=False,
-        context_column="file",
-        rank=0,
-        thread=0,
-        depth=10000,
-        highlight_name=False,
-        colormap="RdYlGn",
-        invert_colormap=False,
-        colormap_annotations=None,
-        render_header=True,
-        min_value=None,
-        max_value=None,
-    ):
+        metric_column: Optional[str] = None,
+        annotation_column: Optional[str] = None,
+        precision: int = 3,
+        name_column: str = "name",
+        expand_name: bool = False,
+        context_column: str = "file",
+        rank: int = 0,
+        thread: int = 0,
+        depth: int = 10000,
+        highlight_name: bool = False,
+        colormap: str = "RdYlGn",
+        invert_colormap: bool = False,
+        colormap_annotations: Optional[Union[str, List, Dict]] = None,
+        render_header: bool = True,
+        min_value: Optional[int] = None,
+        max_value: Optional[int] = None,
+    ) -> Union[str, bytes]:
         """Visualize the Hatchet graphframe as a tree
 
         Arguments:
@@ -1033,7 +1092,7 @@ class GraphFrame:
 
         if color is False:
             try:
-                import IPython
+                import IPython  # type: ignore[import-not-found]
 
                 shell = IPython.get_ipython().__class__.__name__
             except ImportError:
@@ -1068,17 +1127,32 @@ class GraphFrame:
             max_value=max_value,
         )
 
-    def to_dot(self, metric=None, name="name", rank=0, thread=0, threshold=0.0):
+    def to_dot(
+        self,
+        metric: Optional[str] = None,
+        name: str = "name",
+        rank: int = 0,
+        thread: int = 0,
+        threshold: float = 0.0,
+    ) -> str:
         """Write the graph in the graphviz dot format:
         https://www.graphviz.org/doc/info/lang.html
         """
         if metric is None:
             metric = self.default_metric
+        graph_roots = cast(List[Node], self.graph.roots)
         return trees_to_dot(
-            self.graph.roots, self.dataframe, metric, name, rank, thread, threshold
+            graph_roots, self.dataframe, metric, name, rank, thread, threshold
         )
 
-    def to_flamegraph(self, metric=None, name="name", rank=0, thread=0, threshold=0.0):
+    def to_flamegraph(
+        self,
+        metric: Optional[Union[str, Tuple[str, ...]]] = None,
+        name: str = "name",
+        rank: int = 0,
+        thread: int = 0,
+        threshold: float = 0.0,
+    ) -> str:
         """Write the graph in the folded stack output required by FlameGraph
         http://www.brendangregg.com/flamegraphs.html
         """
@@ -1087,9 +1161,10 @@ class GraphFrame:
             metric = self.default_metric
 
         for root in self.graph.roots:
-            for hnode in root.traverse():
+            for hnode in cast(Iterable[Node], root.traverse()):
                 callpath = hnode.path()
                 for i in range(0, len(callpath) - 1):
+                    df_index: Union[Tuple[Node, int, int], Tuple[Node, int], Node]
                     if (
                         "rank" in self.dataframe.index.names
                         and "thread" in self.dataframe.index.names
@@ -1141,7 +1216,13 @@ class GraphFrame:
 
         return folded_stack
 
-    def to_literal(self, name="name", rank=0, thread=0, cat_columns=[]):
+    def to_literal(
+        self,
+        name: str = "name",
+        rank: int = 0,
+        thread: int = 0,
+        cat_columns: Union[List[str], Tuple[str, ...]] = [],
+    ) -> List[Dict]:
         """Format this graph as a list of dictionaries for Roundtrip
         visualizations.
         """
@@ -1223,8 +1304,10 @@ class GraphFrame:
 
         return graph_literal
 
-    def to_dict(self):
-        hatchet_dict = {}
+    def to_dict(self) -> Dict:
+        hatchet_dict: Dict[
+            str, Union[List[Dict[int, Dict[str, Any]]], List[str], Dict]
+        ] = {}
 
         """
         Nodes: {hatchet_nid: {node data, children:[by-id]}}
@@ -1232,7 +1315,7 @@ class GraphFrame:
         graphs = []
         for root in self.graph.roots:
             formatted_graph_dict = {}
-            for n in root.traverse():
+            for n in cast(Iterable[Node], root.traverse()):
                 formatted_graph_dict[n._hatchet_nid] = {
                     "data": n.frame.attrs,
                     "children": [c._hatchet_nid for c in n.children],
@@ -1251,10 +1334,10 @@ class GraphFrame:
 
         return hatchet_dict
 
-    def to_json(self):
+    def to_json(self) -> str:
         return json.dumps(self.to_dict())
 
-    def _operator(self, other, op):
+    def _operator(self, other: "GraphFrame", op: Callable) -> "GraphFrame":
         """Generic function to apply operator to two dataframes and store
         result in self.
 
@@ -1277,7 +1360,7 @@ class GraphFrame:
 
         return self
 
-    def _insert_missing_rows(self, other):
+    def _insert_missing_rows(self, other: "GraphFrame") -> "GraphFrame":
         """Helper function to add rows that exist in other, but not in self.
 
         This returns a graphframe with a modified dataframe. The new rows will
@@ -1386,7 +1469,11 @@ class GraphFrame:
 
         return self
 
-    def groupby_aggregate(self, groupby_function, agg_function):
+    def groupby_aggregate(
+        self,
+        groupby_function: Union[PandasSingleGroupbyType, PandasMultipleGroupbyType],
+        agg_function: Union[PandasSingleGroupbyAggType, PandasMultipleGroupbyAggType],
+    ) -> "GraphFrame":
         """Groupby-aggregate dataframe and reindex the Graph.
 
         Reindex the graph to match the groupby-aggregated dataframe.
@@ -1403,7 +1490,7 @@ class GraphFrame:
         """
         # create new nodes for each unique node in the old dataframe
         # length is equal to number of nodes in original graph
-        old_to_new = {}
+        old_to_new: Dict[Node, Node] = {}
 
         # list of new roots
         new_roots = []
@@ -1472,7 +1559,7 @@ class GraphFrame:
                 old_to_new[i] = super_node
 
         # reindex graph by traversing old graph
-        visited = set()
+        visited: Set[Node] = set()
         for root in self.graph.roots:
             reindex(root, None, visited)
 
@@ -1503,7 +1590,7 @@ class GraphFrame:
         new_gf.drop_index_levels()
         return new_gf
 
-    def add(self, other):
+    def add(self, other: "GraphFrame") -> "GraphFrame":
         """Returns the column-wise sum of two graphframes as a new graphframe.
 
         This graphframe is the union of self's and other's graphs, and does not
@@ -1521,7 +1608,7 @@ class GraphFrame:
 
         return self_copy._operator(other_copy, self_copy.dataframe.add)
 
-    def sub(self, other):
+    def sub(self, other: "GraphFrame") -> "GraphFrame":
         """Returns the column-wise difference of two graphframes as a new
         graphframe.
 
@@ -1540,7 +1627,7 @@ class GraphFrame:
 
         return self_copy._operator(other_copy, self_copy.dataframe.sub)
 
-    def div(self, other):
+    def div(self, other: "GraphFrame") -> "GraphFrame":
         """Returns the column-wise float division of two graphframes as a new graphframe.
 
         This graphframe is the union of self's and other's graphs, and does not
@@ -1558,7 +1645,7 @@ class GraphFrame:
 
         return self_copy._operator(other_copy, self_copy.dataframe.divide)
 
-    def mul(self, other):
+    def mul(self, other: "GraphFrame") -> "GraphFrame":
         """Returns the column-wise float multiplication of two graphframes as a new graphframe.
 
         This graphframe is the union of self's and other's graphs, and does not
@@ -1576,7 +1663,7 @@ class GraphFrame:
 
         return self_copy._operator(other_copy, self_copy.dataframe.multiply)
 
-    def __iadd__(self, other):
+    def __iadd__(self, other: "GraphFrame") -> "GraphFrame":
         """Computes column-wise sum of two graphframes and stores the result in
         self.
 
@@ -1595,7 +1682,7 @@ class GraphFrame:
 
         return self._operator(other_copy, self.dataframe.add)
 
-    def __add__(self, other):
+    def __add__(self, other: "GraphFrame") -> "GraphFrame":
         """Returns the column-wise sum of two graphframes as a new graphframe.
 
         This graphframe is the union of self's and other's graphs, and does not
@@ -1606,7 +1693,7 @@ class GraphFrame:
         """
         return self.add(other)
 
-    def __mul__(self, other):
+    def __mul__(self, other: "GraphFrame") -> "GraphFrame":
         """Returns the column-wise multiplication of two graphframes as a new graphframe.
 
         This graphframe is the union of self's and other's graphs, and does not
@@ -1617,7 +1704,7 @@ class GraphFrame:
         """
         return self.mul(other)
 
-    def __isub__(self, other):
+    def __isub__(self, other: "GraphFrame") -> "GraphFrame":
         """Computes column-wise difference of two graphframes and stores the
         result in self.
 
@@ -1636,7 +1723,7 @@ class GraphFrame:
 
         return self._operator(other_copy, self.dataframe.sub)
 
-    def __sub__(self, other):
+    def __sub__(self, other: "GraphFrame") -> "GraphFrame":
         """Returns the column-wise difference of two graphframes as a new
         graphframe.
 
@@ -1648,7 +1735,7 @@ class GraphFrame:
         """
         return self.sub(other)
 
-    def __idiv__(self, other):
+    def __idiv__(self, other: "GraphFrame") -> "GraphFrame":
         """Computes column-wise float division of two graphframes and stores the
         result in self.
 
@@ -1667,7 +1754,7 @@ class GraphFrame:
 
         return self._operator(other_copy, self.dataframe.div)
 
-    def __truediv__(self, other):
+    def __truediv__(self, other: "GraphFrame") -> "GraphFrame":
         """Returns the column-wise float division of two graphframes as a new
         graphframe.
 
@@ -1679,7 +1766,7 @@ class GraphFrame:
         """
         return self.div(other)
 
-    def __imul__(self, other):
+    def __imul__(self, other: "GraphFrame") -> "GraphFrame":
         """Computes column-wise float multiplication of two graphframes and stores the
         result in self.
 

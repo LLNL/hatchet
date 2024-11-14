@@ -20,14 +20,14 @@ class JsonReader:
         (GraphFrame): graphframe containing data from dictionaries
     """
 
-    def __init__(self, json_spec):
+    def __init__(self, json_spec: str) -> None:
         """Read from a json string specification of a graphframe
 
         json (string): Json specification of a graphframe.
         """
         self.spec_dict = json.loads(json_spec)
 
-    def read(self):
+    def read(self) -> hatchet.graphframe.GraphFrame:
         roots = []
         for graph_spec in self.spec_dict["graph"]:
             # turn frames into nodes

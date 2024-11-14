@@ -37,19 +37,25 @@ jobs:
         python setup.py build_ext --inplace
         python -m pip list
 
-    - name: Update Black
+    - name: Update Black and mypy
       if: ${{ matrix.python-version == 3.9 }}
       run: |
         pip install flake8-pytest-importorskip
         pip install --upgrade click==8.0.4
         pip install black==24.4.2
         pip install flake8==4.0.1
+        pip install mypy==1.13.0
 
     - name: Lint and Format Check with Flake8 and Black
       if: ${{ matrix.python-version == 3.9 }}
       run: |
         black --diff --check .
         flake8
+        
+    - name: Run type checking with mypy
+      if: ${{ matrix.python-version == 3.9 }}
+      run: |
+        mypy hatchet --pretty
 
     - name: Check License Headers
       run: |

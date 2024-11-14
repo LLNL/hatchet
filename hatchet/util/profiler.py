@@ -7,17 +7,15 @@ import cProfile
 import traceback
 import sys
 import os
+from typing import List
 
 from datetime import datetime
 
-try:
-    from StringIO import StringIO  # python2
-except ImportError:
-    from io import StringIO  # python3
+from io import StringIO  # python3
 import pstats
 
 
-def print_incomptable_msg(stats_file):
+def print_incomptable_msg(stats_file: str) -> None:
     """
     Function which makes the syntax cleaner in Profiler.write_to_file().
     """
@@ -36,12 +34,12 @@ class Profiler:
     Exports a pstats file to be read by the pstats reader.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._prf = cProfile.Profile()
         self._output = "hatchet-profile"
         self._active = False
 
-    def start(self):
+    def start(self) -> None:
         """
         Description: Place before the block of code to be profiled.
         """
@@ -54,7 +52,7 @@ class Profiler:
         self._active = True
         self._prf.enable()
 
-    def stop(self):
+    def stop(self) -> None:
         """
         Description: Place at the end of the block of code being profiled.
         """
@@ -63,7 +61,7 @@ class Profiler:
         self._prf.disable()
         self.write_to_file()
 
-    def reset(self):
+    def reset(self) -> None:
         """
         Description: Resets the profilier.
         """
@@ -75,7 +73,7 @@ class Profiler:
 
         self._prf = cProfile.Profile()
 
-    def __str__(self):
+    def __str__(self) -> str:
         """
         Description: Writes stats object out as a string.
         """
@@ -83,7 +81,9 @@ class Profiler:
         pstats.Stats(self._prf, stream=s).print_stats()
         return s.getvalue()
 
-    def write_to_file(self, filename="", add_pstats_files=[]):
+    def write_to_file(
+        self, filename: str = "", add_pstats_files: List[str] = []
+    ) -> None:
         """
         Description: Write the pstats object to a binary
         file to be read in by an appropriate source.

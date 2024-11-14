@@ -3,6 +3,8 @@
 #
 # SPDX-License-Identifier: MIT
 
+from typing import Any, Dict, Optional, List, Set
+
 import pandas as pd
 
 import hatchet.graphframe
@@ -12,7 +14,7 @@ from hatchet.frame import Frame
 from hatchet.util.timer import Timer
 
 
-def _find_child_node(node, name):
+def _find_child_node(node: Node, name: str) -> Node:
     """Return child with given name from parent node"""
     for c in node.children:
         if c.frame.get("name") == name:
@@ -23,7 +25,12 @@ def _find_child_node(node, name):
 class SpotDatasetReader:
     """Reads a (single-run) dataset from SpotDB"""
 
-    def __init__(self, regionprofile, metadata, attr_info):
+    def __init__(
+        self,
+        regionprofile: Dict[str, Any],
+        metadata: Dict[str, Any],
+        attr_info: Dict[str, Any],
+    ) -> None:
         """Initialize SpotDataset reader
 
         Args:
@@ -43,13 +50,13 @@ class SpotDatasetReader:
         self.regionprofile = regionprofile
         self.attr_info = attr_info
         self.metadata = metadata
-        self.df_data = []
-        self.roots = {}
-        self.metric_columns = set()
+        self.df_data: List[Dict[str, Any]] = []
+        self.roots: Dict[str, Node] = {}
+        self.metric_columns: Set[str] = set()
 
         self.timer = Timer()
 
-    def create_graph(self):
+    def create_graph(self) -> None:
         """Create the graph. Fills in df_data and metric_columns."""
 
         self.df_data.clear()
@@ -81,7 +88,9 @@ class SpotDatasetReader:
 
             self.df_data.append(dict({"name": name, "node": node}, **metrics))
 
-    def read(self, default_metric="Total time (inc)"):
+    def read(
+        self, default_metric: str = "Total time (inc)"
+    ) -> hatchet.graphframe.GraphFrame:
         """Create GraphFrame for the given Spot dataset."""
 
         with self.timer.phase("graph construction"):
@@ -116,7 +125,7 @@ class SpotDatasetReader:
             default_metric=default_metric,
         )
 
-    def _create_node(self, path):
+    def _create_node(self, path: List[str]) -> Node:
         parent = self.roots.get(path[0], None)
         if parent is None:
             parent = Node(Frame(name=path[0]))
@@ -136,7 +145,14 @@ class SpotDatasetReader:
 class SpotDBReader:
     """Import multiple runs as graph frames from a SpotDB instance"""
 
-    def __init__(self, db_key, list_of_ids=None, default_metric="Total time (inc)"):
+    # TODO decide if we want to import spotdb elsewhere to correctly add a type
+    #      hint to 'db_key'
+    def __init__(
+        self,
+        db_key: Any,
+        list_of_ids: Optional[List] = None,
+        default_metric: str = "Total time (inc)",
+    ) -> None:
         """Initialize SpotDBReader
 
         Args:
@@ -156,13 +172,13 @@ class SpotDBReader:
         self.list_of_ids = list_of_ids
         self.default_metric = default_metric
 
-    def read(self):
+    def read(self) -> List[hatchet.graphframe.GraphFrame]:
         """Read given runs from SpotDB
 
         Returns:
             List of GraphFrames, one for each entry that was found
         """
-        import spotdb
+        import spotdb  # type: ignore[import-not-found]
 
         if isinstance(self.db_key, str):
             db = spotdb.connect(self.db_key)

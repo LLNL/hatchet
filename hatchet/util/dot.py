@@ -3,11 +3,24 @@
 #
 # SPDX-License-Identifier: MIT
 
+from typing import List, Tuple, Union
+
 import matplotlib.cm
 import matplotlib.colors
+import pandas as pd
+
+from ..node import Node
 
 
-def trees_to_dot(roots, dataframe, metric, name, rank, thread, threshold):
+def trees_to_dot(
+    roots: List[Node],
+    dataframe: pd.DataFrame,
+    metric: Union[str, Tuple[str, ...]],
+    name: Union[str, Tuple[str, ...]],
+    rank: int,
+    thread: int,
+    threshold: float,
+) -> str:
     """Calls to_dot in turn for each tree in the graph/forest."""
     text = (
         "strict digraph {\n"
@@ -20,7 +33,7 @@ def trees_to_dot(roots, dataframe, metric, name, rank, thread, threshold):
     all_edges = ""
 
     # call to_dot for each root in the graph
-    visited = []
+    visited: List[Node] = []
     for root in roots:
         (nodes, edges) = to_dot(
             root, dataframe, metric, name, rank, thread, threshold, visited
@@ -33,23 +46,33 @@ def trees_to_dot(roots, dataframe, metric, name, rank, thread, threshold):
     return text
 
 
-def to_dot(hnode, dataframe, metric, name, rank, thread, threshold, visited):
+def to_dot(
+    hnode: Node,
+    dataframe: pd.DataFrame,
+    metric: Union[str, Tuple[str, ...]],
+    name: Union[str, Tuple[str, ...]],
+    rank: int,
+    thread: int,
+    threshold: float,
+    visited: List[Node],
+) -> Tuple[str, str]:
     """Write to graphviz dot format."""
-    colormap = matplotlib.cm.Reds
+    # Tell mypy to ignore Reds here because mpl.cm is
+    # dynamically generated. So, mypy cannot discover that
+    # Reds exists
+    colormap = matplotlib.cm.Reds  # type: ignore[attr-defined]
     min_time = dataframe[metric].min()
     max_time = dataframe[metric].max()
 
-    def add_nodes_and_edges(hnode):
-
+    def add_nodes_and_edges(hnode: Node) -> Tuple[str, str]:
         # set dataframe index based on if rank is a part of the index
+        df_index: Union[Tuple[Node, int, int], Tuple[Node, int], Node] = hnode
         if "rank" in dataframe.index.names and "thread" in dataframe.index.names:
             df_index = (hnode, rank, thread)
         elif "rank" in dataframe.index.names:
             df_index = (hnode, rank)
         elif "thread" in dataframe.index.names:
             df_index = (hnode, thread)
-        else:
-            df_index = hnode
 
         node_time = dataframe.loc[df_index, metric]
         node_name = dataframe.loc[df_index, name]

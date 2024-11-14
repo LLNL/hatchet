@@ -4,6 +4,7 @@
 # SPDX-License-Identifier: MIT
 
 import functools
+from typing import Any, Dict
 
 
 def deprecated_params(**old_to_new):
@@ -18,7 +19,9 @@ def deprecated_params(**old_to_new):
     return deco
 
 
-def rename_kwargs(fname, old_to_new, kwargs):
+def rename_kwargs(
+    fname: str, old_to_new: Dict[str, str], kwargs: Dict[str, Any]
+) -> None:
     for old, new in old_to_new.items():
         if old in kwargs:
             if new in kwargs:

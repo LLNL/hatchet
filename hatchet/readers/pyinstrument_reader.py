@@ -4,6 +4,7 @@
 # SPDX-License-Identifier: MIT
 
 import json
+from typing import Any, Dict, List
 
 import pandas as pd
 
@@ -14,14 +15,14 @@ from hatchet.frame import Frame
 
 
 class PyinstrumentReader:
-    def __init__(self, filename):
+    def __init__(self, filename: str) -> None:
         self.pyinstrument_json_filename = filename
-        self.graph_dict = {}
-        self.list_roots = []
-        self.node_dicts = []
+        self.graph_dict: Dict[str, Any] = {}
+        self.list_roots: List[Node] = []
+        self.node_dicts: List[Dict[str, Any]] = []
 
-    def create_graph(self):
-        def parse_node_literal(child_dict, hparent):
+    def create_graph(self) -> Graph:
+        def parse_node_literal(child_dict: Dict[str, Any], hparent: Node) -> None:
             """Create node_dict for one node and then call the function
             recursively on all children."""
 
@@ -85,7 +86,7 @@ class PyinstrumentReader:
 
         return graph
 
-    def read(self):
+    def read(self) -> hatchet.graphframe.GraphFrame:
         with open(self.pyinstrument_json_filename) as pyinstrument_json:
             self.graph_dict = json.load(pyinstrument_json)
 

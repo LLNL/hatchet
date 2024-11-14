@@ -10,14 +10,14 @@ from .dataframe_reader import DataframeReader
 
 
 class HDF5Reader(DataframeReader):
-    def __init__(self, filename):
+    def __init__(self, filename: str) -> None:
         # TODO Remove Arguments when Python 2.7 support is dropped
         if sys.version_info[0] == 2:
             super(HDF5Reader, self).__init__(filename)
         else:
             super().__init__(filename)
 
-    def _read_dataframe_from_file(self, **kwargs):
+    def _read_dataframe_from_file(self, **kwargs) -> pd.DataFrame:
         df = None
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=Warning)

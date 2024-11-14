@@ -7,21 +7,13 @@ import hatchet.graphframe
 from hatchet.node import Node
 from hatchet.graph import Graph
 
-from abc import abstractmethod
+import pandas as pd
 
-# TODO The ABC class was introduced in Python 3.4.
-# When support for earlier versions is (eventually) dropped,
-# this entire "try-except" block can be reduced to:
-# from abc import ABC
-try:
-    from abc import ABC
-except ImportError:
-    from abc import ABCMeta
-
-    ABC = ABCMeta("ABC", (object,), {"__slots__": ()})
+from abc import abstractmethod, ABC
+from typing import Dict, List
 
 
-def _get_node_from_df_iloc(df, ind):
+def _get_node_from_df_iloc(df: pd.DataFrame, ind: int) -> Node:
     node = None
     if isinstance(df.iloc[ind].name, tuple):
         node = df.iloc[ind].name[0]
@@ -34,8 +26,8 @@ def _get_node_from_df_iloc(df, ind):
     return node
 
 
-def _get_parents_and_children(df):
-    rel_dict = {}
+def _get_parents_and_children(df: pd.DataFrame) -> Dict[Node, Dict[str, List[int]]]:
+    rel_dict: Dict[Node, Dict[str, List[int]]] = {}
     for i in range(len(df)):
         node = _get_node_from_df_iloc(df, i)
         if node not in rel_dict:
@@ -45,7 +37,9 @@ def _get_parents_and_children(df):
     return rel_dict
 
 
-def _reconstruct_graph(df, rel_dict):
+def _reconstruct_graph(
+    df: pd.DataFrame, rel_dict: Dict[Node, Dict[str, List[int]]]
+) -> Graph:
     node_list = sorted(list(df.index.to_frame()["node"]))
     for i in range(len(df)):
         node = _get_node_from_df_iloc(df, i)
@@ -60,14 +54,14 @@ def _reconstruct_graph(df, rel_dict):
 class DataframeReader(ABC):
     """Abstract Base Class for reading in checkpointing files."""
 
-    def __init__(self, filename):
+    def __init__(self, filename: str) -> None:
         self.filename = filename
 
     @abstractmethod
-    def _read_dataframe_from_file(self, **kwargs):
+    def _read_dataframe_from_file(self, **kwargs) -> pd.DataFrame:
         pass
 
-    def read(self, **kwargs):
+    def read(self, **kwargs) -> hatchet.graphframe.GraphFrame:
         df = self._read_dataframe_from_file(**kwargs)
         rel_dict = _get_parents_and_children(df)
         graph = _reconstruct_graph(df, rel_dict)

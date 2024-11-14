@@ -4,6 +4,7 @@
 # SPDX-License-Identifier: MIT
 
 from functools import total_ordering
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 
 @total_ordering
@@ -14,7 +15,7 @@ class Frame:
        attrs (dict): dictionary of attributes and values
     """
 
-    def __init__(self, attrs=None, **kwargs):
+    def __init__(self, attrs: Optional[Dict[str, Any]] = None, **kwargs) -> None:
         """Construct a frame from a dictionary, or from immediate kwargs.
 
         Arguments:
@@ -46,44 +47,48 @@ class Frame:
         if "type" not in self.attrs:
             self.attrs["type"] = "None"
 
-        self._tuple_repr = None
+        self._tuple_repr: Optional[Tuple[Tuple[str, Any], ...]] = None
 
-    def __eq__(self, other):
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, Frame):
+            return NotImplemented
         return self.tuple_repr == other.tuple_repr
 
-    def __lt__(self, other):
+    def __lt__(self, other: "Frame") -> bool:
         return self.tuple_repr < other.tuple_repr
 
-    def __gt__(self, other):
+    def __gt__(self, other: "Frame") -> bool:
         return self.tuple_repr > other.tuple_repr
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         return hash(self.tuple_repr)
 
-    def __str__(self):
+    def __str__(self) -> str:
         """str() with sorted attributes, so output is deterministic."""
         return "{%s}" % ", ".join("'%s': '%s'" % (k, v) for k, v in self.tuple_repr)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return "Frame(%s)" % self
 
     @property
-    def tuple_repr(self):
+    def tuple_repr(self) -> Optional[Tuple[Tuple[str, Any], ...]]:
         """Make a tuple of attributes and values based on reader."""
         if not self._tuple_repr:
             self._tuple_repr = tuple(sorted((k, v) for k, v in self.attrs.items()))
         return self._tuple_repr
 
-    def copy(self):
+    def copy(self) -> "Frame":
         return Frame(self.attrs.copy())
 
-    def __getitem__(self, name):
+    def __getitem__(self, name: str) -> Any:
         return self.attrs[name]
 
-    def get(self, name, default=None):
+    def get(self, name: str, default: Optional[Any] = None):
         return self.attrs.get(name, default)
 
-    def values(self, names):
+    def values(
+        self, names: Union[List[str], Tuple[str, ...], str]
+    ) -> Union[Tuple[Any, ...], Any]:
         """Return a tuple of attribute values from this Frame."""
         if isinstance(names, (list, tuple)):
             return tuple(self.attrs.get(name) for name in names)

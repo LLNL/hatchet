@@ -8,6 +8,7 @@ import struct
 import re
 import os
 import traceback
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 import pandas as pd
@@ -17,11 +18,11 @@ import multiprocessing.sharedctypes
 try:
     import xml.etree.cElementTree as ET
 except ImportError:
-    import xml.etree.ElementTree as ET
+    import xml.etree.ElementTree as ET  # type: ignore[no-redef]
 
 # cython imports
 try:
-    import hatchet.cython_modules.libs.reader_modules as _crm
+    import hatchet.cython_modules.libs.reader_modules as _crm  # type: ignore
 except ImportError:
     print("-" * 80)
     print(
@@ -39,16 +40,19 @@ from hatchet.util.timer import Timer
 from hatchet.frame import Frame
 
 
-src_file = 0
+src_file: Optional[str] = None
+shared_metrics: Optional[Any] = None
 
 
-def init_shared_array(buf_):
+# TODO replace the "Any" type hint with numpy.typing.ArrayLike
+#      when our minimum supported version of numpy is 1.20 or higher
+def init_shared_array(buf_: Any) -> None:
     """Initialize shared array."""
     global shared_metrics
     shared_metrics = buf_
 
 
-def read_metricdb_file(args):
+def read_metricdb_file(args: Tuple[str, int, int, int, int, List[int]]) -> None:
     """Read a single metricdb file into a 1D array."""
     (
         filename,
@@ -82,7 +86,7 @@ def read_metricdb_file(args):
             rank * num_threads_per_rank + num_cpu_threads_per_rank + (thread - 500)
         ) * num_nodes
 
-    arr[rank_offset : rank_offset + num_nodes, :num_metrics].flat = arr1d.flat
+    arr[rank_offset : rank_offset + num_nodes, :num_metrics].flat = arr1d.flat  # type: ignore[misc]
     arr[rank_offset : rank_offset + num_nodes, num_metrics] = range(1, num_nodes + 1)
     arr[rank_offset : rank_offset + num_nodes, num_metrics + 1] = rank
     arr[rank_offset : rank_offset + num_nodes, num_metrics + 2] = thread
@@ -93,7 +97,7 @@ class HPCToolkitReader:
     metric-db files.
     """
 
-    def __init__(self, dir_name):
+    def __init__(self, dir_name: str) -> None:
         # this is the name of the HPCToolkit database directory. The directory
         # contains an experiment.xml and some metric-db files
         self.dir_name = dir_name
@@ -133,21 +137,21 @@ class HPCToolkitReader:
                 self.num_metrics = struct.unpack(">i", metricdb.read(4))[0]
             else:
                 raise ValueError(
-                    "HPCToolkitReader doesn't support endian '%s'" % endian
+                    "HPCToolkitReader doesn't support endian '{:r}'".format(endian)
                 )
 
-        self.load_modules = {}
-        self.src_files = {}
-        self.procedure_names = {}
-        self.metric_names = {}
+        self.load_modules: Dict = {}
+        self.src_files: Dict = {}
+        self.procedure_names: Dict = {}
+        self.metric_names: Dict = {}
 
         # this list of dicts will hold all the node information such as
         # procedure name, load module, filename, etc. for all the nodes
-        self.node_dicts = []
+        self.node_dicts: List[Dict[str, Union[int, str, Node]]] = []
 
         self.timer = Timer()
 
-    def fill_tables(self):
+    def fill_tables(self) -> Tuple[Dict, Dict, Dict, Dict]:
         """Read certain sections of the experiment.xml file to create dicts of load
         modules, src_files, procedure_names, and metric_names.
         """
@@ -171,7 +175,7 @@ class HPCToolkitReader:
             self.metric_names,
         )
 
-    def read_all_metricdb_files(self):
+    def read_all_metricdb_files(self) -> None:
         """Read all the metric-db files and create a dataframe with num_nodes X
         num_metricdb_files rows and num_metrics columns. Three additional columns
         store the node id, MPI process rank, and thread id (if applicable).
@@ -234,7 +238,7 @@ class HPCToolkitReader:
         # subtract_exclusive_metric_vals/ num nodes is already calculated
         self.total_execution_threads = self.num_threads_per_rank * self.num_ranks
 
-    def read(self):
+    def read(self) -> hatchet.graphframe.GraphFrame:
         """Read the experiment.xml file to extract the calling context tree and create
         a dataframe out of it. Then merge the two dataframes to create the final
         dataframe.
@@ -318,7 +322,7 @@ class HPCToolkitReader:
 
         return hatchet.graphframe.GraphFrame(graph, dataframe, exc_metrics, inc_metrics)
 
-    def parse_xml_children(self, xml_node, hnode):
+    def parse_xml_children(self, xml_node: Any, hnode: Node) -> None:
         """Parses all children of an XML node."""
         for xml_child in xml_node:
             if xml_child.tag != "M":
@@ -326,7 +330,9 @@ class HPCToolkitReader:
                 line = int(xml_node.get("l"))
                 self.parse_xml_node(xml_child, nid, line, hnode)
 
-    def parse_xml_node(self, xml_node, parent_nid, parent_line, hparent):
+    def parse_xml_node(
+        self, xml_node: Any, parent_nid: int, parent_line: int, hparent: Node
+    ) -> None:
         """Parses an XML node and its children recursively."""
         nid = int(xml_node.get("i"))
 
@@ -414,7 +420,16 @@ class HPCToolkitReader:
             hparent.add_child(hnode)
             self.parse_xml_children(xml_node, hnode)
 
-    def create_node_dict(self, nid, hnode, name, node_type, src_file, line, module):
+    def create_node_dict(
+        self,
+        nid: int,
+        hnode: Node,
+        name: str,
+        node_type: str,
+        src_file: str,
+        line: int,
+        module: str,
+    ) -> Dict[str, Any]:
         """Create a dict with all the node attributes."""
         node_dict = {
             "nid": nid,
@@ -428,7 +443,7 @@ class HPCToolkitReader:
 
         return node_dict
 
-    def count_cpu_threads_per_rank(self):
+    def count_cpu_threads_per_rank(self) -> int:
         metricdb_files = glob.glob(self.dir_name + "/*.metric-db")
         cpu_thread_ids = set()
 

@@ -6,7 +6,7 @@
 import os
 import re
 import struct
-from typing import Dict, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import pandas as pd
 
@@ -17,8 +17,12 @@ from hatchet.node import Node
 
 
 def safe_unpack(
-    format: str, data: bytes, offset: int, index: int = None, index_length: int = None
-) -> tuple:
+    format: str,
+    data: bytes,
+    offset: int,
+    index: Optional[int] = None,
+    index_length: Optional[int] = None,
+) -> Tuple:
     length = struct.calcsize(format)
     if index:
         offset += index * (length if index_length is None else index_length)
@@ -49,13 +53,12 @@ FILE_HEADER_OFFSET = 16
 
 
 class HPCToolkitReaderLatest:
-
     def __init__(
         self,
         dir_path: str,
-        max_depth: int = None,
-        min_application_percentage_time: int = None,
-        min_parent_percentage_time: int = None,
+        max_depth: Optional[int] = None,
+        min_application_percentage_time: Optional[int] = None,
+        min_parent_percentage_time: Optional[int] = None,
     ) -> None:
         self._dir_path = dir_path
         self._max_depth = max_depth
@@ -65,18 +68,18 @@ class HPCToolkitReaderLatest:
         self._meta_file = None
         self._profile_file = None
 
-        self._functions = {}
-        self._source_files = {}
-        self._load_modules = {}
-        self._metric_descriptions = {}
-        self._summary_profile = {}
+        self._functions: Dict[int, Dict[str, Any]] = {}
+        self._source_files: Dict[int, Dict[str, Any]] = {}
+        self._load_modules: Dict[int, Dict[str, Any]] = {}
+        self._metric_descriptions: Dict = {}
+        self._summary_profile: Dict = {}
 
-        self._time_metric = None
-        self._inclusive_metrics = {}
-        self._exclusive_metrics = {}
+        self._time_metric: Optional[str] = None
+        self._inclusive_metrics: Dict = {}
+        self._exclusive_metrics: Dict = {}
 
-        self._cct_roots = []
-        self._metrics_table = []
+        self._cct_roots: List[Node] = []
+        self._metrics_table: List[Dict[str, Any]] = []
 
         for file_path in os.listdir(self._dir_path):
             if file_path.split(".")[-1] == "db":
@@ -217,7 +220,7 @@ class HPCToolkitReaderLatest:
         return self._functions[pFunction]
 
     def _store_cct_node(
-        self, ctxId: int, frame: dict, parent: Node = None, depth: int = 0
+        self, ctxId: int, frame: Dict, parent: Optional[Node] = None, depth: int = 0
     ) -> Node:
         node = Node(Frame(frame), parent=parent, hnid=ctxId, depth=depth)
         if parent is None:
@@ -249,7 +252,6 @@ class HPCToolkitReaderLatest:
         meta_db: bytes,
         parent_time: int,
     ) -> None:
-
         final_offset = current_offset + total_size
 
         while current_offset < final_offset:
@@ -278,7 +280,7 @@ class HPCToolkitReaderLatest:
             ):
                 continue
 
-            frame = {"type": NODE_TYPE_MAPPING[lexicalType]}
+            frame: Dict[str, Union[str, int]] = {"type": NODE_TYPE_MAPPING[lexicalType]}
 
             if nFlexWords:
                 if lexicalType == 0:
@@ -311,7 +313,6 @@ class HPCToolkitReaderLatest:
     def _read_summary_profile(
         self,
     ) -> None:
-
         with open(self._profile_file, "rb") as file:
             file.seek(FILE_HEADER_OFFSET)
             formatProfileInfos = "<QQ"
@@ -366,7 +367,7 @@ class HPCToolkitReaderLatest:
 
     def _read_cct(
         self,
-    ) -> None:
+    ) -> Optional[GraphFrame]:
         with open(self._meta_file, "rb") as file:
             meta_db = file.read()
 
@@ -411,7 +412,7 @@ class HPCToolkitReaderLatest:
                 if im in table.columns.tolist():
                     inclusive_metrics.append(im)
 
-            for em in (list(self._exclusive_metrics.values()),):
+            for em in list(self._exclusive_metrics.values()):
                 if em in table.columns.tolist():
                     exclusive_metrics.append(em)
 
@@ -425,8 +426,9 @@ class HPCToolkitReaderLatest:
 
             print("DATA IMPORTED")
             return graphframe
+        return None
 
-    def read(self) -> GraphFrame:
+    def read(self) -> Optional[GraphFrame]:
         self._read_metric_descriptions()
         self._read_summary_profile()
         return self._read_cct()

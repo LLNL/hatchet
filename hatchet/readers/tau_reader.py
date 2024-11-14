@@ -6,7 +6,15 @@
 import re
 import os
 import glob
+import sys
+from typing import Any, Dict, List, Tuple, Union, cast
 import pandas as pd
+
+if sys.version_info >= (3, 9):
+    from collections.abc import Iterable
+else:
+    from typing import Iterable
+
 import hatchet.graphframe
 from hatchet.node import Node
 from hatchet.graph import Graph
@@ -16,31 +24,31 @@ from hatchet.frame import Frame
 class TAUReader:
     """Read in a profile generated using TAU."""
 
-    def __init__(self, dirname):
+    def __init__(self, dirname: str) -> None:
         self.dirname = dirname
-        self.node_dicts = []
-        self.callpath_to_node = {}
-        self.rank_thread_to_data = {}
-        self.filepath_to_data = {}
-        self.inc_metrics = []
-        self.exc_metrics = []
-        self.columns = []
+        self.node_dicts: List[Dict[str, Any]] = []
+        self.callpath_to_node: Dict[Tuple[str, ...], Node] = {}
+        # self.rank_thread_to_data = {}
+        # self.filepath_to_data = {}
+        self.inc_metrics: List[str] = []
+        self.exc_metrics: List[str] = []
+        self.columns: List[str] = []
         self.multiple_ranks = False
         self.multiple_threads = False
 
     def create_node_dict(
         self,
-        node,
-        columns,
-        metric_values,
-        name,
-        filename,
-        module,
-        start_line,
-        end_line,
-        rank,
-        thread,
-    ):
+        node: Node,
+        columns: List[str],
+        metric_values: Union[List[Any], Tuple[Any, ...]],
+        name: str,
+        filename: str,
+        module: str,
+        start_line: int,
+        end_line: int,
+        rank: int,
+        thread: int,
+    ) -> Dict[str, Any]:
         node_dict = {
             "node": node,
             "rank": rank,
@@ -55,8 +63,10 @@ class TAUReader:
             node_dict[columns[i + 1]] = metric_values[i]
         return node_dict
 
-    def create_graph(self):
-        def _get_name_file_module(is_parent, node_info, symbol):
+    def create_graph(self) -> List[Node]:
+        def _get_name_file_module(
+            is_parent: bool, node_info: str, symbol: str
+        ) -> List[str]:
             """This function gets the name, file and module information
             for a node using the corresponding line in the output file.
             Example line: [UNWIND] <file> [@] <name> [{<file_or_module>} {<line>}]
@@ -71,18 +81,18 @@ class TAUReader:
             # formats. Example formats are given in comments.
             if symbol == " [@] ":
                 # Check if there is a [@] symbol.
-                node_info = node_info.split(symbol)
+                split_node_info = node_info.split(symbol)
                 # We don't need file and module information if it's a parent node.
                 if not is_parent:
-                    file = node_info[0].split()[1]
-                    if "[{" in node_info[1]:
+                    file = split_node_info[0].split()[1]
+                    if "[{" in split_node_info[1]:
                         # Sometimes we see file and module information inside of [{}]
                         # Example: [UNWIND] <file> [@] <name> [{<file_or_module>} {<line>}]
-                        name_and_module = node_info[1].split(" [{")
+                        name_and_module = split_node_info[1].split(" [{")
                         module = name_and_module[1].split()[0].strip("}")
                     else:
                         # Example: [UNWIND] <file> [@] <name> <module>
-                        name_and_module = node_info[1].split()
+                        name_and_module = split_node_info[1].split()
                         module = name_and_module[1]
 
                     # Check if module is in file.
@@ -96,46 +106,46 @@ class TAUReader:
                     name = "[UNWIND] " + name_and_module[0]
                 else:
                     # We just need to take name if it is a parent
-                    name = "[UNWIND] " + node_info[1].split()[0]
+                    name = "[UNWIND] " + split_node_info[1].split()[0]
             elif symbol == " C ":
                 # Check if there is a C symbol.
                 # "C" symbol means it's a C function.
-                node_info = node_info.split(symbol)
-                name = node_info[0]
+                split_node_info = node_info.split(symbol)
+                name = split_node_info[0]
                 # We don't need file and module information if it's a parent node.
                 if not is_parent:
-                    if "[{" in node_info[1]:
+                    if "[{" in split_node_info[1]:
                         # Example: <name> C [{<file>} {<line>}]
-                        node_info = node_info[1].split()
-                        file = node_info[0].strip("}[{")
+                        split_node_info = split_node_info[1].split()
+                        file = split_node_info[0].strip("}[{")
             else:
                 if "[{" in node_info:
                     # If there isn't C or [@]
                     # Example: [<type>] <name> [{} {}]
-                    node_info = node_info.split(" [{")
-                    name = node_info[0]
+                    split_node_info = node_info.split(" [{")
+                    name = split_node_info[0]
                     # We don't need file and module information if it's a parent node.
                     if not is_parent:
-                        file = node_info[1].split()[0].strip("}{")
+                        file = split_node_info[1].split()[0].strip("}{")
                 else:
                     # Example 1: [<type>] <name> <module>
                     # Example 2: [<type>] <name>
                     # Example 3: <name>
                     name = node_info
-                    node_info = node_info.split()
+                    split_node_info = node_info.split()
                     # We need to take module information from the first example.
                     # Another example is "[CONTEXT] .TAU application" which contradicts
                     # with the first example. So we check if there is "\" symbol which
                     # will show the module information in this case.
-                    if len(node_info) == 3 and "/" in name:
-                        name = node_info[0] + " " + node_info[1]
+                    if len(split_node_info) == 3 and "/" in name:
+                        name = split_node_info[0] + " " + split_node_info[1]
                         # We don't need file and module information if it's a parent node.
                         if not is_parent:
-                            module = node_info[2]
+                            module = split_node_info[2]
             return [name, file, module]
 
-        def _get_line_numbers(node_info):
-            start_line, end_line = 0, 0
+        def _get_line_numbers(node_info: str) -> List[str]:
+            start_line, end_line = "0", "0"
             # There should be [{}] symbols if there is line number information.
             if "[{" in node_info:
                 tmp_module_or_file_line = (
@@ -146,9 +156,9 @@ class TAUReader:
                 if "-" in line_numbers:
                     # Sometimes there is "-" between start line and end line
                     # Example: {341,1}-{396,1}
-                    line_numbers = line_numbers.split("-")
-                    start_line = line_numbers[0].split(",")[0]
-                    end_line = line_numbers[1].split(",")[0]
+                    split_line_numbers = line_numbers.split("-")
+                    start_line = split_line_numbers[0].split(",")[0]
+                    end_line = split_line_numbers[1].split(",")[0]
                 else:
                     if "," in line_numbers:
                         # Sometimes we don't have "-".
@@ -157,7 +167,7 @@ class TAUReader:
                         end_line = line_numbers.split(",")[1]
             return [start_line, end_line]
 
-        def _create_parent(child_node, parent_callpath):
+        def _create_parent(child_node: Node, parent_callpath: Tuple[str, ...]) -> None:
             """In TAU output, sometimes we see a node as a parent
             in the callpath before we see it as a leaf node. In
             this case, we need to create a hatchet node for the parent.
@@ -201,13 +211,13 @@ class TAUReader:
                 child_node.add_parent(parent_node)
                 _create_parent(parent_node, grand_parent_callpath)
 
-        def _construct_column_list(first_rank_filenames):
+        def _construct_column_list(first_rank_filenames: List[str]) -> List[str]:
             """This function constructs columns, exc_metrics, and
             inc_metrics using all metric files of a rank. It gets the
             all metric files of a rank as a tuple and only loads the
             second line (metadata) of these files.
             """
-            columns = []
+            columns: List[str] = []
             for file_index in range(len(first_rank_filenames)):
                 with open(first_rank_filenames[file_index], "r") as f:
                     # Skip the first line: "192 templated_functions_MULTI_TIME"
@@ -249,7 +259,7 @@ class TAUReader:
         # Each tuple stores all the metric files of a rank.
         # We process one rank at a time.
         # Example: [(metric1/profile.x.0.0, metric2/profile.x.0.0), ...]
-        profile_filenames = list(zip(*profile_filenames))
+        profile_filenames = list(cast(Iterable[List[str]], zip(*profile_filenames)))
 
         # Get column information from the metric files of a rank.
         self.columns = _construct_column_list(profile_filenames[0])
@@ -278,7 +288,7 @@ class TAUReader:
             root_line = re.match(r"\"(.*)\"\s(.*)\sG", file_data[0][0])
             root_name = root_line.group(1).strip(" ")
             # convert it to a tuple to use it as a key in callpath_to_node dictionary
-            root_callpath = tuple([root_name])
+            root_callpath: Tuple[str, ...] = tuple([root_name])
             root_values = list(map(int, root_line.group(2).split(" ")[:-1]))
 
             # After first profile.0.0.0, only get Excl and Incl metric values
@@ -340,7 +350,7 @@ class TAUReader:
                     # Example: ".TAU application  => foo()  => bar()" 31 0 155019 155019 0 GROUP="TAU_SAMPLE|TAU_CALLPATH"
                     callpath_line_regex = re.match(r"\"(.*)\"\s(.*)\sG", line)
                     # callpath: ".TAU application  => foo()  => bar()"
-                    callpath = [
+                    callpath: Union[List[str], Tuple[str, ...]] = [
                         name.strip(" ")
                         for name in callpath_line_regex.group(1).split("=>")
                     ]
@@ -432,9 +442,9 @@ class TAUReader:
                         # module
                         leaf_name_file_module[2],
                         # start line
-                        leaf_line_numbers[0],
+                        int(leaf_line_numbers[0]),
                         # end line
-                        leaf_line_numbers[1],
+                        int(leaf_line_numbers[1]),
                         rank,
                         thread,
                     )
@@ -443,7 +453,7 @@ class TAUReader:
 
         return list_roots
 
-    def read(self):
+    def read(self) -> hatchet.graphframe.GraphFrame:
         """Read the TAU profile file to extract the calling context tree."""
         # Add all nodes and roots.
         roots = self.create_graph()

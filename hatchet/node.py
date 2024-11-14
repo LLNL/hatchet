@@ -3,17 +3,24 @@
 #
 # SPDX-License-Identifier: MIT
 
+import sys
 from functools import total_ordering
+from typing import Any, Dict, List, Optional, Set, Tuple, Union
+
+if sys.version_info >= (3, 9):
+    from collections.abc import Iterable
+else:
+    from typing import Iterable
 
 from .frame import Frame
 
 
-def traversal_order(node):
+def traversal_order(node: "Node") -> Tuple[Frame, int]:
     """Deterministic key function for sorting nodes in traversals."""
     return (node.frame, id(node))
 
 
-def node_traversal_order(node):
+def node_traversal_order(node: "Node") -> int:
     """Deterministic key function for sorting nodes by specified "node order"
     (which gets assigned to _hatchet_nid) in traversals."""
     return node._hatchet_nid
@@ -23,27 +30,33 @@ def node_traversal_order(node):
 class Node:
     """A node in the graph. The node only stores its frame."""
 
-    def __init__(self, frame_obj, parent=None, hnid=-1, depth=-1):
+    def __init__(
+        self,
+        frame_obj: Frame,
+        parent: Optional["Node"] = None,
+        hnid: int = -1,
+        depth: int = -1,
+    ) -> None:
         self.frame = frame_obj
         self._depth = depth
         self._hatchet_nid = hnid
 
-        self.parents = []
+        self.parents: List["Node"] = []
         if parent is not None:
             self.add_parent(parent)
-        self.children = []
+        self.children: List["Node"] = []
 
-    def add_parent(self, node):
+    def add_parent(self, node: "Node"):
         """Adds a parent to this node's list of parents."""
         assert isinstance(node, Node)
         self.parents.append(node)
 
-    def add_child(self, node):
+    def add_child(self, node: "Node"):
         """Adds a child to this node's list of children."""
         assert isinstance(node, Node)
         self.children.append(node)
 
-    def paths(self):
+    def paths(self) -> List[Tuple["Node", ...]]:
         """List of tuples, one for each path from this node to any root.
 
         Paths are tuples of node objects.
@@ -58,7 +71,7 @@ class Node:
                 paths.extend([path + node_value for path in parent_paths])
             return paths
 
-    def path(self, attrs=None):
+    def path(self, attrs: Optional[Dict[str, Any]] = None) -> Tuple["Node", ...]:
         """Path to this node from root. Raises if there are multiple paths.
 
         This is useful for trees (where each node only has one path), as
@@ -68,10 +81,15 @@ class Node:
         """
         paths = self.paths()
         if len(paths) > 1:
-            raise MultiplePathError("Node has more than one path: " % paths)
+            raise MultiplePathError("Node has more than one path: " + str(paths))
         return paths[0]
 
-    def dag_equal(self, other, vs=None, vo=None):
+    def dag_equal(
+        self,
+        other: "Node",
+        vs: Optional[Set[int]] = None,
+        vo: Optional[Set[int]] = None,
+    ) -> bool:
         """Check if DAG rooted at self has the same structure as that rooted at
         other.
         """
@@ -113,7 +131,12 @@ class Node:
 
         return True
 
-    def traverse(self, order="pre", attrs=None, visited=None):
+    def traverse(
+        self,
+        order: str = "pre",
+        attrs: Optional[Union[List[str], Tuple[str, ...], str]] = None,
+        visited: Optional[Dict[int, int]] = None,
+    ) -> Iterable[Union["Node", Union[Tuple[Any, ...], Any]]]:
         """Traverse the tree depth-first and yield each node.
 
         Arguments:
@@ -149,7 +172,12 @@ class Node:
         if order == "post":
             yield value(self)
 
-    def node_order_traverse(self, order="pre", attrs=None, visited=None):
+    def node_order_traverse(
+        self,
+        order: str = "pre",
+        attrs: Optional[Union[List[str], Tuple[str, ...], str]] = None,
+        visited: Optional[Dict[int, int]] = None,
+    ) -> Iterable[Union["Node", Union[Tuple[Any, ...], Any]]]:
         """Traverse the tree depth-first and yield each node, sorting children by "node order".
 
         Arguments:
@@ -187,28 +215,33 @@ class Node:
         if order == "post":
             yield value(self)
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         return self._hatchet_nid
 
-    def __eq__(self, other):
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, Node):
+            return NotImplemented
         return self._hatchet_nid == other._hatchet_nid
 
-    def __lt__(self, other):
+    def __lt__(self, other: "Node") -> bool:
         return self._hatchet_nid < other._hatchet_nid
 
-    def __gt__(self, other):
+    def __gt__(self, other: "Node") -> bool:
         return self._hatchet_nid > other._hatchet_nid
 
-    def __str__(self):
+    def __str__(self) -> str:
         """Returns a string representation of the node."""
         return str(self.frame)
 
-    def copy(self):
+    def copy(self) -> "Node":
         """Copy this node without preserving parents or children."""
         return Node(frame_obj=self.frame.copy())
 
     @classmethod
-    def from_lists(cls, lists):
+    def from_lists(
+        cls,
+        lists: Tuple[str, "Node", Union[List, Tuple]],
+    ) -> "Node":
         r"""Construct a hierarchy of nodes from recursive lists.
 
 For example, this will construct a simple tree:
@@ -278,7 +311,7 @@ In the above examples, the 'a' represents a Node with its
 
         return _from_lists(lists, None)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return "Node({%s})" % ", ".join(
             "%s: %s" % (repr(k), repr(v)) for k, v in sorted(self.frame.attrs.items())
         )

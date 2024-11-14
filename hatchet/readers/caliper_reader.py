@@ -9,6 +9,13 @@ import re
 import subprocess
 import os
 import math
+from typing import Any, Dict, List, Union, cast
+from io import TextIOWrapper
+
+if sys.version_info >= (3, 9):
+    from collections.abc import Callable
+else:
+    from typing import Callable
 
 import pandas as pd
 import numpy as np
@@ -26,7 +33,9 @@ unknown_label_counter = 0
 class CaliperReader:
     """Read in a Caliper file (`cali` or split JSON) or file-like object."""
 
-    def __init__(self, filename_or_stream, query=""):
+    def __init__(
+        self, filename_or_stream: Union[str, TextIOWrapper], query: str = ""
+    ) -> None:
         """Read from Caliper files (`cali` or split JSON).
 
         Args:
@@ -39,41 +48,42 @@ class CaliperReader:
         self.query = query
         self.node_ordering = False
 
-        self.json_data = {}
-        self.json_cols = {}
-        self.json_cols_mdata = {}
-        self.json_nodes = {}
+        self.json_data: List[List[Union[int, float]]] = []
+        self.json_cols: List[str] = []
+        self.json_cols_mdata: List[Dict[str, Any]] = []
+        self.json_nodes: List[Dict[str, Any]] = []
 
-        self.metadata = {}
+        self.metadata: Dict[str, Any] = {}
 
-        self.idx_to_label = {}
-        self.idx_to_node = {}
+        self.idx_to_label: Dict[int, str] = {}
+        self.idx_to_node: Dict[int, Dict[str, Union[int, str, Node]]] = {}
 
         self.timer = Timer()
         self.nid_col_name = "nid"
 
         if isinstance(self.filename_or_stream, str):
-            _, self.filename_ext = os.path.splitext(filename_or_stream)
+            _, self.filename_ext = os.path.splitext(cast(str, filename_or_stream))
 
-    def read_json_sections(self):
+    def read_json_sections(self) -> None:
         # if cali-query exists, extract data from .cali to a file-like object
         if self.filename_ext == ".cali":
             cali_query = which("cali-query")
             if not cali_query:
                 raise ValueError("from_caliper() needs cali-query to query .cali file")
-            cali_json = subprocess.Popen(
+            assert isinstance(self.filename_or_stream, str)
+            cali_json_popen = subprocess.Popen(
                 [cali_query, "-q", self.query, self.filename_or_stream],
                 stdout=subprocess.PIPE,
             )
-            self.filename_or_stream = cali_json.stdout
+            self.filename_or_stream = str(cali_json_popen.stdout)
 
         # if filename_or_stream is a str, then open the file, otherwise
         # directly load the file-like object
         if isinstance(self.filename_or_stream, str):
-            with open(self.filename_or_stream) as cali_json:
+            with open(cast(str, self.filename_or_stream)) as cali_json:
                 json_obj = json.load(cali_json)
         else:
-            json_obj = json.loads(self.filename_or_stream.read().decode("utf-8"))
+            json_obj = json.loads(self.filename_or_stream.read())
 
         # read various sections of the Caliper JSON file
         self.json_data = json_obj["data"]
@@ -117,30 +127,33 @@ class CaliperReader:
             self.json_data.remove(i)
 
         # change column names
-        for idx, item in enumerate(self.json_cols):
-            if item == self.path_col_name:
+        for idx, col_item in enumerate(self.json_cols):
+            if col_item == self.path_col_name:
                 # this column is just a pointer into the nodes section
                 self.json_cols[idx] = self.nid_col_name
             # make other columns consistent with other readers
-            if item == "mpi.rank":
+            if col_item == "mpi.rank":
                 self.json_cols[idx] = "rank"
-            if item == "module#cali.sampler.pc":
+            if col_item == "module#cali.sampler.pc":
                 self.json_cols[idx] = "module"
-            if item == "sum#time.duration" or item == "sum#avg#sum#time.duration":
+            if (
+                col_item == "sum#time.duration"
+                or col_item == "sum#avg#sum#time.duration"
+            ):
                 self.json_cols[idx] = "time"
             if (
-                item == "inclusive#sum#time.duration"
-                or item == "sum#avg#inclusive#sum#time.duration"
+                col_item == "inclusive#sum#time.duration"
+                or col_item == "sum#avg#inclusive#sum#time.duration"
             ):
                 self.json_cols[idx] = "time (inc)"
 
         # make list of metric columns
-        self.metric_columns = []
-        for idx, item in enumerate(self.json_cols_mdata):
-            if self.json_cols[idx] != "rank" and item["is_value"] is True:
+        self.metric_columns: List[str] = []
+        for idx, col_mdata_item in enumerate(self.json_cols_mdata):
+            if self.json_cols[idx] != "rank" and col_mdata_item["is_value"] is True:
                 self.metric_columns.append(self.json_cols[idx])
 
-    def create_graph(self):
+    def create_graph(self) -> List[Node]:
         list_roots = []
 
         global unknown_label_counter
@@ -158,7 +171,7 @@ class CaliperReader:
                 # If there is a node orderering, assign to the _hatchet_nid
                 if "Node order" in self.json_cols:
                     self.node_ordering = True
-                    order = self.json_data[idx][0]
+                    order = cast(int, self.json_data[idx][0])
                 if "parent" not in node:
                     # since this node does not have a parent, this is a root
                     graph_root = Node(
@@ -173,7 +186,9 @@ class CaliperReader:
                     }
                     self.idx_to_node[idx] = node_dict
                 else:
-                    parent_hnode = (self.idx_to_node[node["parent"]])["node"]
+                    parent_hnode = cast(
+                        Node, (self.idx_to_node[node["parent"]])["node"]
+                    )
                     hnode = Node(
                         Frame({"type": self.node_type, "name": node_label}),
                         hnid=order,
@@ -189,7 +204,7 @@ class CaliperReader:
 
         return list_roots
 
-    def read(self):
+    def read(self) -> hatchet.graphframe.GraphFrame:
         """Read the caliper JSON file to extract the calling context tree."""
         with self.timer.phase("read json"):
             self.read_json_sections()
@@ -210,7 +225,7 @@ class CaliperReader:
 
         if self.both_hierarchies is True:
             # create dict that stores aggregation function for each column
-            agg_dict = {}
+            agg_dict: Dict[str, Callable] = {}
             for idx, item in enumerate(self.json_cols_mdata):
                 col = self.json_cols[idx]
                 if col != "rank" and col != "nid":
@@ -281,7 +296,7 @@ class CaliperReader:
                 # only need to do something if there are more than one
                 # file:line number entries for the node
                 if len(line_groups.size()) > 1:
-                    sn_hnode = self.idx_to_node[nid]["node"]
+                    sn_hnode = cast(Node, self.idx_to_node[nid]["node"])
 
                     for line, line_group in line_groups:
                         # create the node label

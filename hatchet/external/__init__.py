@@ -3,6 +3,8 @@
 #
 # SPDX-License-Identifier: MIT
 
+from typing import TYPE_CHECKING
+
 
 class VersionError(Exception):
     """
@@ -13,23 +15,24 @@ class VersionError(Exception):
     pass
 
 
-try:
-    import IPython
+if not TYPE_CHECKING:
+    try:
+        import IPython
 
-    # Testing IPython version
-    if int(IPython.__version__.split(".")[0]) > 7:
-        raise VersionError()
+        # Testing IPython version
+        if int(IPython.__version__.split(".")[0]) > 7:
+            raise VersionError()
 
-    from .roundtrip.roundtrip.manager import Roundtrip
+        from .roundtrip.roundtrip.manager import Roundtrip
 
-    # Refrencing Roundtrip here to resolve scope issues with import
-    Roundtrip
+        # Refrencing Roundtrip here to resolve scope issues with import
+        Roundtrip
 
-except ImportError:
-    pass
+    except ImportError:
+        pass
 
-except VersionError:
-    if IPython.get_ipython() is not None:
-        print(
-            "Warning: Roundtrip module could not be loaded. Requires jupyter notebook version <= 7.x."
-        )
+    except VersionError:
+        if IPython.get_ipython() is not None:
+            print(
+                "Warning: Roundtrip module could not be loaded. Requires jupyter notebook version <= 7.x."
+            )

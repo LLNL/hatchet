@@ -3,6 +3,8 @@
 #
 # SPDX-License-Identifier: MIT
 
+from typing import List
+
 
 class ColorMaps:
     # RdYlGn (Default) color map
@@ -98,7 +100,7 @@ class ColorMaps:
     def __init__(self):
         self.colors = []
 
-    def get_colors(self, colormap, invert_colormap):
+    def get_colors(self, colormap: str, invert_colormap: bool) -> List[str]:
         """Returns a list of colors based on the colormap and invert_colormap
         arguments.
         """
@@ -125,7 +127,7 @@ class ColorMaps:
             self.colors = self.Spectral.copy()
         else:
             raise ValueError(
-                self.colormap
+                colormap
                 + " is an incorrect colormap. Select one BrBG, PiYg, PRGn,"
                 + " PuOr, RdBu, RdGy, RdYlBu, RdYlGn, or Spectral."
             )

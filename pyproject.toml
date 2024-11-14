@@ -13,6 +13,16 @@ authors = [
 ]
 license = "MIT"
 
+[tool.mypy]
+exclude = [
+    "hatchet/tests",
+    "hatchet/vis",
+    "hatchet/external/roundtrip",
+    "setup.py",
+]
+strict_optional = false
+disable_error_code = "import-untyped"
+
 [tool.ruff]
 line-length = 88
 target-version = 'py39'
