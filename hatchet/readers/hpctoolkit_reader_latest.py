@@ -14,8 +14,14 @@ from hatchet.frame import Frame
 from hatchet.graph import Graph
 from hatchet.graphframe import GraphFrame
 from hatchet.node import Node
+from hatchet.util.perf_measure import annotate
 
 
+_hpctk_reader_latest_mod_annotate = annotate(fmt="hpctoolkit_reader_latest.{}")
+_hpctk_reader_latest_annotate = annotate(fmt="HPCToolkitReaderLatest.{}")
+
+
+@_hpctk_reader_latest_mod_annotate
 def safe_unpack(
     format: str, data: bytes, offset: int, index: int = None, index_length: int = None
 ) -> tuple:
@@ -25,6 +31,7 @@ def safe_unpack(
     return struct.unpack(format, data[offset : offset + length])
 
 
+@_hpctk_reader_latest_mod_annotate
 def read_string(data: bytes, offset: int) -> str:
     result = ""
     while True:
@@ -49,7 +56,7 @@ FILE_HEADER_OFFSET = 16
 
 
 class HPCToolkitReaderLatest:
-
+    @_hpctk_reader_latest_annotate
     def __init__(
         self,
         dir_path: str,
@@ -99,6 +106,7 @@ class HPCToolkitReaderLatest:
         if self._profile_file is None:
             raise ValueError("ERROR: profile.db not found.")
 
+    @_hpctk_reader_latest_annotate
     def _read_metric_descriptions(self) -> None:
         with open(self._meta_file, "rb") as file:
             file.seek(FILE_HEADER_OFFSET + 4 * 8)
@@ -146,6 +154,7 @@ class HPCToolkitReaderLatest:
 
                     self._metric_descriptions[propMetricId] = metric_full_name
 
+    @_hpctk_reader_latest_annotate
     def _parse_source_file(self, meta_db: bytes, pFile: int) -> Dict[str, str]:
         if pFile not in self._source_files:
             (pPath,) = safe_unpack(
@@ -160,6 +169,7 @@ class HPCToolkitReaderLatest:
 
         return self._source_files[pFile]
 
+    @_hpctk_reader_latest_annotate
     def _parse_load_module(self, meta_db: bytes, pModule: int) -> Dict[str, str]:
         if pModule not in self._load_modules:
             (pPath,) = safe_unpack(
@@ -174,6 +184,7 @@ class HPCToolkitReaderLatest:
 
         return self._load_modules[pModule]
 
+    @_hpctk_reader_latest_annotate
     def _parse_function(
         self, meta_db: bytes, pFunction: int
     ) -> Dict[str, Union[str, int]]:
@@ -216,6 +227,7 @@ class HPCToolkitReaderLatest:
 
         return self._functions[pFunction]
 
+    @_hpctk_reader_latest_annotate
     def _store_cct_node(
         self, ctxId: int, frame: dict, parent: Node = None, depth: int = 0
     ) -> Node:
@@ -228,9 +240,7 @@ class HPCToolkitReaderLatest:
             "node": node,
             "name": (
                 # f"{frame['type']}: {frame['name']}"
-                frame["name"]
-                if frame["name"] != 1
-                else "entry"
+                frame["name"] if frame["name"] != 1 else "entry"
             ),
         }
 
@@ -241,6 +251,7 @@ class HPCToolkitReaderLatest:
 
         return node
 
+    @_hpctk_reader_latest_annotate
     def _parse_context(
         self,
         current_offset: int,
@@ -249,7 +260,6 @@ class HPCToolkitReaderLatest:
         meta_db: bytes,
         parent_time: int,
     ) -> None:
-
         final_offset = current_offset + total_size
 
         while current_offset < final_offset:
@@ -308,10 +318,10 @@ class HPCToolkitReaderLatest:
                     my_time,
                 )
 
+    @_hpctk_reader_latest_annotate
     def _read_summary_profile(
         self,
     ) -> None:
-
         with open(self._profile_file, "rb") as file:
             file.seek(FILE_HEADER_OFFSET)
             formatProfileInfos = "<QQ"
@@ -364,6 +374,7 @@ class HPCToolkitReaderLatest:
                                 self._metric_descriptions[metricId]
                             )
 
+    @_hpctk_reader_latest_annotate
     def _read_cct(
         self,
     ) -> None:
@@ -426,6 +437,7 @@ class HPCToolkitReaderLatest:
             print("DATA IMPORTED")
             return graphframe
 
+    @_hpctk_reader_latest_annotate
     def read(self) -> GraphFrame:
         self._read_metric_descriptions()
         self._read_summary_profile()

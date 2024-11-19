@@ -12,6 +12,10 @@ import hatchet.graphframe
 from hatchet.node import Node
 from hatchet.graph import Graph
 from hatchet.frame import Frame
+from hatchet.util.perf_measure import annotate
+
+
+_cprof_annotate = annotate(fmt="CProfileReader.{}")
 
 
 def print_incomptable_msg(stats_file):
@@ -44,12 +48,14 @@ class NameData:
 
 
 class CProfileReader:
+    @_cprof_annotate
     def __init__(self, filename):
         self.pstats_file = filename
 
         self.name_to_hnode = {}
         self.name_to_dict = {}
 
+    @_cprof_annotate
     def _create_node_and_row(self, fn_data, fn_name, stats_dict):
         """
         Description: Takes a profiled function as specified in a pstats file
@@ -74,10 +80,12 @@ class CProfileReader:
 
         return fn_hnode
 
+    @_cprof_annotate
     def _get_src(self, stat):
         """Gets the source/parent of our current desitnation node"""
         return stat[StatData.SRCNODE]
 
+    @_cprof_annotate
     def _add_node_metadata(self, stat_name, stat_module_data, stats, hnode):
         """Puts all the metadata associated with a node in a dictionary to insert into pandas."""
         node_dict = {
@@ -92,6 +100,7 @@ class CProfileReader:
         }
         self.name_to_dict[stat_name] = node_dict
 
+    @_cprof_annotate
     def create_graph(self):
         """Performs the creation of our node graph"""
         try:
@@ -124,6 +133,7 @@ class CProfileReader:
 
         return list_roots
 
+    @_cprof_annotate
     def read(self):
         roots = self.create_graph()
         graph = Graph(roots)

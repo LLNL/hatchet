@@ -6,7 +6,10 @@
 import matplotlib.cm
 import matplotlib.colors
 
+from .perf_measure import annotate
 
+
+@annotate()
 def trees_to_dot(roots, dataframe, metric, name, rank, thread, threshold):
     """Calls to_dot in turn for each tree in the graph/forest."""
     text = (
@@ -33,6 +36,7 @@ def trees_to_dot(roots, dataframe, metric, name, rank, thread, threshold):
     return text
 
 
+@annotate()
 def to_dot(hnode, dataframe, metric, name, rank, thread, threshold, visited):
     """Write to graphviz dot format."""
     colormap = matplotlib.cm.Reds
@@ -40,7 +44,6 @@ def to_dot(hnode, dataframe, metric, name, rank, thread, threshold, visited):
     max_time = dataframe[metric].max()
 
     def add_nodes_and_edges(hnode):
-
         # set dataframe index based on if rank is a part of the index
         if "rank" in dataframe.index.names and "thread" in dataframe.index.names:
             df_index = (hnode, rank, thread)

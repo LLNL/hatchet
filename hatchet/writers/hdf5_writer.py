@@ -7,15 +7,18 @@ import warnings
 import sys
 
 from .dataframe_writer import DataframeWriter
+from ..util.perf_measure import annotate
 
 
 class HDF5Writer(DataframeWriter):
+    @annotate(fmt="HDF5Writer.{}")
     def __init__(self, filename):
         if sys.version_info[0] == 2:
             super(HDF5Writer, self).__init__(filename)
         else:
             super().__init__(filename)
 
+    @annotate(fmt="HDF5Writer.{}")
     def _write_dataframe_to_file(self, df, **kwargs):
         if "key" not in kwargs:
             raise KeyError("Writing to HDF5 requires a user-supplied key")

@@ -4,15 +4,21 @@
 # SPDX-License-Identifier: MIT
 
 from .errors import InvalidQueryPath
+from ..util.perf_measure import annotate
+
+
+_query_annotate = annotate(fmt="Query.{}")
 
 
 class Query(object):
     """Class for representing and building Hatchet Call Path Queries"""
 
+    @_query_annotate
     def __init__(self):
         """Create new Query"""
         self.query_pattern = []
 
+    @_query_annotate
     def match(self, quantifier=".", predicate=lambda row: True):
         """Start a query with a root node described by the arguments.
 
@@ -28,6 +34,7 @@ class Query(object):
         self._add_node(quantifier, predicate)
         return self
 
+    @_query_annotate
     def rel(self, quantifier=".", predicate=lambda row: True):
         """Add a new node to the end of the query.
 
@@ -57,6 +64,7 @@ class Query(object):
         """
         return self.rel(quantifer, predicate)
 
+    @_query_annotate
     def __len__(self):
         """Returns the length of the query."""
         return len(self.query_pattern)

@@ -4,6 +4,7 @@
 # SPDX-License-Identifier: MIT
 
 from hatchet.node import Node
+from hatchet.util.perf_measure import annotate
 
 from abc import abstractmethod
 
@@ -19,6 +20,11 @@ except ImportError:
     ABC = ABCMeta("ABC", (object,), {"__slots__": ()})
 
 
+_dataframe_writer_mod_annotate = annotate(fmt="dataframe_writer.{}")
+_dataframe_writer_annotate = annotate(fmt="DataframeWriter.{}")
+
+
+@_dataframe_writer_mod_annotate
 def _get_node_from_df_iloc(df, ind):
     node = None
     if isinstance(df.iloc[ind].name, tuple):
@@ -32,6 +38,7 @@ def _get_node_from_df_iloc(df, ind):
     return node
 
 
+@_dataframe_writer_mod_annotate
 def _fill_children_and_parents(dump_df):
     dump_df["children"] = [[] for _ in range(len(dump_df))]
     dump_df["parents"] = [[] for _ in range(len(dump_df))]
@@ -49,6 +56,7 @@ def _fill_children_and_parents(dump_df):
 
 
 class DataframeWriter(ABC):
+    @_dataframe_writer_annotate
     def __init__(self, filename):
         self.filename = filename
 
@@ -56,6 +64,7 @@ class DataframeWriter(ABC):
     def _write_dataframe_to_file(self, df, **kwargs):
         pass
 
+    @_dataframe_writer_annotate
     def write(self, gf, **kwargs):
         gf_cpy = gf.deepcopy()
         dump_df = _fill_children_and_parents(gf_cpy.dataframe)

@@ -6,6 +6,7 @@
 import hatchet.graphframe
 from hatchet.node import Node
 from hatchet.graph import Graph
+from hatchet.util.perf_measure import annotate
 
 from abc import abstractmethod
 
@@ -21,6 +22,10 @@ except ImportError:
     ABC = ABCMeta("ABC", (object,), {"__slots__": ()})
 
 
+_dataframe_reader_annotate = annotate(fmt="DataframeReader.{}")
+
+
+@annotate()
 def _get_node_from_df_iloc(df, ind):
     node = None
     if isinstance(df.iloc[ind].name, tuple):
@@ -34,6 +39,7 @@ def _get_node_from_df_iloc(df, ind):
     return node
 
 
+@annotate()
 def _get_parents_and_children(df):
     rel_dict = {}
     for i in range(len(df)):
@@ -45,6 +51,7 @@ def _get_parents_and_children(df):
     return rel_dict
 
 
+@annotate()
 def _reconstruct_graph(df, rel_dict):
     node_list = sorted(list(df.index.to_frame()["node"]))
     for i in range(len(df)):
@@ -60,6 +67,7 @@ def _reconstruct_graph(df, rel_dict):
 class DataframeReader(ABC):
     """Abstract Base Class for reading in checkpointing files."""
 
+    @_dataframe_reader_annotate
     def __init__(self, filename):
         self.filename = filename
 
@@ -67,6 +75,7 @@ class DataframeReader(ABC):
     def _read_dataframe_from_file(self, **kwargs):
         pass
 
+    @_dataframe_reader_annotate
     def read(self, **kwargs):
         df = self._read_dataframe_from_file(**kwargs)
         rel_dict = _get_parents_and_children(df)

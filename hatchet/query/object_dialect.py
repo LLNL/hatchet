@@ -15,6 +15,7 @@ import sys
 
 from .errors import InvalidQueryPath, InvalidQueryFilter, MultiIndexModeMismatch
 from .query import Query
+from ..util.perf_measure import annotate
 
 
 def _process_multi_index_mode(apply_result, multi_index_mode):
@@ -27,6 +28,7 @@ def _process_multi_index_mode(apply_result, multi_index_mode):
     )
 
 
+@annotate()
 def _process_predicate(attr_filter, multi_index_mode):
     """Converts high-level API attribute filter to a lambda"""
     compops = ("<", ">", "==", ">=", "<=", "<>", "!=")  # ,
@@ -218,6 +220,7 @@ def _process_predicate(attr_filter, multi_index_mode):
 class ObjectQuery(Query):
     """Class for representing and parsing queries using the Object-based dialect."""
 
+    @annotate(fmt="ObjectQuery.{}")
     def __init__(self, query, multi_index_mode="off"):
         """Builds a new ObjectQuery from an instance of the Object-based dialect syntax.
 

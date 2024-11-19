@@ -26,10 +26,21 @@ from .object_dialect import ObjectQuery
 from .string_dialect import parse_string_dialect
 from .engine import QueryEngine
 from .errors import BadNumberNaryQueryArgs, InvalidQueryPath
+from ..util.perf_measure import annotate
 
 
 # QueryEngine object for running the legacy "apply" methods
 COMPATABILITY_ENGINE = QueryEngine()
+
+
+_abstract_query_annotate = annotate(fmt="AbstractQuery.{}")
+_nary_query_annotate = annotate(fmt="NaryQuery.{}")
+_and_query_annotate = annotate(fmt="AndQuery.{}")
+_or_query_annotate = annotate(fmt="OrQuery.{}")
+_xor_query_annotate = annotate(fmt="XorQuery.{}")
+_not_query_annotate = annotate(fmt="NotQuery.{}")
+_query_matcher_annotate = annotate(fmt="QueryMatcher.{}")
+_cypher_query_annotate = annotate(fmt="CypherQuery.{}")
 
 
 class AbstractQuery(ABC):
@@ -39,6 +50,7 @@ class AbstractQuery(ABC):
     def apply(self, gf):
         pass
 
+    @_abstract_query_annotate
     def __and__(self, other):
         """Create a new AndQuery using this query and another.
 
@@ -50,6 +62,7 @@ class AbstractQuery(ABC):
         """
         return AndQuery(self, other)
 
+    @_abstract_query_annotate
     def __or__(self, other):
         """Create a new OrQuery using this query and another.
 
@@ -61,6 +74,7 @@ class AbstractQuery(ABC):
         """
         return OrQuery(self, other)
 
+    @_abstract_query_annotate
     def __xor__(self, other):
         """Create a new XorQuery using this query and another.
 
@@ -72,6 +86,7 @@ class AbstractQuery(ABC):
         """
         return XorQuery(self, other)
 
+    @_abstract_query_annotate
     def __invert__(self):
         """Create a new NotQuery using this query.
 
@@ -89,6 +104,7 @@ class NaryQuery(AbstractQuery):
     """Base class for all compound queries that act on
     and merged N separate subqueries."""
 
+    @_nary_query_annotate
     def __init__(self, *args):
         """Create a new NaryQuery object.
 
@@ -115,6 +131,7 @@ class NaryQuery(AbstractQuery):
                      high-level query or a subclass of AbstractQuery"
                 )
 
+    @_nary_query_annotate
     def apply(self, gf):
         """Applies the query to the specified GraphFrame.
 
@@ -150,6 +167,7 @@ class AndQuery(NaryQuery):
     """Compound query that returns the intersection of the results
     of the subqueries."""
 
+    @_and_query_annotate
     def __init__(self, *args):
         """Create a new AndQuery object.
 
@@ -180,6 +198,7 @@ class OrQuery(NaryQuery):
     """Compound query that returns the union of the results
     of the subqueries"""
 
+    @_or_query_annotate
     def __init__(self, *args):
         """Create a new OrQuery object.
 
@@ -210,6 +229,7 @@ class XorQuery(NaryQuery):
     """Compound query that returns the symmetric difference
     (i.e., set-based XOR) of the results of the subqueries"""
 
+    @_xor_query_annotate
     def __init__(self, *args):
         """Create a new XorQuery object.
 
@@ -240,6 +260,7 @@ class NotQuery(NaryQuery):
     """Compound query that returns all nodes in the GraphFrame that
     are not returned from the subquery."""
 
+    @_not_query_annotate
     def __init__(self, *args):
         """Create a new NotQuery object.
 
@@ -265,6 +286,7 @@ class NotQuery(NaryQuery):
 class QueryMatcher(AbstractQuery):
     """Processes and applies base syntax queries and Object-based queries to GraphFrames."""
 
+    @_query_matcher_annotate
     def __init__(self, query=None):
         """Create a new QueryMatcher object.
 
@@ -285,6 +307,7 @@ class QueryMatcher(AbstractQuery):
         else:
             raise InvalidQueryPath("Provided query is not a valid object dialect query")
 
+    @_query_matcher_annotate
     def match(self, wildcard_spec=".", filter_func=lambda row: True):
         """Start a query with a root node described by the arguments.
 
@@ -299,6 +322,7 @@ class QueryMatcher(AbstractQuery):
         self.true_query.match(wildcard_spec, filter_func)
         return self
 
+    @_query_matcher_annotate
     def rel(self, wildcard_spec=".", filter_func=lambda row: True):
         """Add another edge and node to the query.
 
@@ -313,6 +337,7 @@ class QueryMatcher(AbstractQuery):
         self.true_query.rel(wildcard_spec, filter_func)
         return self
 
+    @_query_matcher_annotate
     def apply(self, gf):
         """Apply the query to a GraphFrame.
 
@@ -336,6 +361,7 @@ class QueryMatcher(AbstractQuery):
 class CypherQuery(QueryMatcher):
     """Processes and applies Strinb-based queries to GraphFrames."""
 
+    @_cypher_query_annotate
     def __init__(self, cypher_query):
         """Create a new Cypher object.
 
@@ -358,6 +384,7 @@ class CypherQuery(QueryMatcher):
         return self.true_query
 
 
+@annotate()
 def parse_cypher_query(cypher_query):
     """Parse all types of String-based queries, including multi-queries that
     leverage the curly brace delimiters.
