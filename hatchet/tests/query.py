@@ -317,8 +317,7 @@ def test_match(mock_graph_literal):
     query0 = ObjectQuery(path0)
     engine = QueryEngine()
     assert (
-        engine._match_pattern(query0, gf.dataframe, _all_aggregator, root, 0)
-        == match0
+        engine._match_pattern(query0, gf.dataframe, _all_aggregator, root, 0) == match0
     )
 
     engine.reset_cache()
