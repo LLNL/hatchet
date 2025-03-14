@@ -1404,7 +1404,9 @@ class StringQuery(Query):
                     This condition will always be true.
                     The statement that triggered this warning is:
                     {}
-                    """.format(obj),
+                    """.format(
+                        obj
+                    ),
                     RedundantQueryFilterWarning,
                 )
                 return [

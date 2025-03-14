@@ -8,6 +8,7 @@ import json
 import sys
 import traceback
 from collections import defaultdict
+import warnings
 
 import multiprocess as mp
 import numpy as np
@@ -473,6 +474,7 @@ class GraphFrame:
         num_procs=mp.cpu_count(),
         rec_limit=1000,
         predicate_row_aggregator=None,
+        multi_index_mode=None,
     ):
         """Filter the dataframe using a user-supplied function.
 
@@ -488,7 +490,16 @@ class GraphFrame:
                 to merge multiple predicate results for each node into a single boolean. When providing
                 a string value, the following are accepted: "all" (equivalent to Python 'all'), "any"
                 (equivalent to Python 'any'), "off" (no aggregation)
+            multi_index_mode: deprecated alias for "predicate_row_aggregator"
         """
+        if multi_index_mode is not None:
+            warnings.warn(
+                "'multi_index_mode' parameter is deprecated. Use 'predicate_row_aggregator' instead",
+                DeprecationWarning
+            )
+            if predicate_row_aggregator is None:
+                predicate_row_aggregator = multi_index_mode
+
         sys.setrecursionlimit(rec_limit)
 
         dataframe_copy = self.dataframe.copy()
