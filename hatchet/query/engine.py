@@ -301,7 +301,7 @@ class QueryEngine:
         # this node.
         if query.query_pattern[0][0] == "*":
             if 1 in self.search_cache[node._hatchet_nid]:
-                sub_match = self._match_pattern(query, dframe, node, 1)
+                sub_match = self._match_pattern(query, dframe, predicate_row_aggregator, node, 1)
                 if sub_match is not None:
                     matches.extend(sub_match)
         if 0 in self.search_cache[node._hatchet_nid]:

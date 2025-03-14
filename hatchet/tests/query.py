@@ -25,6 +25,7 @@ from hatchet.query import (
     ExclusiveDisjunctionQuery,
     NegationQuery,
 )
+from hatchet.query.engine import _all_aggregator, _any_aggregator
 
 
 def test_construct_object_dialect():
@@ -316,7 +317,7 @@ def test_match(mock_graph_literal):
     query0 = ObjectQuery(path0)
     engine = QueryEngine()
     assert (
-        engine._match_pattern(query0, gf.dataframe, query0.default_aggregator, root, 0)
+        engine._match_pattern(query0, gf.dataframe, _all_aggregator, root, 0)
         == match0
     )
 
@@ -331,7 +332,7 @@ def test_match(mock_graph_literal):
     ]
     query1 = ObjectQuery(path1)
     assert (
-        engine._match_pattern(query1, gf.dataframe, query0.default_aggregator, root, 0)
+        engine._match_pattern(query1, gf.dataframe, _all_aggregator, root, 0)
         is None
     )
 
