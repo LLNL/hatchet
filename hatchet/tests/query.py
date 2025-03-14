@@ -315,7 +315,10 @@ def test_match(mock_graph_literal):
     ]
     query0 = ObjectQuery(path0)
     engine = QueryEngine()
-    assert engine._match_pattern(query0, gf.dataframe, query0.default_aggregator, root, 0) == match0
+    assert (
+        engine._match_pattern(query0, gf.dataframe, query0.default_aggregator, root, 0) 
+        == match0
+    )
 
     engine.reset_cache()
 
@@ -327,7 +330,10 @@ def test_match(mock_graph_literal):
         {"time (inc)": 7.5, "time": 7.5},
     ]
     query1 = ObjectQuery(path1)
-    assert engine._match_pattern(query1, gf.dataframe, query0.default_aggregator, root, 0) is None
+    assert (
+        engine._match_pattern(query1, gf.dataframe, query0.default_aggregator, root, 0) 
+        is None
+    )
 
 
 def test_apply(mock_graph_literal):
@@ -1173,12 +1179,12 @@ def test_string_conj_compound_query(mock_graph_literal):
         roots[0].children[1],
         roots[0].children[1].children[0],
     ]
-    assert sorted(engine.apply(compound_query1, gf.graph, gf.dataframe, None)) == sorted(
-        matches
-    )
-    assert sorted(engine.apply(compound_query2, gf.graph, gf.dataframe, None)) == sorted(
-        matches
-    )
+    assert sorted(
+        engine.apply(compound_query1, gf.graph, gf.dataframe, None)
+    ) == sorted(matches)
+    assert sorted(
+        engine.apply(compound_query2, gf.graph, gf.dataframe, None)
+    ) == sorted(matches)
 
 
 def test_string_disj_compound_query(mock_graph_literal):
@@ -1208,12 +1214,12 @@ def test_string_disj_compound_query(mock_graph_literal):
         roots[1].children[0].children[0],
         roots[1].children[0].children[1],
     ]
-    assert sorted(engine.apply(compound_query1, gf.graph, gf.dataframe, None)) == sorted(
-        matches
-    )
-    assert sorted(engine.apply(compound_query2, gf.graph, gf.dataframe, None)) == sorted(
-        matches
-    )
+    assert sorted(
+        engine.apply(compound_query1, gf.graph, gf.dataframe, None)
+    ) == sorted(matches)
+    assert sorted(
+        engine.apply(compound_query2, gf.graph, gf.dataframe, None)
+    ) == sorted(matches)
 
 
 def test_cypher_exc_disj_compound_query(mock_graph_literal):
@@ -1239,12 +1245,12 @@ def test_cypher_exc_disj_compound_query(mock_graph_literal):
         roots[0].children[2].children[0].children[1].children[0].children[0],
         roots[1].children[0].children[0],
     ]
-    assert sorted(engine.apply(compound_query1, gf.graph, gf.dataframe, None)) == sorted(
-        matches
-    )
-    assert sorted(engine.apply(compound_query2, gf.graph, gf.dataframe, None)) == sorted(
-        matches
-    )
+    assert sorted(
+        engine.apply(compound_query1, gf.graph, gf.dataframe, None)
+    ) == sorted(matches)
+    assert sorted(
+        engine.apply(compound_query2, gf.graph, gf.dataframe, None)
+    ) == sorted(matches)
 
 
 def test_leaf_query(small_mock2):
@@ -1278,13 +1284,15 @@ def test_leaf_query(small_mock2):
         """
     )
     engine = QueryEngine()
-    assert sorted(engine.apply(obj_query, gf.graph, gf.dataframe, None)) == sorted(matches)
-    assert sorted(engine.apply(str_query_numeric, gf.graph, gf.dataframe, None)) == sorted(
+    assert sorted(engine.apply(obj_query, gf.graph, gf.dataframe, None)) == sorted(
         matches
     )
-    assert sorted(engine.apply(str_query_is_leaf, gf.graph, gf.dataframe, None)) == sorted(
-        matches
-    )
+    assert sorted(
+        engine.apply(str_query_numeric, gf.graph, gf.dataframe, None)
+    ) == sorted(matches)
+    assert sorted(
+        engine.apply(str_query_is_leaf, gf.graph, gf.dataframe, None)
+    ) == sorted(matches)
     assert sorted(
         engine.apply(str_query_is_not_leaf, gf.graph, gf.dataframe, None)
     ) == sorted(nonleaves)
