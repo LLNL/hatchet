@@ -330,10 +330,7 @@ def test_match(mock_graph_literal):
         {"time (inc)": 7.5, "time": 7.5},
     ]
     query1 = ObjectQuery(path1)
-    assert (
-        engine._match_pattern(query1, gf.dataframe, _all_aggregator, root, 0)
-        is None
-    )
+    assert engine._match_pattern(query1, gf.dataframe, _all_aggregator, root, 0) is None
 
 
 def test_apply(mock_graph_literal):
