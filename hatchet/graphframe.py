@@ -484,6 +484,10 @@ class GraphFrame:
             update_inc_cols (boolean, optional): if True, update inclusive columns when performing squash.
             rec_limit: set Python recursion limit, increase if running into
                 recursion depth errors) (default: 1000).
+            predicate_row_aggregator (str or Callable, optional): function to use in Query Language
+                to merge multiple predicate results for each node into a single boolean. When providing
+                a string value, the following are accepted: "all" (equivalent to Python 'all'), "any"
+                (equivalent to Python 'any'), "off" (no aggregation)
         """
         sys.setrecursionlimit(rec_limit)
 
