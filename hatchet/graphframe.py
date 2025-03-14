@@ -495,7 +495,7 @@ class GraphFrame:
         if multi_index_mode is not None:
             warnings.warn(
                 "'multi_index_mode' parameter is deprecated. Use 'predicate_row_aggregator' instead",
-                DeprecationWarning
+                DeprecationWarning,
             )
             if predicate_row_aggregator is None:
                 predicate_row_aggregator = multi_index_mode
