@@ -21,6 +21,12 @@ from hatchet.graph import Graph
 from hatchet.node import Node
 from hatchet.version import __version__
 
+pytables_avail = True
+try:
+    import pytables
+except ImportError:
+    pytables_avail = False
+
 
 def test_copy(mock_graph_literal):
     self = GraphFrame.from_literal(mock_graph_literal)
@@ -1122,7 +1128,7 @@ def test_inc_metric_only(mock_graph_inc_metric_only):
     assert gf.inc_metrics == filt_gf.inc_metrics
     assert gf.exc_metrics == filt_gf.exc_metrics
 
-
+@pytest.mark.skipif(not pytables_avail, reason="pytables package not available")
 def test_hdf_load_store(mock_graph_literal):
     if os.path.exists("test_gframe.hdf"):
         os.remove("test_gframe.hdf")
