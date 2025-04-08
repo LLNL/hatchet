@@ -88,7 +88,7 @@ class CaliperNativeReader:
                 self.metric_cols.append(col)
         df_metrics = pd.DataFrame.from_dict(data=metrics)
         # Aggregate on nid if timeseries data
-        if "timeseries.snapshot" in df_metrics:
+        if "loop.iterations" in df_metrics:
             df_new = df_metrics.groupby(df_metrics["nid"]).aggregate("first").reset_index()
         else:
             df_new = df_metrics
