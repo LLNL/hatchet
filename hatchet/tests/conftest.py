@@ -1192,3 +1192,14 @@ def caliper_timeseries_spot_cali(data_dir, tmpdir):
     tmpfile = os.path.join(str(tmpdir), "spot_timeseries.cali")
 
     return tmpfile
+
+
+@pytest.fixture
+def caliper_multi_rank(data_dir, tmpdir):
+    multi_rank_dir = os.path.join(data_dir, "multi-rank")
+    multi_rank_file = os.path.join(multi_rank_dir, "yuba_perf_0.cali")
+
+    shutil.copy(multi_rank_file, str(tmpdir))
+    tmpfile = os.path.join(str(tmpdir), "yuba_perf_0.cali")
+
+    return tmpfile
