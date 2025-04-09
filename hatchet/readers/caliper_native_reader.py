@@ -88,8 +88,8 @@ class CaliperNativeReader:
                 self.metric_cols.append(col)
         df_metrics = pd.DataFrame.from_dict(data=metrics)
         # Aggregate on nid if timeseries data
-        if "loop.iterations" in df_metrics:
-            df_new = df_metrics.groupby(df_metrics["nid"]).aggregate("first").reset_index()
+        if all(["rank" not in col for col in df_metrics.columns]):
+            df_new = df_metrics.groupby(["nid","timeseries.snapshot"]).aggregate("mean").reset_index()
         else:
             df_new = df_metrics
         return df_new
