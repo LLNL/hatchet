@@ -17,10 +17,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # TODO: change ubuntu-24.04 back to ubuntu-latest when the following issue is resolved:
-        #       https://github.com/actions/setup-python/issues/162
-        os: [ubuntu-24.04]
-        python-version: [3.6, 3.7, 3.8, 3.9]
+        os: [ubuntu-22.04]
+        python-version: [3.7, 3.8, 3.9, "3.10", "3.11"]
         hatchet-version: ["2022.2.0"]
 
     steps:
