@@ -400,9 +400,7 @@ class CaliperNativeReader:
         self.df_nodes = pd.DataFrame(data=list(self.idx_to_node.values()))
 
         # create a graph object once all the nodes have been added
-        graph = Graph(list_roots)
-        if self.node_ordering:
-            graph.node_ordering = True
+        graph = Graph(list_roots, node_ordering=self.node_ordering)
         graph.enumerate_traverse()
 
         metadata = self.filename_or_caliperreader.globals

@@ -23,10 +23,10 @@ def index_by(attr, objects):
 class Graph:
     """A possibly multi-rooted tree or graph from one input dataset."""
 
-    def __init__(self, roots):
+    def __init__(self, roots, node_ordering=False):
         assert roots is not None
         self.roots = roots
-        self.node_ordering = False
+        self.node_ordering = node_ordering
 
     def traverse(self, order="pre", attrs=None, visited=None):
         """Preorder traversal of all roots of this Graph.
@@ -38,6 +38,12 @@ class Graph:
 
         Only preorder traversal is currently supported.
         """
+        # Call node_order_traverse instead if node_ordering is True
+        if self.node_ordering:
+            yield from self.node_order_traverse(
+                order=order, attrs=attrs, visited=visited
+            )
+            return
         # share visited dict so that we visit each node at most once.
         if visited is None:
             visited = {}
@@ -186,8 +192,9 @@ class Graph:
             for old_child in old.children:
                 new.children.append(old_to_new[old_child])
 
-        graph = Graph([old_to_new[r] for r in self.roots])
-        graph.node_ordering = self.node_ordering
+        graph = Graph(
+            [old_to_new[r] for r in self.roots], node_ordering=self.node_ordering
+        )
         graph.enumerate_traverse()
 
         return graph
@@ -208,6 +215,10 @@ class Graph:
         """
         if old_to_new is None:
             old_to_new = {}  # mapping from old nodes to new nodes
+
+        def key(n):
+            """Sort nodes by hatchet nid if node_ordering enabled, otherwise sort by frame."""
+            return n._hatchet_nid if self.node_ordering else n.frame
 
         def _merge(self_children, other_children, parent):
             """Recursively merge children of self and other.
@@ -251,7 +262,7 @@ class Graph:
                     if not new_node:
                         new_node = make_node(self_child)
                         _merge(
-                            sorted(self_child.children, key=lambda n: n.frame),
+                            sorted(self_child.children, key=key),
                             (),
                             new_node,
                         )
@@ -265,7 +276,7 @@ class Graph:
                         new_node = make_node(other_child)
                         _merge(
                             (),
-                            sorted(other_child.children, key=lambda n: n.frame),
+                            sorted(other_child.children, key=key),
                             new_node,
                         )
                     connect(parent, new_node)
@@ -294,8 +305,8 @@ class Graph:
                         other_side = []
 
                     _merge(
-                        sorted(self_side, key=lambda n: n.frame),
-                        sorted(other_side, key=lambda n: n.frame),
+                        sorted(self_side, key=key),
+                        sorted(other_side, key=key),
                         new_node,
                     )
 
@@ -309,7 +320,7 @@ class Graph:
                 if not new_node:
                     new_node = make_node(self_child)
                     _merge(
-                        sorted(self_child.children, key=lambda n: n.frame),
+                        sorted(self_child.children, key=key),
                         (),
                         new_node,
                     )
@@ -322,7 +333,7 @@ class Graph:
                     new_node = make_node(other_child)
                     _merge(
                         (),
-                        sorted(other_child.children, key=lambda n: n.frame),
+                        sorted(other_child.children, key=key),
                         new_node,
                     )
                 connect(parent, new_node)
@@ -332,12 +343,12 @@ class Graph:
 
         # First establish which nodes correspond to each other
         new_roots = _merge(
-            sorted(self.roots, key=lambda n: n.frame),
-            sorted(other.roots, key=lambda n: n.frame),
+            sorted(self.roots, key=key),
+            sorted(other.roots, key=key),
             None,
         )
 
-        graph = Graph(new_roots)
+        graph = Graph(new_roots, node_ordering=self.node_ordering)
         graph.enumerate_traverse()
 
         return graph

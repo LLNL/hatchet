@@ -631,9 +631,7 @@ class GraphFrame:
         visited = set()
         for root in self.graph.roots:
             rewire(root, None, visited)
-        graph = Graph(new_roots)
-        if self.graph.node_ordering:
-            graph.node_ordering = True
+        graph = Graph(new_roots, node_ordering=self.graph.node_ordering)
         graph.enumerate_traverse()
 
         # reindex new dataframe with new nodes
@@ -1488,7 +1486,7 @@ class GraphFrame:
         tmp_df.set_index(df_index, inplace=True)
 
         # update _hatchet_nid in reindexed graph and groupby-aggregate dataframe
-        graph = Graph(new_roots)
+        graph = Graph(new_roots, node_ordering=self.graph.node_ordering)
         graph.enumerate_traverse()
 
         # put it all together
