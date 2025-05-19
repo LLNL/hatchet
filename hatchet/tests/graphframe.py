@@ -1128,6 +1128,7 @@ def test_inc_metric_only(mock_graph_inc_metric_only):
     assert gf.inc_metrics == filt_gf.inc_metrics
     assert gf.exc_metrics == filt_gf.exc_metrics
 
+
 @pytest.mark.skipif(not pytables_avail, reason="pytables package not available")
 def test_hdf_load_store(mock_graph_literal):
     if os.path.exists("test_gframe.hdf"):
