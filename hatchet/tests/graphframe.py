@@ -23,7 +23,7 @@ from hatchet.version import __version__
 
 pytables_avail = True
 try:
-    import pytables
+    import pytables  # noqa: F401
 except ImportError:
     pytables_avail = False
 
