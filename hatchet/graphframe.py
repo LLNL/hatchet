@@ -374,7 +374,9 @@ class GraphFrame:
 
         return JsonReader(json_spec).read(**kwargs)
 
-    @deprecated("Reading from/writing to HDF5 is deprecated and will be removed in a later version.")
+    @deprecated(
+        "Reading from/writing to HDF5 is deprecated and will be removed in a later version."
+    )
     @staticmethod
     def from_hdf(filename, **kwargs):
         try:
@@ -394,7 +396,9 @@ class GraphFrame:
                 )
             raise ve
 
-    @deprecated("Reading from/writing to HDF5 is deprecated and will be removed in a later version.")
+    @deprecated(
+        "Reading from/writing to HDF5 is deprecated and will be removed in a later version."
+    )
     def to_hdf(self, filename, key="hatchet_graphframe", **kwargs):
         try:
             # import this lazily to avoid circular dependencies

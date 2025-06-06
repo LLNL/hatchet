@@ -1124,7 +1124,10 @@ def test_inc_metric_only(mock_graph_inc_metric_only):
     assert gf.exc_metrics == filt_gf.exc_metrics
 
 
-@pytest.mark.skipif(_validate_numpy_version_for_hdf(), reason="Cannot perform HDF operations for Python < 3.10 and NumPy >= 2.0")
+@pytest.mark.skipif(
+    _validate_numpy_version_for_hdf(),
+    reason="Cannot perform HDF operations for Python < 3.10 and NumPy >= 2.0"
+)
 def test_hdf_load_store(mock_graph_literal):
     if os.path.exists("test_gframe.hdf"):
         os.remove("test_gframe.hdf")
