@@ -21,6 +21,12 @@ from hatchet.node import Node
 from hatchet.util import _validate_numpy_version_for_hdf
 from hatchet.version import __version__
 
+pytables_avail = True
+try:
+    import pytables  # noqa: F401
+except ImportError:
+    pytables_avail = False
+
 
 def test_copy(mock_graph_literal):
     self = GraphFrame.from_literal(mock_graph_literal)
@@ -1123,6 +1129,7 @@ def test_inc_metric_only(mock_graph_inc_metric_only):
     assert gf.exc_metrics == filt_gf.exc_metrics
 
 
+@pytest.mark.skipif(not pytables_avail, reason="pytables package not available")
 @pytest.mark.skipif(
     _validate_numpy_version_for_hdf(),
     reason="Cannot perform HDF operations for Python < 3.10 and NumPy >= 2.0",
