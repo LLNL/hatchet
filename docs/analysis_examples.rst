@@ -29,9 +29,14 @@ Read in a Caliper cali file
 ---------------------------
 
 `Caliper <http://software.llnl.gov/Caliper/>`_'s default raw performance data
-output is the `cali <http://llnl.github.io/Caliper/OutputFormats.html#cali>`_.
-The cali format can be read by ``cali-query``, which transforms the raw data into
-JSON format.
+output is the `cali <http://llnl.github.io/Caliper/OutputFormats.html#cali>`_ file.
+``from_caliperreader`` is the recommended reader for ``cali`` files.
+
+.. literalinclude:: examples/read/caliper_caliperreader_cali.py
+    :language: python
+
+Alternatively, the ``from_caliper`` reader can be used for Caliper files generated
+with Caliper version ``<=2.10``. This is useful if the user intends to use ``cali-query``.
 
 .. literalinclude:: examples/read/caliper_cali_query.py
     :language: python

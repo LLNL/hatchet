@@ -59,14 +59,14 @@ Introduction
 ------------
 
 You can read in a dataset into Hatchet for analysis by using one of several
-``from_`` static methods. For example, you can read in a Caliper JSON file as
+``from_`` static methods. For example, you can read in a Caliper file as
 follows:
 
 .. code-block:: console
 
   >>> import hatchet as ht
-  >>> caliper_file = 'lulesh-annotation-profile-1core.json'
-  >>> gf = ht.GraphFrame.from_caliper(caliper_file)
+  >>> caliper_file = 'lulesh-annotation-profile-1core.cali'
+  >>> gf = ht.GraphFrame.from_caliperreader(caliper_file)
   >>>
 
 At this point, your input file (profile) has been loaded into Hatchet's data
