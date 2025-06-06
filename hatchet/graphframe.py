@@ -8,6 +8,7 @@ import json
 import sys
 import traceback
 from collections import defaultdict
+from warnings import deprecated
 
 import multiprocess as mp
 import numpy as np
@@ -372,18 +373,42 @@ class GraphFrame:
 
         return JsonReader(json_spec).read(**kwargs)
 
+    @deprecated("Reading from/writing to HDF5 is deprecated and will be removed in a later version.")
     @staticmethod
     def from_hdf(filename, **kwargs):
-        # import this lazily to avoid circular dependencies
-        from .readers.hdf5_reader import HDF5Reader
+        try:
+            # import this lazily to avoid circular dependencies
+            from .readers.hdf5_reader import HDF5Reader
 
-        return HDF5Reader(filename).read(**kwargs)
+            return HDF5Reader(filename).read(**kwargs)
+        except ValueError as ve:
+            ve_msg = str(ve)
+            if ve_msg.startswith("numpy.dtype size changed"):
+                raise ValueError(
+                    "There is an incompatibility between the versions NumPy, Pandas, and/or PyTables. This is usually a side effect of using NumPy >= 2.0 with PyTables < 3.10."
+                )
+            print(
+                "The error below is not clearly caused by incompatibilities between the versions of NumPy, Pandas, and/or PyTables, but it may still be."
+            )
+            raise ve
 
+    @deprecated("Reading from/writing to HDF5 is deprecated and will be removed in a later version.")
     def to_hdf(self, filename, key="hatchet_graphframe", **kwargs):
-        # import this lazily to avoid circular dependencies
-        from .writers.hdf5_writer import HDF5Writer
+        try:
+            # import this lazily to avoid circular dependencies
+            from .writers.hdf5_writer import HDF5Writer
 
-        HDF5Writer(filename).write(self, key=key, **kwargs)
+            HDF5Writer(filename).write(self, key=key, **kwargs)
+        except ValueError as ve:
+            ve_msg = str(ve)
+            if ve_msg.startswith("numpy.dtype size changed"):
+                raise ValueError(
+                    "There is an incompatibility between the versions NumPy, Pandas, and/or PyTables. This is usually a side effect of using NumPy >= 2.0 with PyTables < 3.10."
+                )
+            print(
+                "The error below is not clearly caused by incompatibilities between the versions of NumPy, Pandas, and/or PyTables, but it may still be."
+            )
+            raise ve
 
     def copy(self):
         """Return a partially shallow copy of the graphframe.
