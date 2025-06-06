@@ -8,7 +8,6 @@ import json
 import sys
 import traceback
 from collections import defaultdict
-from warnings import deprecated
 
 import multiprocess as mp
 import numpy as np
@@ -26,7 +25,7 @@ from .query import (
     parse_string_dialect,
 )
 from .util import _validate_numpy_version_for_hdf
-from .util.deprecated import deprecated_params
+from .util.deprecated import deprecated_params, deprecated
 from .util.dot import trees_to_dot
 
 try:

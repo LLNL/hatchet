@@ -5,6 +5,22 @@
 
 import functools
 
+try:
+    from warnings import deprecated # type: ignore
+except ImportError:
+    from warnings import warn
+
+    def deprecated(msg):
+        def deprecated_deco(f):
+            @functools.wraps(f)
+            def wrapper(*args, **kwargs):
+                warn(msg, DeprecationWarning)
+                return f(*args, **kwargs)
+
+            return wrapper
+
+        return deprecated_deco
+
 
 def deprecated_params(**old_to_new):
     def deco(f):
