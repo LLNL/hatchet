@@ -6,7 +6,7 @@
 import functools
 
 try:
-    from warnings import deprecated # type: ignore
+    from warnings import deprecated  # type: ignore
 except ImportError:
     from warnings import warn
 
