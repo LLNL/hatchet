@@ -109,7 +109,7 @@ class CaliperNativeReader:
                 ):  # Numeric columns
                     aggregation_functions[column] = "sum"
                 else:  # Non-numeric columns
-                    aggregation_functions[column] = lambda x: set(x)
+                    aggregation_functions[column] = lambda x: tuple(set(x))
 
             df_new = df_metrics.groupby("nid").agg(aggregation_functions).reset_index()
 
