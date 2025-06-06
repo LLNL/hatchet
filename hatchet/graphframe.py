@@ -25,6 +25,7 @@ from .query import (
     is_hatchet_query,
     parse_string_dialect,
 )
+from .util import _validate_numpy_version_for_hdf
 from .util.deprecated import deprecated_params
 from .util.dot import trees_to_dot
 
@@ -383,7 +384,7 @@ class GraphFrame:
             return HDF5Reader(filename).read(**kwargs)
         except ValueError as ve:
             ve_msg = str(ve)
-            if ve_msg.startswith("numpy.dtype size changed"):
+            if ve_msg.startswith("numpy.dtype size changed") and _validate_numpy_version_for_hdf():
                 raise ValueError(
                     "There is an incompatibility between the versions NumPy, Pandas, and/or PyTables. This is usually a side effect of using NumPy >= 2.0 with PyTables < 3.10."
                 )
@@ -401,7 +402,7 @@ class GraphFrame:
             HDF5Writer(filename).write(self, key=key, **kwargs)
         except ValueError as ve:
             ve_msg = str(ve)
-            if ve_msg.startswith("numpy.dtype size changed"):
+            if ve_msg.startswith("numpy.dtype size changed") and _validate_numpy_version_for_hdf():
                 raise ValueError(
                     "There is an incompatibility between the versions NumPy, Pandas, and/or PyTables. This is usually a side effect of using NumPy >= 2.0 with PyTables < 3.10."
                 )
