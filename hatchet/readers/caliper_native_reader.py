@@ -87,7 +87,15 @@ class CaliperNativeReader:
             if self.filename_or_caliperreader.attribute(col).is_value():
                 self.metric_cols.append(col)
         df_metrics = pd.DataFrame.from_dict(data=metrics)
-        df_new = df_metrics.groupby(df_metrics["nid"]).aggregate("first").reset_index()
+        # Aggregate on nid if timeseries data
+        if "loop.start_iteration" in df_metrics:
+            df_new = (
+                df_metrics.groupby(["nid", "loop.start_iteration"])
+                .aggregate("mean")
+                .reset_index()
+            )
+        else:
+            df_new = df_metrics
         return df_new
 
     def _reset_metrics(self, metrics):
