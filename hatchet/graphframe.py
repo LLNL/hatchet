@@ -373,10 +373,10 @@ class GraphFrame:
 
         return JsonReader(json_spec).read(**kwargs)
 
+    @staticmethod
     @deprecated(
         "Reading from/writing to HDF5 is deprecated and will be removed in a later version."
     )
-    @staticmethod
     def from_hdf(filename, **kwargs):
         try:
             # import this lazily to avoid circular dependencies
