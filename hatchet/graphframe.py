@@ -383,14 +383,15 @@ class GraphFrame:
 
             return HDF5Reader(filename).read(**kwargs)
         except ValueError as ve:
-            ve_msg = str(ve)
-            if ve_msg.startswith("numpy.dtype size changed") and _validate_numpy_version_for_hdf():
-                raise ValueError(
-                    "There is an incompatibility between the versions NumPy, Pandas, and/or PyTables. This is usually a side effect of using NumPy >= 2.0 with PyTables < 3.10."
+            if _validate_numpy_version_for_hdf():
+                ve_msg = str(ve)
+                if ve_msg.startswith("numpy.dtype size changed"):
+                    raise ValueError(
+                        "There is an incompatibility between the versions NumPy, Pandas, and/or PyTables. This is usually a side effect of using NumPy >= 2.0 with PyTables < 3.10."
+                    )
+                print(
+                    "The error below is not clearly caused by incompatibilities between the versions of NumPy, Pandas, and/or PyTables, but it may still be."
                 )
-            print(
-                "The error below is not clearly caused by incompatibilities between the versions of NumPy, Pandas, and/or PyTables, but it may still be."
-            )
             raise ve
 
     @deprecated("Reading from/writing to HDF5 is deprecated and will be removed in a later version.")
@@ -401,14 +402,15 @@ class GraphFrame:
 
             HDF5Writer(filename).write(self, key=key, **kwargs)
         except ValueError as ve:
-            ve_msg = str(ve)
-            if ve_msg.startswith("numpy.dtype size changed") and _validate_numpy_version_for_hdf():
-                raise ValueError(
-                    "There is an incompatibility between the versions NumPy, Pandas, and/or PyTables. This is usually a side effect of using NumPy >= 2.0 with PyTables < 3.10."
+            if _validate_numpy_version_for_hdf():
+                ve_msg = str(ve)
+                if ve_msg.startswith("numpy.dtype size changed"):
+                    raise ValueError(
+                        "There is an incompatibility between the versions NumPy, Pandas, and/or PyTables. This is usually a side effect of using NumPy >= 2.0 with PyTables < 3.10."
+                    )
+                print(
+                    "The error below is not clearly caused by incompatibilities between the versions of NumPy, Pandas, and/or PyTables, but it may still be."
                 )
-            print(
-                "The error below is not clearly caused by incompatibilities between the versions of NumPy, Pandas, and/or PyTables, but it may still be."
-            )
             raise ve
 
     def copy(self):
