@@ -3,10 +3,10 @@
 #
 # SPDX-License-Identifier: MIT
 
-from setuptools import setup
-from setuptools import Extension
 from codecs import open
 from os import path
+
+from setuptools import Extension, setup
 
 here = path.abspath(path.dirname(__file__))
 
@@ -57,7 +57,7 @@ for mname in mod_names:
         )
 
 if should_cythonize:
-    from Cython.Build import cythonize, build_ext
+    from Cython.Build import build_ext, cythonize
 
     ext_modules = cythonize(ext_modules)
     cmd_class.update({"build_ext": build_ext})
@@ -111,7 +111,7 @@ setup(
         "pydot",
         "PyYAML",
         "matplotlib",
-        "numpy < 2.0.0",
+        "numpy",
         "pandas",
         "textX < 3.0.0; python_version < '3.6'",
         "textX >= 3.0.0; python_version >= '3.6'",

@@ -3,27 +3,26 @@
 #
 # SPDX-License-Identifier: MIT
 
-import pytest
-
 import re
 
 import numpy as np
+import pytest
 
 from hatchet import GraphFrame
 from hatchet.node import traversal_order
 from hatchet.query import (
-    Query,
-    ObjectQuery,
-    StringQuery,
-    parse_string_dialect,
-    QueryEngine,
-    InvalidQueryFilter,
-    InvalidQueryPath,
     CompoundQuery,
     ConjunctionQuery,
     DisjunctionQuery,
     ExclusiveDisjunctionQuery,
+    InvalidQueryFilter,
+    InvalidQueryPath,
     NegationQuery,
+    ObjectQuery,
+    Query,
+    QueryEngine,
+    StringQuery,
+    parse_string_dialect,
 )
 from hatchet.query.errors import MultiIndexModeMismatch
 
@@ -1092,7 +1091,7 @@ def test_apply_string_dialect(mock_graph_literal):
     query = StringQuery(path)
     assert engine.apply(query, gf.graph, gf.dataframe) == []
 
-    gf.dataframe["time"] = np.NaN
+    gf.dataframe["time"] = np.nan
     gf.dataframe.at[gf.graph.roots[0], "time"] = 5.0
     path = """MATCH ("*", p)
     WHERE p."time" IS NOT NAN"""
@@ -1101,14 +1100,14 @@ def test_apply_string_dialect(mock_graph_literal):
     assert engine.apply(query, gf.graph, gf.dataframe) == match
 
     gf.dataframe["time"] = 5.0
-    gf.dataframe.at[gf.graph.roots[0], "time"] = np.NaN
+    gf.dataframe.at[gf.graph.roots[0], "time"] = np.nan
     path = """MATCH ("*", p)
     WHERE p."time" IS NAN"""
     match = [gf.graph.roots[0]]
     query = StringQuery(path)
     assert engine.apply(query, gf.graph, gf.dataframe) == match
 
-    gf.dataframe["time"] = np.Inf
+    gf.dataframe["time"] = np.inf
     gf.dataframe.at[gf.graph.roots[0], "time"] = 5.0
     path = """MATCH ("*", p)
     WHERE p."time" IS NOT INF"""
@@ -1117,7 +1116,7 @@ def test_apply_string_dialect(mock_graph_literal):
     assert engine.apply(query, gf.graph, gf.dataframe) == match
 
     gf.dataframe["time"] = 5.0
-    gf.dataframe.at[gf.graph.roots[0], "time"] = np.Inf
+    gf.dataframe.at[gf.graph.roots[0], "time"] = np.inf
     path = """MATCH ("*", p)
     WHERE p."time" IS INF"""
     match = [gf.graph.roots[0]]

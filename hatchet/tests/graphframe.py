@@ -9,16 +9,16 @@ from __future__ import division
 
 import os
 
-import pytest
-
 import numpy as np
 import pandas as pd
+import pytest
 
 from hatchet import GraphFrame, QueryMatcher
-from hatchet.graphframe import InvalidFilter, EmptyFilter
 from hatchet.frame import Frame
 from hatchet.graph import Graph
+from hatchet.graphframe import EmptyFilter, InvalidFilter
 from hatchet.node import Node
+from hatchet.util import _validate_numpy_version_for_hdf
 from hatchet.version import __version__
 
 pytables_avail = True
@@ -1130,6 +1130,10 @@ def test_inc_metric_only(mock_graph_inc_metric_only):
 
 
 @pytest.mark.skipif(not pytables_avail, reason="pytables package not available")
+@pytest.mark.skipif(
+    _validate_numpy_version_for_hdf(),
+    reason="Cannot perform HDF operations for Python < 3.10 and NumPy >= 2.0",
+)
 def test_hdf_load_store(mock_graph_literal):
     if os.path.exists("test_gframe.hdf"):
         os.remove("test_gframe.hdf")
