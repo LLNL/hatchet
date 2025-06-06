@@ -96,7 +96,7 @@ class CaliperNativeReader:
                 .reset_index()
             )
         # Don't agg multi rank
-        elif "rank" in df_metrics:
+        elif "mpi.rank" in df_metrics:
             df_new = df_metrics
         else:  # Aggregate data with string attributes appropriately
             # Define dynamic aggregation functions
