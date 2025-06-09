@@ -87,6 +87,7 @@ class CaliperNativeReader:
             if self.filename_or_caliperreader.attribute(col).is_value():
                 self.metric_cols.append(col)
         df_metrics = pd.DataFrame.from_dict(data=metrics)
+
         # Aggregate on nid if timeseries data
         if "loop.start_iteration" in df_metrics:
             df_new = (
@@ -94,8 +95,24 @@ class CaliperNativeReader:
                 .aggregate("mean")
                 .reset_index()
             )
-        else:
+        # Don't agg multi rank
+        elif "mpi.rank" in df_metrics:
             df_new = df_metrics
+        else:  # Aggregate data with string attributes appropriately
+            # Define dynamic aggregation functions
+            aggregation_functions = {}
+            for column in df_metrics.columns:
+                if column == "nid":
+                    pass
+                elif np.issubdtype(
+                    df_metrics[column].dtype, np.number
+                ):  # Numeric columns
+                    aggregation_functions[column] = "sum"
+                else:  # Non-numeric columns
+                    aggregation_functions[column] = lambda x: tuple(set(x))
+
+            df_new = df_metrics.groupby("nid").agg(aggregation_functions).reset_index()
+
         return df_new
 
     def _reset_metrics(self, metrics):
