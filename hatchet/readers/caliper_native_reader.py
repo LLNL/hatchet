@@ -90,11 +90,7 @@ class CaliperNativeReader:
 
         # Aggregate on nid if timeseries data
         if self.timeseries_level in df_metrics:
-            df_new = (
-                df_metrics.groupby("nid")
-                .aggregate("mean")
-                .reset_index()
-            )
+            df_new = df_metrics.groupby("nid").aggregate("mean").reset_index()
         # Don't agg multi rank
         elif "mpi.rank" in df_metrics:
             df_new = df_metrics
