@@ -89,9 +89,9 @@ class CaliperNativeReader:
         df_metrics = pd.DataFrame.from_dict(data=metrics)
 
         # Aggregate on nid if timeseries data
-        if "loop.start_iteration" in df_metrics:
+        if self.timeseries_level in df_metrics:
             df_new = (
-                df_metrics.groupby(["nid", "loop.start_iteration"])
+                df_metrics.groupby("nid")
                 .aggregate("mean")
                 .reset_index()
             )
