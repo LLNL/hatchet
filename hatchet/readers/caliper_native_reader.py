@@ -107,7 +107,7 @@ class CaliperNativeReader:
                 elif np.issubdtype(
                     df_metrics[column].dtype, np.number
                 ):  # Numeric columns
-                    aggregation_functions[column] = "sum"
+                    aggregation_functions[column] = lambda x: x.sum(skipna=False)
                 else:  # Non-numeric columns
                     aggregation_functions[column] = lambda x: tuple(set(x))
 
