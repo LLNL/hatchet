@@ -115,14 +115,19 @@ class ConsoleRenderer:
                     self.primary_metric
                 )
             )
-        if (self.second_metric is not None):
-            if isinstance(self.second_metric, str) and self.second_metric not in dataframe.columns:
+        if self.second_metric is not None:
+            if (
+                isinstance(self.second_metric, str)
+                and self.second_metric not in dataframe.columns
+            ):
                 raise KeyError(
                     "metric_column={} does not exist in the dataframe, please select a valid column. See a list of the available metrics with GraphFrame.show_metric_columns().".format(
                         self.second_metric
                     )
                 )
-            elif isinstance(self.second_metric, list) and any(m not in dataframe.columns for m in self.second_metric):
+            elif isinstance(self.second_metric, list) and any(
+                m not in dataframe.columns for m in self.second_metric
+            ):
                 for m in self.second_metric:
                     if m not in dataframe.columns:
                         raise KeyError(
@@ -274,24 +279,30 @@ class ConsoleRenderer:
 
             if self.second_metric is not None:
                 if isinstance(self.second_metric, str):
-                    metric_str += " {c.faint}{second_metric:.{precision}f}{c.end}".format(
-                        second_metric=dataframe.loc[df_index, self.second_metric],
-                        precision=self.precision,
-                        c=self.colors,
+                    metric_str += (
+                        " {c.faint}{second_metric:.{precision}f}{c.end}".format(
+                            second_metric=dataframe.loc[df_index, self.second_metric],
+                            precision=self.precision,
+                            c=self.colors,
+                        )
                     )
                 elif isinstance(self.second_metric, list):
                     for count, m in enumerate(self.second_metric):
                         if count == 0:
-                            metric_str += " {c.faint}{second_metric:.{precision}f}{c.end}".format(
-                                second_metric=dataframe.loc[df_index, m],
-                                precision=self.precision,
-                                c=self.colors,
+                            metric_str += (
+                                " {c.faint}{second_metric:.{precision}f}{c.end}".format(
+                                    second_metric=dataframe.loc[df_index, m],
+                                    precision=self.precision,
+                                    c=self.colors,
+                                )
                             )
                         else:
-                            metric_str += " {c.faint}{second_metric:.{precision}f}{c.end}".format(
-                                second_metric=dataframe.loc[df_index, m],
-                                precision=self.precision,
-                                c=self.colors,
+                            metric_str += (
+                                " {c.faint}{second_metric:.{precision}f}{c.end}".format(
+                                    second_metric=dataframe.loc[df_index, m],
+                                    precision=self.precision,
+                                    c=self.colors,
+                                )
                             )
 
             if self.annotation_column is not None:
