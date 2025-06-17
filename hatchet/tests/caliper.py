@@ -921,7 +921,7 @@ def test_graphframe_timeseries_lulesh_from_file(caliper_timeseries_cali):
         assert tcol in gf.dataframe.columns
 
     # verify some values are as expected
-    assert np.isnan(gf.dataframe["alloc.region.highwatermark"].iloc[0])
+    assert gf.dataframe["alloc.region.highwatermark"].iloc[0] == 25824351.0
     assert gf.dataframe["alloc.region.highwatermark"].iloc[1] == 63732320.0
-    assert gf2.dataframe["loop.start_iteration"].iloc[0] == 4.0
-    assert gf2.dataframe["alloc.region.highwatermark"].iloc[0] == 63732320.0
+    assert np.isnan(gf2.dataframe["loop.start_iteration"].iloc[0])
+    assert np.isnan(gf2.dataframe["alloc.region.highwatermark"].iloc[0])
