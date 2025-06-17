@@ -33,7 +33,6 @@ from ..version import __version__
 
 import pandas as pd
 import numpy as np
-import warnings
 from ..util.colormaps import ColorMaps
 
 
