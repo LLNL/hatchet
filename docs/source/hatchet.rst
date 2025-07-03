@@ -18,14 +18,6 @@ Subpackages
 Submodules
 ----------
 
-hatchet.caliper\_json module
-----------------------------
-
-.. automodule:: hatchet.caliper_json
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 hatchet.frame module
 --------------------
 
