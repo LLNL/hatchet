@@ -1,6 +1,6 @@
 # 2025.1.0 (2025-07-03)
 
-Version `2023.1.0` is a major release.
+Version `2025.1.0` is a major release.
 
 ### Notable Changes
 * Display more than 2 metrics on the tree visualization (#165)
