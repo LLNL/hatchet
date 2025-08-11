@@ -81,7 +81,7 @@ class CaliperNativeReader:
         if isinstance(self.string_attributes, str):
             self.string_attributes = [self.string_attributes]
 
-    def _create_metric_df(self, metrics):
+    def _create_metric_df(self, metrics, sampling=False):
         """Make a list of metric columns and create a dataframe, group by node"""
         for col in self.record_data_cols:
             if self.filename_or_caliperreader.attribute(col).is_value():
@@ -91,8 +91,8 @@ class CaliperNativeReader:
         # Aggregate on nid if timeseries data
         if self.timeseries_level in df_metrics:
             df_new = df_metrics.groupby("nid").aggregate("mean").reset_index()
-        # Don't agg multi rank
-        elif "mpi.rank" in df_metrics:
+        # Don't agg multi rank or if sampling
+        elif "mpi.rank" in df_metrics or sampling:
             df_new = df_metrics
         else:  # Aggregate data with string attributes appropriately
             # Define dynamic aggregation functions
@@ -134,6 +134,7 @@ class CaliperNativeReader:
         next_timestep = 0
         cur_timestep = 0
         records = self.filename_or_caliperreader.records
+        sampling = False
 
         # read metadata from the caliper reader
         for record in records:
@@ -166,6 +167,11 @@ class CaliperNativeReader:
                             elif record["cupti.activity.kind"] == "memcpy":
                                 node_label = record["cupti.activity.kind"]
                                 node_callpath = tuple(record[ctx] + [node_label])
+                        # Sampling
+                        elif "module#cali.sampler.pc" in record:
+                            node_label = record["source.function#cali.sampler.pc"]
+                            node_callpath = tuple(record[ctx])[:-1] + (node_label,)
+                            sampling = True
                         else:
                             node_label = record[ctx][-1]
                             node_callpath = tuple(record[ctx])
@@ -208,7 +214,7 @@ class CaliperNativeReader:
                     all_metrics.append(node_dict)
 
         # create the dataframe, if a single profile (or last one if the timeseries)
-        df_new = self._create_metric_df(all_metrics)
+        df_new = self._create_metric_df(all_metrics, sampling=sampling)
         metric_dfs.append(df_new)
         # will return a list with only one element unless it is a timeseries
         return metric_dfs
@@ -300,6 +306,12 @@ class CaliperNativeReader:
                                 node_type = "memcpy"
                             else:
                                 Exception("Haven't seen this activity kind yet")
+                        # Sampling
+                        elif "module#cali.sampler.pc" in record:
+                            node_label = record["source.function#cali.sampler.pc"]
+                            node_callpath = tuple(record[ctx])[:-1] + (node_label,)
+                            parent_callpath = node_callpath[:-1]
+                            node_type = "function"
                         else:
                             node_label = record[ctx][-1]
                             node_callpath = tuple(record[ctx])
@@ -313,6 +325,8 @@ class CaliperNativeReader:
                             if "min#min#aggregate.slot" in record:
                                 self.node_ordering = True
                                 order = record["min#min#aggregate.slot"]
+                            else:
+                                order = self.global_nid
                             frame = Frame({"type": node_type, "name": node_label})
                             order = int(order)
                             hnode = Node(frame, hnid=order)
