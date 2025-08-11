@@ -927,15 +927,28 @@ def test_graphframe_timeseries_lulesh_from_file(caliper_timeseries_cali):
     assert np.isnan(gf2.dataframe["alloc.region.highwatermark"].iloc[0])
 
 
-
 def test_flat_profile_sampling(caliper_hatchet_sample_profile):
     gf = GraphFrame.from_caliperreader(caliper_hatchet_sample_profile)
-    
+
     gf.drop_index_levels(np.sum)
-    grouped = gf.dataframe.groupby('name').sum()
-    sorted_df = grouped.sort_values(by=['count'], ascending=False)
+    grouped = gf.dataframe.groupby("name").sum()
+    sorted_df = grouped.sort_values(by=["count"], ascending=False)
 
-    assert all([x < 1e-3 for x in sorted_df["time"].iloc[0:4] - [5.028, 4.173, 4.114, 3.800]])
-    assert all([x < 1e-3 for x in sorted_df["count"].iloc[0:4] - [5028, 4173, 4114, 3800]])
-    assert all(sub in full for sub, full in zip(["GaussSeidel::back", "GaussSeidel::forward", "DiffusionFlux::eval", "MomentumEquation::Viscous"], sorted_df.reset_index()["name"]))
-
+    assert all(
+        [x < 1e-3 for x in sorted_df["time"].iloc[0:4] - [5.028, 4.173, 4.114, 3.800]]
+    )
+    assert all(
+        [x < 1e-3 for x in sorted_df["count"].iloc[0:4] - [5028, 4173, 4114, 3800]]
+    )
+    assert all(
+        sub in full
+        for sub, full in zip(
+            [
+                "GaussSeidel::back",
+                "GaussSeidel::forward",
+                "DiffusionFlux::eval",
+                "MomentumEquation::Viscous",
+            ],
+            sorted_df.reset_index()["name"],
+        )
+    )
