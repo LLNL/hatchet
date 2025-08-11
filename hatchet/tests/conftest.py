@@ -1203,3 +1203,14 @@ def caliper_multi_rank(data_dir, tmpdir):
     tmpfile = os.path.join(str(tmpdir), "yuba_perf_0.cali")
 
     return tmpfile
+
+
+@pytest.fixture
+def caliper_hatchet_sample_profile(data_dir, tmpdir):
+    sample_dir = os.path.join(data_dir, "caliper-hatchet-sample-profile")
+    sample_file = os.path.join(sample_dir, "amg-sample.cali")
+
+    shutil.copy(sample_file, str(tmpdir))
+    tmpfile = os.path.join(str(tmpdir), "amg-sample.cali")
+
+    return tmpfile
