@@ -127,7 +127,9 @@ rows in a group. We then display the resulting DataFrame sorted by time.
   gf = ht.GraphFrame.from_hpctoolkit('kripke')
 
   # Drop all index levels in the DataFrame except ``node``.
-  gf.drop_index_levels()
+  gf.drop_index_levels(
+   np.sum  # or np.mean, depending if samples taken from the same function in different regions should be averaged
+  )
 
   # Group DataFrame by ``name`` column, compute sum of all rows in each
   # group. This shows the aggregated time spent in each function.
