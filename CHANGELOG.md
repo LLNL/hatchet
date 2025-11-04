@@ -1,3 +1,10 @@
+# 2025.1.1 (2025-11-04)
+
+Version `2025.2.0` is a minor release on the `2025.1` series.
+
+### Bugfixes
+* caliper_native_reader: Fix for loading in caliper sampling profiles (#169)
+
 # 2025.1.0 (2025-07-03)
 
 Version `2025.1.0` is a major release.
