@@ -49,7 +49,6 @@ FILE_HEADER_OFFSET = 16
 
 
 class HPCToolkitReaderLatest:
-
     def __init__(
         self,
         dir_path: str,
@@ -287,15 +286,15 @@ class HPCToolkitReaderLatest:
 
                 elif lexicalType == 3:
                     (pModule, offset) = safe_unpack("<QQ", meta_db, flex_offset)
-                    frame["name"] = (
-                        f"{self._parse_load_module(meta_db, pModule)['module_path']}:{offset}"
-                    )
+                    frame[
+                        "name"
+                    ] = f"{self._parse_load_module(meta_db, pModule)['module_path']}:{offset}"
 
                 else:
                     (pFile, line) = safe_unpack("<QL", meta_db, flex_offset)
-                    frame["name"] = (
-                        f"{self._parse_source_file(meta_db, pFile)['file_path']}:{line}"
-                    )
+                    frame[
+                        "name"
+                    ] = f"{self._parse_source_file(meta_db, pFile)['file_path']}:{line}"
 
             node = self._store_cct_node(ctxId, frame, parent, parent._depth + 1)
 
@@ -356,13 +355,13 @@ class HPCToolkitReaderLatest:
                         ] = value
 
                         if self._metric_descriptions[metricId].endswith("(i)"):
-                            self._inclusive_metrics[metricId] = (
-                                self._metric_descriptions[metricId]
-                            )
+                            self._inclusive_metrics[
+                                metricId
+                            ] = self._metric_descriptions[metricId]
                         else:
-                            self._exclusive_metrics[metricId] = (
-                                self._metric_descriptions[metricId]
-                            )
+                            self._exclusive_metrics[
+                                metricId
+                            ] = self._metric_descriptions[metricId]
 
     def _read_cct(
         self,
