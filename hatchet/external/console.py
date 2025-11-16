@@ -33,7 +33,6 @@ from ..version import __version__
 
 import pandas as pd
 import numpy as np
-import warnings
 from ..util.colormaps import ColorMaps
 
 
@@ -95,17 +94,13 @@ class ConsoleRenderer:
         else:
             self.colors = self.colors_disabled
 
-        if isinstance(self.metric_columns, str):
+        if isinstance(self.metric_columns, (str, tuple)):
             self.primary_metric = self.metric_columns
             self.second_metric = None
         elif isinstance(self.metric_columns, list):
             if len(self.metric_columns) > 2:
-                warnings.warn(
-                    "More than 2 metrics specified in metric_column=. Tree() will only show 2 metrics at a time. The remaining metrics will not be shown.",
-                    SyntaxWarning,
-                )
                 self.primary_metric = self.metric_columns[0]
-                self.second_metric = self.metric_columns[1]
+                self.second_metric = self.metric_columns[1:]
             elif len(self.metric_columns) == 2:
                 self.primary_metric = self.metric_columns[0]
                 self.second_metric = self.metric_columns[1]
@@ -119,15 +114,26 @@ class ConsoleRenderer:
                     self.primary_metric
                 )
             )
-        if (
-            self.second_metric is not None
-            and self.second_metric not in dataframe.columns
-        ):
-            raise KeyError(
-                "metric_column={} does not exist in the dataframe, please select a valid column. See a list of the available metrics with GraphFrame.show_metric_columns().".format(
-                    self.second_metric
+        if self.second_metric is not None:
+            if (
+                isinstance(self.second_metric, str)
+                and self.second_metric not in dataframe.columns
+            ):
+                raise KeyError(
+                    "metric_column={} does not exist in the dataframe, please select a valid column. See a list of the available metrics with GraphFrame.show_metric_columns().".format(
+                        self.second_metric
+                    )
                 )
-            )
+            elif isinstance(self.second_metric, list) and any(
+                m not in dataframe.columns for m in self.second_metric
+            ):
+                for m in self.second_metric:
+                    if m not in dataframe.columns:
+                        raise KeyError(
+                            "metric_column={} does not exist in the dataframe, please select a valid column. See a list of the available metrics with GraphFrame.show_metric_columns().".format(
+                                m
+                            )
+                        )
 
         # grab the min and max value for the primary metric, ignoring inf and
         # nan values
@@ -271,11 +277,32 @@ class ConsoleRenderer:
             )
 
             if self.second_metric is not None:
-                metric_str += " {c.faint}{second_metric:.{precision}f}{c.end}".format(
-                    second_metric=dataframe.loc[df_index, self.second_metric],
-                    precision=self.precision,
-                    c=self.colors,
-                )
+                if isinstance(self.second_metric, str):
+                    metric_str += (
+                        " {c.faint}{second_metric:.{precision}f}{c.end}".format(
+                            second_metric=dataframe.loc[df_index, self.second_metric],
+                            precision=self.precision,
+                            c=self.colors,
+                        )
+                    )
+                elif isinstance(self.second_metric, list):
+                    for count, m in enumerate(self.second_metric):
+                        if count == 0:
+                            metric_str += (
+                                " {c.faint}{second_metric:.{precision}f}{c.end}".format(
+                                    second_metric=dataframe.loc[df_index, m],
+                                    precision=self.precision,
+                                    c=self.colors,
+                                )
+                            )
+                        else:
+                            metric_str += (
+                                " {c.faint}{second_metric:.{precision}f}{c.end}".format(
+                                    second_metric=dataframe.loc[df_index, m],
+                                    precision=self.precision,
+                                    c=self.colors,
+                                )
+                            )
 
             if self.annotation_column is not None:
                 annotation_content = str(

@@ -18,58 +18,50 @@ Subpackages
 Submodules
 ----------
 
-hatchet.caliper\_json module
-----------------------------
-
-.. automodule:: hatchet.caliper_json
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 hatchet.frame module
 --------------------
 
 .. automodule:: hatchet.frame
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
 
 hatchet.graph module
 --------------------
 
 .. automodule:: hatchet.graph
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
 
 hatchet.graphframe module
 -------------------------
 
 .. automodule:: hatchet.graphframe
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
 
 hatchet.node module
 -------------------
 
 .. automodule:: hatchet.node
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
 
 hatchet.version module
 ----------------------
 
 .. automodule:: hatchet.version
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
 
 Module contents
 ---------------
 
 .. automodule:: hatchet
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:

@@ -17,13 +17,13 @@ hatchet.external.console module
 
 .. automodule:: hatchet.external.console
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
 
 Module contents
 ---------------
 
 .. automodule:: hatchet.external
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:

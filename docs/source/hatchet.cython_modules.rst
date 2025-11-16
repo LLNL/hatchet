@@ -17,21 +17,21 @@ hatchet.cython\_modules.graphframe\_modules module
 
 .. automodule:: hatchet.cython_modules.graphframe_modules
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
 
 hatchet.cython\_modules.reader\_modules module
 ----------------------------------------------
 
 .. automodule:: hatchet.cython_modules.reader_modules
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
 
 Module contents
 ---------------
 
 .. automodule:: hatchet.cython_modules
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:

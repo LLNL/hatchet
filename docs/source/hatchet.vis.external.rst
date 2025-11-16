@@ -6,5 +6,5 @@ Module contents
 
 .. automodule:: hatchet.vis.external
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:

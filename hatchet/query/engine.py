@@ -75,7 +75,7 @@ class QueryEngine:
             _, filter_func = node_query
             row = None
             if isinstance(dframe.index, pd.MultiIndex):
-                row = pd.concat([dframe.loc[node]], keys=[node], names=["node"])
+                row = dframe.xs(node, level="node", drop_level=False)
             else:
                 row = dframe.loc[node]
             if filter_func(row):

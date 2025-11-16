@@ -375,9 +375,8 @@ class CaliperReader:
         self.df_metrics = pd.concat([self.df_fixed_data, self.df_missing])
 
         # create a graph object once all the nodes have been added
-        graph = Graph(list_roots)
+        graph = Graph(list_roots, node_ordering=self.node_ordering)
         if self.node_ordering:
-            graph.node_ordering = True
             # we do not want to expose the "Node order" column to the user
             self.df_metrics = self.df_metrics.drop(columns="Node order")
         graph.enumerate_traverse()

@@ -17,21 +17,21 @@ hatchet.vis.loader module
 
 .. automodule:: hatchet.vis.loader
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
 
 hatchet.vis.static\_fixer module
 --------------------------------
 
 .. automodule:: hatchet.vis.static_fixer
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
 
 Module contents
 ---------------
 
 .. automodule:: hatchet.vis
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:

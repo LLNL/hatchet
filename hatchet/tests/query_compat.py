@@ -3,24 +3,23 @@
 #
 # SPDX-License-Identifier: MIT
 
-import pytest
-
 import numpy as np
+import pytest
 
 from hatchet import GraphFrame
 from hatchet.query import (
-    QueryMatcher,
+    AbstractQuery,
+    AndQuery,
+    CypherQuery,
+    IntersectionQuery,
     InvalidQueryFilter,
     InvalidQueryPath,
-    AbstractQuery,
     NaryQuery,
-    AndQuery,
     OrQuery,
-    XorQuery,
-    IntersectionQuery,
-    UnionQuery,
+    QueryMatcher,
     SymDifferenceQuery,
-    CypherQuery,
+    UnionQuery,
+    XorQuery,
     parse_cypher_query,
 )
 
@@ -500,7 +499,7 @@ def test_apply_cypher(mock_graph_literal):
     query = CypherQuery(path)
     assert query.apply(gf) == []
 
-    gf.dataframe["time"] = np.NaN
+    gf.dataframe["time"] = np.nan
     gf.dataframe.at[gf.graph.roots[0], "time"] = 5.0
     path = """MATCH ("*", p)
     WHERE p."time" IS NOT NAN"""
@@ -509,14 +508,14 @@ def test_apply_cypher(mock_graph_literal):
     assert query.apply(gf) == match
 
     gf.dataframe["time"] = 5.0
-    gf.dataframe.at[gf.graph.roots[0], "time"] = np.NaN
+    gf.dataframe.at[gf.graph.roots[0], "time"] = np.nan
     path = """MATCH ("*", p)
     WHERE p."time" IS NAN"""
     match = [gf.graph.roots[0]]
     query = CypherQuery(path)
     assert query.apply(gf) == match
 
-    gf.dataframe["time"] = np.Inf
+    gf.dataframe["time"] = np.inf
     gf.dataframe.at[gf.graph.roots[0], "time"] = 5.0
     path = """MATCH ("*", p)
     WHERE p."time" IS NOT INF"""
@@ -525,7 +524,7 @@ def test_apply_cypher(mock_graph_literal):
     assert query.apply(gf) == match
 
     gf.dataframe["time"] = 5.0
-    gf.dataframe.at[gf.graph.roots[0], "time"] = np.Inf
+    gf.dataframe.at[gf.graph.roots[0], "time"] = np.inf
     path = """MATCH ("*", p)
     WHERE p."time" IS INF"""
     match = [gf.graph.roots[0]]
