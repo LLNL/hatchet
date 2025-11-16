@@ -85,15 +85,10 @@ class PerfFlowAspectArrayReader:
             if is_compact:
                 dur = item["dur"]
             else:
-                dur = 1   # impl in future for verbose
+                dur = 1  # impl in future for verbose
 
             # A Frame always consists of these values
-            frame_values = {
-                "name": name,
-                "type": "function",
-                "ts": ts,
-                "dur": dur
-            }
+            frame_values = {"name": name, "type": "function", "ts": ts, "dur": dur}
 
             # Optionally, if logging statistics, insert memory and cpu usage
             # into the Frame
@@ -128,16 +123,14 @@ class PerfFlowAspectArrayReader:
                 "dur": dur,
                 "pid": item["pid"],
                 "tid": item["tid"],
-                "ph": item["ph"]
+                "ph": item["ph"],
             }
             if self.scan_memory:
                 node_dict_vals["usage_memory"] = memory
             if self.scan_cpu:
                 node_dict_vals["usage_cpu"] = cpu
 
-            node_dict = dict(
-                node_dict_vals
-            )
+            node_dict = dict(node_dict_vals)
             node_dicts.append(node_dict)
 
             # Store the Node object with its name for future reference

@@ -35,7 +35,7 @@ class PerfFlowAspectObjectReader:
     def convert_time_units(self, ts, dur, unit):
         if unit == "s":
             return ts, dur
-        
+
         time_unit_conversion = {
             "ns": 1e-9,
             "us": 1e-6,
@@ -43,7 +43,7 @@ class PerfFlowAspectObjectReader:
         }
         conversion_factor = time_unit_conversion.get(unit, 1)
         return ts * conversion_factor, dur * conversion_factor
-    
+
     def read(self):
         roots = []
         node_mapping = {}  # Dictionary to keep track of the nodes
@@ -54,7 +54,7 @@ class PerfFlowAspectObjectReader:
             ts = item["ts"]
             dur = item["dur"]
             unit = self.displayTimeUnit
-            
+
             ts, dur = self.convert_time_units(ts, dur, unit)
 
             # Create a Frame and Node for the function
