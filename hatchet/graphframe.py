@@ -39,6 +39,8 @@ except ImportError:
     traceback.print_exc()
     raise
 
+from typing import Dict, List
+
 
 def parallel_apply(filter_function, dataframe, queue):
     """A function called in parallel, which does a pandas apply on part of a
@@ -113,18 +115,44 @@ class GraphFrame:
     @staticmethod
     def from_hpctoolkit_latest(
         dirname: str,
+        directory_mapping: Dict[str, str] = None,
+        parallel_profiles_mode: bool = False,
         max_depth: int = None,
         min_percentage_of_application_time: int = None,
-        min_percentage_of_parent_time: int = None,
+        exclude_mpi_function_details: bool = False,
+        exclude_openmp_function_details: bool = False,
+        exclude_cuda_function_details: bool = False,
+        exclude_system_libraries_source_code: bool = False,
+        exclude_function_call_lines: bool = False,
+        exclude_no_source_code_instructions: bool = False,
+        exclude_instructions: bool = False,
+        exclude_non_function_nodes: bool = False,
+        label_function_nodes: bool = True,
+        metric_names: List[str] = None,
+        metric_scopes: List[str] = None,
+        summary_metrics: List[str] = None,
+        profile_ranks: List[int] = None,
     ):
         """
         Read an HPCToolkit database directory into a new GraphFrame
 
         Arguments:
             dirname (str): directory of an HPCToolkit performance database
-            max_depth (int): maximum depth that nodes in the CCT can have to be imported in Hatchet
-            min_percentage_of_application_time (int): minimum percentage of application time that nodes in the CCT must have to be imported in Hatchet
-            min_percentage_of_parent_time (int): minimum percentage of parent time that nodes in the CCT must have to be imported in Hatchet
+            directory_mapping (dict): Python dictionary that maps file system location to a name
+            parallel_profiles_mode (bool): flag whether the reader should extract parallel profiles from the database (true) or the summary profile (false)
+            max_depth (int): maximum depth that nodes in the tree should have
+            min_percentage_of_application_time (int): minimum percentage of the application time that nodes in the tree should have
+            exclude_mpi_function_details (bool): flag whether to exclude subtrees of MPI function nodes
+            exclude_openmp_function_details (bool): flag whether to exclude subtrees of OpenMP function nodes
+            exclude_cuda_function_details (bool): flag whether to exclude subtrees of CUDA function nodes
+            exclude_system_libraries_source_code (bool): flag whether the reader should exclude subtree of a system library node
+            exclude_function_call_lines (bool): flag whether to exclude source line nodes that represent place of a function call
+            exclude_no_source_code_instructions (bool): flag whether to exclude nodes with no source code mapping information
+            label_function_nodes (bool): flag whether to label function nodes with 'function' prefix
+            metric_names (list): list of metrics to extract for selected profiles
+            metric_scopes (list): list of metric scopes to extract for selected profiles
+            summary_metrics (list): list of summary metrics to extract from the summary profile
+            profile_ranks (list): list of MPI ranks that specify which parallel profiles to extract
 
         Returns:
             (GraphFrame): new GraphFrame containing HPCToolkit profile data
@@ -134,9 +162,23 @@ class GraphFrame:
 
         return HPCToolkitReaderLatest(
             dirname,
+            directory_mapping=directory_mapping,
+            parallel_profiles_mode=parallel_profiles_mode,
             max_depth=max_depth,
             min_application_percentage_time=min_percentage_of_application_time,
-            min_parent_percentage_time=min_percentage_of_parent_time,
+            exclude_mpi_function_details=exclude_mpi_function_details,
+            exclude_openmp_function_details=exclude_openmp_function_details,
+            exclude_cuda_function_details=exclude_cuda_function_details,
+            exclude_system_libraries_source_code=exclude_system_libraries_source_code,
+            exclude_function_call_lines=exclude_function_call_lines,
+            exclude_no_source_code_instructions=exclude_no_source_code_instructions,
+            exclude_instructions=exclude_instructions,
+            exclude_non_function_nodes=exclude_non_function_nodes,
+            label_function_nodes=label_function_nodes,
+            metric_names=metric_names,
+            metric_scopes=metric_scopes,
+            summary_metrics=summary_metrics,
+            profile_ranks=profile_ranks,
         ).read()
 
     @staticmethod
