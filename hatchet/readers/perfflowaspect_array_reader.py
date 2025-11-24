@@ -14,8 +14,9 @@ class PerfFlowAspectArrayReader:
         (GraphFrame): graphframe containing data from dictionaries
     """
 
-    def __init__(self, filename, scan_memory=False, scan_cpu=False):
+    def __init__(self, is_object=False, filename, scan_memory=False, scan_cpu=False):
         """
+        is_object (bool): Whether or not the PerfFlowAspect trace file is object format.
         filename (str): A path to a PerfFlowAspect trace file.
         scan_memory (bool): Whether or not to include memory usage statistics
         scan_cpu (bool): Whether or not to include CPU usage statistics
@@ -25,13 +26,22 @@ class PerfFlowAspectArrayReader:
             lines = file.readlines()
             line = lines[-1].strip()
             if line.endswith("},"):  # Indicates that the file will not handled by JSON
-                line = line.replace("},", "}]")
+                if is_object:
+                    line = line.replace("},", "}]}")
+                else:
+                    line = line.replace("},", "}]")
                 lines[-1] = line
                 file.seek(0, 0)  # Return to start of file to replace the lines
                 file.writelines(lines)
             file.seek(0, 0)  # Return to start of file to read into content.
             content = file.read()
-            self.spec_dict = json.loads(content)
+            if is_object:
+                data = json.loads(content)
+                self.spec_dict = data["traceEvents"]
+                self.displayTimeUnit = data["displayTimeUnit"]
+                self.metadata = data["otherData"]
+            else:
+                self.spec_dict = json.loads(content)
         self.scan_memory = scan_memory
         self.scan_cpu = scan_cpu
 
@@ -58,7 +68,7 @@ class PerfFlowAspectArrayReader:
         for item in self.spec_dict:
             # the following values always appear in a PerfFlowAspect log
             name = item["name"]
-            ts = item["ts"]
+            ts = item["ts"] * 1e-6 # convert to seconds
             ph = item["ph"]
 
             # these items may or may not appear.
@@ -83,7 +93,7 @@ class PerfFlowAspectArrayReader:
                 continue
 
             if is_compact:
-                dur = item["dur"]
+                dur = item["dur"] * 1e-6
             else:
                 dur = 1  # impl in future for verbose
 
