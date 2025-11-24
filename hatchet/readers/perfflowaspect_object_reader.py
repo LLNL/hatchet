@@ -14,17 +14,27 @@ class PerfFlowAspectObjectReader:
         (GraphFrame): graphframe containing data from dictionaries
     """
 
-    def __init__(self, filename):
+    def __init__(self, filename, scan_memory=False, scan_cpu=False):
         """Read from a json string specification of a graphframe
 
         json (string): Json specification of a graphframe.
         """
         with open(filename, "r") as file:
+            lines = file.readlines()
+            line = lines[-1].strip()
+            if line.endswith("},"):
+                line = line.replace("},", "}]}")
+                lines[-1] = line
+                file.seek(0, 0)
+                file.writelines(lines)
+            file.seek(0, 0)
             content = file.read()
             data = json.loads(content)
             self.spec_dict = data["traceEvents"]
             self.displayTimeUnit = data["displayTimeUnit"]
             self.metadata = data["otherData"]
+        self.scan_memory = scan_memory
+        self.scan_cpu = scan_cpu
 
     def sort(self):
         # Sort the spec_dict based on the end time (ts + dur) of each function
