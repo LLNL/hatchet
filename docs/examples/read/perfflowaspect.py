@@ -17,7 +17,7 @@ if __name__ == "__main__":
     # pfa_file = "../../../hatchet/tests/data/laghos_1iter.pfw"
     pfa_file = "../../../hatchet/tests/data/perfflowaspect-object/object-reader-test1.pfw"
 
-    gf = ht.GraphFrame.from_perfflowaspect_object(pfa_file)
+    gf = ht.GraphFrame.from_perfflowaspect(pfa_file)
 
     # Printout the DataFrame component of the GraphFrame.
     print(gf.dataframe)

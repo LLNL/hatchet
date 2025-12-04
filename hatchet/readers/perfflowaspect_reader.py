@@ -7,14 +7,14 @@ from hatchet.graph import Graph
 from hatchet.frame import Frame
 
 
-class PerfFlowAspectArrayReader:
+class PerfFlowAspectReader:
     """Create a GraphFrame from PerfFlowAspect trace files.
 
     Return:
         (GraphFrame): graphframe containing data from dictionaries
     """
 
-    def __init__(self, is_object=False, filename, scan_memory=False, scan_cpu=False):
+    def __init__(self, filename, is_object=False, scan_memory=False, scan_cpu=False):
         """
         is_object (bool): Whether or not the PerfFlowAspect trace file is object format.
         filename (str): A path to a PerfFlowAspect trace file.
@@ -41,9 +41,24 @@ class PerfFlowAspectArrayReader:
                 self.displayTimeUnit = data["displayTimeUnit"]
                 self.metadata = data["otherData"]
             else:
-                self.spec_dict = json.loads(content)
+                data = json.loads(content)
+                self.spec_dict = data["traceEvents"]
         self.scan_memory = scan_memory
         self.scan_cpu = scan_cpu
+        # Change verbose output to compact output
+        if (len(self.spec_dict) > 0 and self.spec_dict[0]["ph"] == "B"):
+            b_events = []
+            for b in self.spec_dict:
+                if b["ph"] == "B":
+                    b["dur"] = 0
+                    b_events.append(b)
+            for e in self.spec_dict:
+                if e["ph"] == "E":
+                    b = next(x for x in b_events if x["pid"] == e["pid"] and x["tid"] == e["tid"])
+                    dur = e["ts"] - b["ts"]
+                    b["dur"] = dur
+                    b["ph"] = "X"
+            self.spec_dict = b_events
 
     def sort(self):
         # Sort the spec_dict based on the end time (ts + dur) of each function
@@ -55,7 +70,6 @@ class PerfFlowAspectArrayReader:
         roots = []
         node_mapping = {}  # Dictionary to keep track of the nodes
         node_dicts = []
-        is_compact = True  # TODO: This currently log is compact PFA log.
         usage_pairings = {}  # usage_pairings[ts] = (memory, cpu)
 
         # Error if attempt is made to retrieve statistics,
@@ -92,10 +106,7 @@ class PerfFlowAspectArrayReader:
                     usage_pairings[ts] = (memory, cpu)
                 continue
 
-            if is_compact:
-                dur = item["dur"] * 1e-6
-            else:
-                dur = 1  # impl in future for verbose
+            dur = item["dur"] * 1e-6
 
             # A Frame always consists of these values
             frame_values = {"name": name, "type": "function", "ts": ts, "dur": dur}
