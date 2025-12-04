@@ -1,0 +1,33 @@
+{
+  "displayTimeUnit": "us",
+  "otherData": {
+    "walltime": {"tv_sec": 0, "tv_usec": 11082},
+    "systime": {"tv_sec": 0, "tv_usec": 0},
+    "cputime": {"tv_sec": 0, "tv_usec": 0},
+    "numhosts": 1,
+    "jobsize": 1,
+    "cluster": "tuolumne",
+    "hostname": "tuolumne1001",
+    "working_directory": "/g/g14/greene36/PerfFlowAspect/src/c/build/test",
+    "executablepath": "/g/g14/greene36/PerfFlowAspect/src/c/build/test/smoketest",
+    "executable": "smoketest",
+    "launchday": 1764806400,
+    "launchdate": 1764826266,
+    "uid": "Spencer",
+    "user": "greene36",
+    "adiakversion": "0.5.0"
+
+  },
+  "traceEvents": [
+{"name": "bas", "cat": "/g/g14/greene36/PerfFlowAspect/src/c/test/smoketest.cpp", "pid": 968936, "tid": 968936, "ts": 1764826266481422.0, "ph": "X", "dur": 15.0},
+{"name": "bar", "cat": "/g/g14/greene36/PerfFlowAspect/src/c/test/smoketest.cpp", "pid": 968936, "tid": 968936, "ts": 1764826266480348.0, "ph": "X", "dur": 1138.0},
+{"name": "foo", "cat": "/g/g14/greene36/PerfFlowAspect/src/c/test/smoketest.cpp", "pid": 968936, "tid": 968936, "ts": 1764826266479206.0, "ph": "X", "dur": 2293.0},
+{"name": "bas", "cat": "/g/g14/greene36/PerfFlowAspect/src/c/test/smoketest.cpp", "pid": 968936, "tid": 968936, "ts": 1764826266483644.0, "ph": "X", "dur": 11.0},
+{"name": "bar", "cat": "/g/g14/greene36/PerfFlowAspect/src/c/test/smoketest.cpp", "pid": 968936, "tid": 968936, "ts": 1764826266482578.0, "ph": "X", "dur": 1088.0},
+{"name": "foo", "cat": "/g/g14/greene36/PerfFlowAspect/src/c/test/smoketest.cpp", "pid": 968936, "tid": 968936, "ts": 1764826266481515.0, "ph": "X", "dur": 2161.0},
+{"name": "bas", "cat": "/g/g14/greene36/PerfFlowAspect/src/c/test/smoketest.cpp", "pid": 968936, "tid": 968936, "ts": 1764826266485813.0, "ph": "X", "dur": 9.0},
+{"name": "bar", "cat": "/g/g14/greene36/PerfFlowAspect/src/c/test/smoketest.cpp", "pid": 968936, "tid": 968936, "ts": 1764826266484749.0, "ph": "X", "dur": 1085.0},
+{"name": "foo", "cat": "/g/g14/greene36/PerfFlowAspect/src/c/test/smoketest.cpp", "pid": 968936, "tid": 968936, "ts": 1764826266483687.0, "ph": "X", "dur": 2157.0},
+{"name": "bas", "cat": "/g/g14/greene36/PerfFlowAspect/src/c/test/smoketest.cpp", "pid": 968936, "tid": 968936, "ts": 1764826266487978.0, "ph": "X", "dur": 10.0},
+{"name": "bar", "cat": "/g/g14/greene36/PerfFlowAspect/src/c/test/smoketest.cpp", "pid": 968936, "tid": 968936, "ts": 1764826266486916.0, "ph": "X", "dur": 1082.0},
+{"name": "foo", "cat": "/g/g14/greene36/PerfFlowAspect/src/c/test/smoketest.cpp", "pid": 968936, "tid": 968936, "ts": 1764826266485853.0, "ph": "X", "dur": 2167.0}]}
