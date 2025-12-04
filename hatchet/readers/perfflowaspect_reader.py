@@ -14,51 +14,65 @@ class PerfFlowAspectReader:
         (GraphFrame): graphframe containing data from dictionaries
     """
 
-    def __init__(self, filename, is_object=False, scan_memory=False, scan_cpu=False):
+    def __init__(self, filename, scan_memory=False, scan_cpu=False):
         """
-        is_object (bool): Whether or not the PerfFlowAspect trace file is object format.
         filename (str): A path to a PerfFlowAspect trace file.
         scan_memory (bool): Whether or not to include memory usage statistics
         scan_cpu (bool): Whether or not to include CPU usage statistics
         """
-        with open(filename, "r+") as file:
-            # PerfFlow files do not conform to JSON Spec. Modify the file so it does
-            lines = file.readlines()
-            line = lines[-1].strip()
-            if line.endswith("},"):  # Indicates that the file will not handled by JSON
-                if is_object:
-                    line = line.replace("},", "}]}")
-                else:
-                    line = line.replace("},", "}]")
-                lines[-1] = line
-                file.seek(0, 0)  # Return to start of file to replace the lines
-                file.writelines(lines)
-            file.seek(0, 0)  # Return to start of file to read into content.
-            content = file.read()
-            if is_object:
-                data = json.loads(content)
-                self.spec_dict = data["traceEvents"]
-                self.displayTimeUnit = data["displayTimeUnit"]
-                self.metadata = data["otherData"]
-            else:
-                data = json.loads(content)
-                self.spec_dict = data["traceEvents"]
         self.scan_memory = scan_memory
         self.scan_cpu = scan_cpu
+        with open(filename, "r+") as file:
+            raw = file.read()
+            
+            try:
+                data = json.loads(raw)
+            except json.JSONDecodeError:
+                fixed = self._repair_array_json(raw)
+                try:
+                    data = json.loads(fixed)
+                except json.JSONDecodeError as e:
+                    raise ValueError(f"Trace file could not be parsed or repaired: {e}")
+            
+            if isinstance(data, dict) and "traceEvents" in data and isinstance(data["traceEvents"], list):
+                obj = data
+                self.displayTimeUnit = obj.get("displayTimeUnit")
+                self.metadata = obj.get("otherData", {})
+                self.spec_dict = obj["traceEvents"]
+            elif isinstance(data, list):
+                self.displayTimeUnit = None
+                self.metadata = {}
+                self.spec_dict = data
+            else:
+                raise ValueError("Trace must be either object or array format")
+
         # Change verbose output to compact output
-        if (len(self.spec_dict) > 0 and self.spec_dict[0]["ph"] == "B"):
-            b_events = []
-            for b in self.spec_dict:
-                if b["ph"] == "B":
-                    b["dur"] = 0
-                    b_events.append(b)
-            for e in self.spec_dict:
-                if e["ph"] == "E":
-                    b = next(x for x in b_events if x["pid"] == e["pid"] and x["tid"] == e["tid"])
-                    dur = e["ts"] - b["ts"]
-                    b["dur"] = dur
-                    b["ph"] = "X"
-            self.spec_dict = b_events
+        if self.spec_dict and self.spec_dict[0].get("ph") == "B":
+            stack = []
+            final = []
+            for event in self.spec_dict:
+                ph = event.get("ph")
+
+                if ph == "B":
+                    stack.append(event.copy())
+                elif ph == "E":
+                    if not stack:
+                        continue
+                    start = stack.pop()
+                    merged = start
+                    merged["dur"] = event["ts"] - start["ts"]
+                    merged["ph"] = "X"
+                    final.append(merged)
+            self.spec_dict = final
+
+    def _repair_array_json(self, text):
+        text = text.rstrip()
+        text = text.replace(",\n]", "\n]")
+        if not text.endswith("]"):
+            text += "]"
+        if not text.lstrip().startswith("["):
+            text = "[" + text
+        return text
 
     def sort(self):
         # Sort the spec_dict based on the end time (ts + dur) of each function
@@ -174,4 +188,4 @@ class PerfFlowAspectReader:
             else:
                 exc_metrics.append(col)
 
-        return hatchet.graphframe.GraphFrame(graph, dataframe)
+        return hatchet.graphframe.GraphFrame(graph, dataframe, metadata=self.metadata)

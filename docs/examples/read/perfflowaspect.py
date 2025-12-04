@@ -9,18 +9,16 @@ import hatchet as ht
 
 
 if __name__ == "__main__":
-    # pfa_file = "../../../hatchet/tests/data/perfflow.quartz1532.3570764-1iter.pfw"
-    # pfa_file = "../../../hatchet/tests/data/perfflowaspect-foobar/perfflow.quartz1532.3570764.pfw"
-    # pfa_file = "../../../hatchet/tests/data/perfflowaspect-cpu-mem/smoketest3.withusage.array.turing.pfw"
-
-    # gf = ht.GraphFrame.from_perfflowaspect_array(pfa_file, False, False)
-    # pfa_file = "../../../hatchet/tests/data/laghos_1iter.pfw"
-    pfa_file = "../../../hatchet/tests/data/perfflowaspect-object/object-reader-test1.pfw"
+    # pfa_file = "../../../hatchet/tests/data/perfflowaspect-smoketests/array_compact.pfw"
+    # pfa_file = "../../../hatchet/tests/data/perfflowaspect-smoketests/array_verbose.pfw"
+    # pfa_file = "../../../hatchet/tests/data/perfflowaspect-smoketests/object_compact_adiak.pfw"
+    pfa_file = "../../../hatchet/tests/data/perfflowaspect-smoketests/object_verbose_adiak.pfw"
 
     gf = ht.GraphFrame.from_perfflowaspect(pfa_file)
 
     # Printout the DataFrame component of the GraphFrame.
     print(gf.dataframe)
+    print(gf.metadata)
 
     print(len(gf.graph.roots))
 
