@@ -167,6 +167,14 @@ class CaliperNativeReader:
                             elif record["cupti.activity.kind"] == "memcpy":
                                 node_label = record["cupti.activity.kind"]
                                 node_callpath = tuple(record[ctx] + [node_label])
+                        # rocm records
+                        elif "rocm.activity" in record:
+                            if record["rocm.activity"] == "KernelExecution":
+                                node_label = record["rocm.kernel.name"]
+                                node_callpath = tuple(record[ctx] + [node_label])
+                            else:
+                                node_label = record["rocm.activity"]
+                                node_callpath = tuple(record[ctx] + [node_label])
                         # Sampling
                         elif "module#cali.sampler.pc" in record:
                             node_label = record["source.function#cali.sampler.pc"]
@@ -306,6 +314,18 @@ class CaliperNativeReader:
                                 node_type = "memcpy"
                             else:
                                 Exception("Haven't seen this activity kind yet")
+                        # rocm records
+                        elif "rocm.activity" in record:
+                            if record["rocm.activity"] == "KernelExecution":
+                                node_label = record["rocm.kernel.name"]
+                                node_callpath = tuple(record[ctx] + [node_label])
+                                parent_callpath = node_callpath[:-1]
+                                node_type = "kernel"
+                            else:
+                                node_label = record["rocm.activity"]
+                                node_callpath = tuple(record[ctx] + [node_label])
+                                parent_callpath = node_callpath[:-1]
+                                node_type = "other"
                         # Sampling
                         elif "module#cali.sampler.pc" in record:
                             node_label = record["source.function#cali.sampler.pc"]
@@ -453,7 +473,7 @@ class CaliperNativeReader:
             # add missing intermediate nodes to the df_fixed_data dataframe
             if "mpi.rank" in df_fixed_data.columns:
                 num_ranks = metrics["mpi.rank"].max() + 1
-                rank_list = range(0, num_ranks)
+                rank_list = range(0, int(num_ranks))
 
             # create a standard dict to be used for filling all missing rows
             default_metric_dict = {}
