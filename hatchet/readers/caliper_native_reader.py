@@ -321,11 +321,15 @@ class CaliperNativeReader:
                                 node_callpath = tuple(record[ctx] + [node_label])
                                 parent_callpath = node_callpath[:-1]
                                 node_type = "kernel"
-                            else:
+                            elif "hipMemcpy" in record["rocm.api"]:
                                 node_label = record["rocm.activity"]
+                                # Theres going to be an extra record at the end that we must remove
+                                pop_item = record[ctx].pop()
                                 node_callpath = tuple(record[ctx] + [node_label])
                                 parent_callpath = node_callpath[:-1]
-                                node_type = "other"
+                                node_type = "memcpy"
+                            else:
+                                Exception("Haven't seen this activity kind yet")
                         # Sampling
                         elif "module#cali.sampler.pc" in record:
                             node_label = record["source.function#cali.sampler.pc"]
