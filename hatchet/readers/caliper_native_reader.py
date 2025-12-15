@@ -324,7 +324,7 @@ class CaliperNativeReader:
                             elif "hipMemcpy" in record["rocm.api"]:
                                 node_label = record["rocm.activity"]
                                 # Theres going to be an extra record at the end that we must remove
-                                pop_item = record[ctx].pop()
+                                record[ctx].pop()
                                 node_callpath = tuple(record[ctx] + [node_label])
                                 parent_callpath = node_callpath[:-1]
                                 node_type = "memcpy"
