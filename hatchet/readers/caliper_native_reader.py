@@ -45,7 +45,9 @@ class CaliperNativeReader:
         ),
     }
 
-    def __init__(self, filename_or_caliperreader, native, string_attributes):
+    def __init__(
+        self, filename_or_caliperreader, native, string_attributes, node_ordering
+    ):
         """Read in a native cali using Caliper's python reader.
 
         Args:
@@ -53,6 +55,7 @@ class CaliperNativeReader:
                 a CaliperReader object
             native (bool): use native metric names or user-readable metric names
             string_attributes (str or list): Adds existing string attributes from within the caliper file to the dataframe
+            node_ordering (bool): if true, use node ordering
         """
         self.filename_or_caliperreader = filename_or_caliperreader
         self.filename_ext = ""
@@ -67,7 +70,7 @@ class CaliperNativeReader:
         self.idx_to_node = {}
         self.callpath_to_idx = {}
         self.global_nid = 0
-        self.node_ordering = False
+        self.node_ordering = node_ordering
         self.gf_list = []
         self.timeseries_level = None
 
@@ -326,6 +329,7 @@ class CaliperNativeReader:
                                 self.node_ordering = True
                                 order = record["min#min#aggregate.slot"]
                             else:
+                                self.node_ordering = False
                                 order = self.global_nid
                             frame = Frame({"type": node_type, "name": node_label})
                             order = int(order)

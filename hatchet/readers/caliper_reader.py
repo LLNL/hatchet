@@ -26,18 +26,19 @@ unknown_label_counter = 0
 class CaliperReader:
     """Read in a Caliper file (`cali` or split JSON) or file-like object."""
 
-    def __init__(self, filename_or_stream, query=""):
+    def __init__(self, filename_or_stream, query="", node_ordering=True):
         """Read from Caliper files (`cali` or split JSON).
 
         Args:
             filename_or_stream (str or file-like): name of a `cali` or
                 `cali-query` split JSON file, OR an open file object
             query (str): cali-query arguments (for cali file)
+            node_ordering (bool): use node ordering (default: true)
         """
         self.filename_or_stream = filename_or_stream
         self.filename_ext = ""
         self.query = query
-        self.node_ordering = False
+        self.node_ordering = node_ordering
 
         self.json_data = {}
         self.json_cols = {}
@@ -155,10 +156,13 @@ class CaliperReader:
             self.idx_to_label[idx] = node_label
 
             if node["column"] == self.path_col_name:
-                # If there is a node orderering, assign to the _hatchet_nid
+                # If there is a node ordering, assign to the _hatchet_nid
                 if "Node order" in self.json_cols:
                     self.node_ordering = True
                     order = self.json_data[idx][0]
+                elif "Node order" not in self.json_cols:
+                    self.node_ordering = False
+
                 if "parent" not in node:
                     # since this node does not have a parent, this is a root
                     graph_root = Node(
