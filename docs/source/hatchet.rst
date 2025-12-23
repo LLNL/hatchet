@@ -23,45 +23,45 @@ hatchet.frame module
 
 .. automodule:: hatchet.frame
    :members:
-   :show-inheritance:
    :undoc-members:
+   :show-inheritance:
 
 hatchet.graph module
 --------------------
 
 .. automodule:: hatchet.graph
    :members:
-   :show-inheritance:
    :undoc-members:
+   :show-inheritance:
 
 hatchet.graphframe module
 -------------------------
 
 .. automodule:: hatchet.graphframe
    :members:
-   :show-inheritance:
    :undoc-members:
+   :show-inheritance:
 
 hatchet.node module
 -------------------
 
 .. automodule:: hatchet.node
    :members:
-   :show-inheritance:
    :undoc-members:
+   :show-inheritance:
 
 hatchet.version module
 ----------------------
 
 .. automodule:: hatchet.version
    :members:
-   :show-inheritance:
    :undoc-members:
+   :show-inheritance:
 
 Module contents
 ---------------
 
 .. automodule:: hatchet
    :members:
-   :show-inheritance:
    :undoc-members:
+   :show-inheritance:
