@@ -1,6 +1,20 @@
+# 2025.2.0 (2025-12-22)
+
+Version `2025.2.0` is a major release.
+
+### Notable Changes
+- Expose node ordering to caliper reader and caliper native reader (#174): defaults to true
+  such that nodes are ordered based on how they were called (as recorded by caliper)
+- Add support for reading rocm kernels from rocm-activity-profile (#173)
+- Hpctoolkit test integration (#172)
+
+### Bugfixes
+
+### Internal Updates
+
 # 2025.1.1 (2025-11-04)
 
-Version `2025.2.0` is a minor release on the `2025.1` series.
+Version `2025.1.1` is a minor release on the `2025.1` series.
 
 ### Bugfixes
 * caliper_native_reader: Fix for loading in caliper sampling profiles (#169)

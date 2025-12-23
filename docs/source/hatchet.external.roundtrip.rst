@@ -17,13 +17,13 @@ hatchet.external.roundtrip.setup module
 
 .. automodule:: hatchet.external.roundtrip.setup
    :members:
-   :show-inheritance:
    :undoc-members:
+   :show-inheritance:
 
 Module contents
 ---------------
 
 .. automodule:: hatchet.external.roundtrip
    :members:
-   :show-inheritance:
    :undoc-members:
+   :show-inheritance:
