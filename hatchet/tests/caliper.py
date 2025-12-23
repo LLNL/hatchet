@@ -49,7 +49,7 @@ annotations = [
 
 def test_graphframe(lulesh_caliper_json):
     """Sanity test a GraphFrame object with known data."""
-    gf = GraphFrame.from_caliper(str(lulesh_caliper_json))
+    gf = GraphFrame.from_caliper(str(lulesh_caliper_json), node_ordering=False)
 
     assert len(gf.dataframe.groupby("name")) == 24
 
@@ -80,7 +80,7 @@ def test_read_lulesh_json(lulesh_caliper_json):
 
 def test_calc_pi_json(calc_pi_caliper_json):
     """Sanity test a GraphFrame object with known data."""
-    gf = GraphFrame.from_caliper(str(calc_pi_caliper_json))
+    gf = GraphFrame.from_caliper(str(calc_pi_caliper_json), node_ordering=False)
 
     assert len(gf.dataframe.groupby("name")) == 100
 
@@ -123,8 +123,8 @@ def test_lulesh_json_stream(lulesh_caliper_cali):
 @pytest.mark.skipif(sys.version_info > (3, 8), reason="Temporarily allow this to fail.")
 def test_filter_squash_unify_caliper_data(lulesh_caliper_json):
     """Sanity test a GraphFrame object with known data."""
-    gf1 = GraphFrame.from_caliper(str(lulesh_caliper_json))
-    gf2 = GraphFrame.from_caliper(str(lulesh_caliper_json))
+    gf1 = GraphFrame.from_caliper(str(lulesh_caliper_json), node_ordering=False)
+    gf2 = GraphFrame.from_caliper(str(lulesh_caliper_json), node_ordering=False)
 
     assert gf1.graph is not gf2.graph
 
@@ -160,7 +160,7 @@ def test_filter_squash_unify_caliper_data(lulesh_caliper_json):
 def test_tree(monkeypatch, lulesh_caliper_json):
     """Sanity test a GraphFrame object with known data."""
     monkeypatch.setattr("sys.stdout.isatty", (lambda: False))
-    gf = GraphFrame.from_caliper(str(lulesh_caliper_json))
+    gf = GraphFrame.from_caliper(str(lulesh_caliper_json), node_ordering=False)
     output = gf.tree(metric_column="time")
 
     assert "121489.000 main" in output
@@ -175,7 +175,7 @@ def test_tree(monkeypatch, lulesh_caliper_json):
 
 def test_graphframe_to_literal(lulesh_caliper_json):
     """Sanity test a GraphFrame object with known data."""
-    gf = GraphFrame.from_caliper(str(lulesh_caliper_json))
+    gf = GraphFrame.from_caliper(str(lulesh_caliper_json), node_ordering=False)
     graph_literal = gf.to_literal()
 
     gf2 = GraphFrame.from_literal(graph_literal)
@@ -830,7 +830,7 @@ def test_graphframe_squash_file_node_order(caliper_ordered_cali):
 
 def test_inclusive_time_calculation(lulesh_caliper_json):
     """Validate update_inclusive_columns() on known dataset containing per-rank data."""
-    gf = GraphFrame.from_caliper(str(lulesh_caliper_json))
+    gf = GraphFrame.from_caliper(str(lulesh_caliper_json), node_ordering=False)
 
     # save original time (inc) column for correctness check
     gf.dataframe["orig_inc_time"] = gf.dataframe["time (inc)"]

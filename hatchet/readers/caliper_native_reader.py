@@ -45,7 +45,9 @@ class CaliperNativeReader:
         ),
     }
 
-    def __init__(self, filename_or_caliperreader, native, string_attributes):
+    def __init__(
+        self, filename_or_caliperreader, native, string_attributes, node_ordering
+    ):
         """Read in a native cali using Caliper's python reader.
 
         Args:
@@ -53,6 +55,7 @@ class CaliperNativeReader:
                 a CaliperReader object
             native (bool): use native metric names or user-readable metric names
             string_attributes (str or list): Adds existing string attributes from within the caliper file to the dataframe
+            node_ordering (bool): if true, use node ordering
         """
         self.filename_or_caliperreader = filename_or_caliperreader
         self.filename_ext = ""
@@ -67,7 +70,7 @@ class CaliperNativeReader:
         self.idx_to_node = {}
         self.callpath_to_idx = {}
         self.global_nid = 0
-        self.node_ordering = False
+        self.node_ordering = node_ordering
         self.gf_list = []
         self.timeseries_level = None
 
@@ -346,8 +349,17 @@ class CaliperNativeReader:
 
                         if not hnode:
                             # set the _hatchet_nid by the node order column if it exists, else -1
-                            if "min#min#aggregate.slot" in record:
-                                self.node_ordering = True
+                            if (
+                                self.node_ordering
+                                and "min#min#aggregate.slot" in record
+                            ):
+                                Exception(
+                                    "node ordering cannot be true if min#min#aggregate.slot is not in the record"
+                                )
+                            elif (
+                                self.node_ordering
+                                and "min#min#aggregate.slot" in record
+                            ):
                                 order = record["min#min#aggregate.slot"]
                             else:
                                 order = self.global_nid
