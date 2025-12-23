@@ -325,11 +325,19 @@ class CaliperNativeReader:
 
                         if not hnode:
                             # set the _hatchet_nid by the node order column if it exists, else -1
-                            if "min#min#aggregate.slot" in record:
-                                self.node_ordering = True
+                            if (
+                                self.node_ordering
+                                and "min#min#aggregate.slot" in record
+                            ):
+                                Exception(
+                                    "node ordering cannot be true if min#min#aggregate.slot is not in the record"
+                                )
+                            elif (
+                                self.node_ordering
+                                and "min#min#aggregate.slot" in record
+                            ):
                                 order = record["min#min#aggregate.slot"]
                             else:
-                                self.node_ordering = False
                                 order = self.global_nid
                             frame = Frame({"type": node_type, "name": node_label})
                             order = int(order)

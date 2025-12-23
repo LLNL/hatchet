@@ -157,11 +157,12 @@ class CaliperReader:
 
             if node["column"] == self.path_col_name:
                 # If there is a node ordering, assign to the _hatchet_nid
-                if "Node order" in self.json_cols:
-                    self.node_ordering = True
+                if self.node_ordering and "Node order" not in self.json_cols:
+                    Exception(
+                        "node ordering cannot be true if min#min#aggregate.slot is not in the record"
+                    )
+                elif self.node_ordering and "Node order" in self.json_cols:
                     order = self.json_data[idx][0]
-                elif "Node order" not in self.json_cols:
-                    self.node_ordering = False
 
                 if "parent" not in node:
                     # since this node does not have a parent, this is a root
