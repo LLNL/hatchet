@@ -1,7 +1,8 @@
 name: unit tests to collect code coverage
 
 on:
-  workflow_call:
+  push:
+    branches: [ develop ]
     secrets:
       HATCHET_CODECOV_TOKEN:
         required: true
