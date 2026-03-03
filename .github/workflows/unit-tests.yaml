@@ -93,7 +93,8 @@ jobs:
 
     - name: Test Caliper and Timemory Support with pytest
       run: |
-        PYTHONPATH=. $(which pytest) --cov=./ --cov-report=xml
+        PYTHONPATH=. $(which pytest)
+#        PYTHONPATH=. $(which pytest) --cov=./ --cov-report=xml
 
 #    - name: Upload coverage to Codecov
 #      uses: codecov/codecov-action@v4
