@@ -5,6 +5,7 @@ on:
     secrets:
       HATCHET_CODECOV_TOKEN:
         required: true
+ 
 
 jobs:
   build:
