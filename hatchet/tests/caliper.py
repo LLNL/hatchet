@@ -66,7 +66,7 @@ def test_graphframe(lulesh_caliper_json):
 
 def test_read_lulesh_json(lulesh_caliper_json):
     """Sanity check the Caliper reader by examining a known input."""
-    reader = CaliperReader(str(lulesh_caliper_json))
+    reader = CaliperReader(str(lulesh_caliper_json), node_ordering=False)
     reader.read_json_sections()
 
     assert len(reader.json_data) == 192
@@ -95,7 +95,7 @@ def test_lulesh_cali(lulesh_caliper_cali):
         grouping_attribute,
     )
 
-    gf = GraphFrame.from_caliper(str(lulesh_caliper_cali), query)
+    gf = GraphFrame.from_caliper(str(lulesh_caliper_cali), query, node_ordering=False)
 
     assert len(gf.dataframe.groupby("name")) == 18
 
@@ -115,7 +115,7 @@ def test_lulesh_json_stream(lulesh_caliper_cali):
         [cali_query, "-q", query, lulesh_caliper_cali], stdout=subprocess.PIPE
     )
 
-    gf = GraphFrame.from_caliper(cali_json.stdout)
+    gf = GraphFrame.from_caliper(cali_json.stdout, node_ordering=False)
 
     assert len(gf.dataframe.groupby("name")) == 18
 
