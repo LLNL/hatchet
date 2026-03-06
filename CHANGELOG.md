@@ -1,3 +1,17 @@
+# 2026.1.0 (2026-03-06)
+
+Version `2026.1.0` is a major release.
+
+### Notable Changes
+- fix caliper lulesh tests, add caliper install to path in CI (#179)
+- add python 3.12 and python 3.13 to unit tests, separate out coverage to its own workflow (#177)
+- pin pandas version to less than 3 (#176)
+
+### Bugfixes
+
+### Internal Updates
+- run coverage on push to develop (#178)
+
 # 2025.2.0 (2025-12-22)
 
 Version `2025.2.0` is a major release.
