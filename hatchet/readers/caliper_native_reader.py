@@ -172,7 +172,7 @@ class CaliperNativeReader:
                                 node_callpath = tuple(record[ctx] + [node_label])
                         # rocm records
                         elif "rocm.activity" in record:
-                            if record["rocm.activity"] == "KernelExecution":
+                            if record["rocm.activity"] == "KERNEL_DISPATCH_COMPLETE":
                                 node_label = record["rocm.kernel.name"]
                                 node_callpath = tuple(record[ctx] + [node_label])
                             else:
@@ -184,8 +184,12 @@ class CaliperNativeReader:
                             node_callpath = tuple(record[ctx])[:-1] + (node_label,)
                             sampling = True
                         else:
-                            node_label = record[ctx][-1]
-                            node_callpath = tuple(record[ctx])
+                            if len(record[ctx]) > 0:
+                                node_label = record[ctx][-1]
+                                node_callpath = tuple(record[ctx])
+                            else:
+                                node_label = "unknown_context"
+                                node_callpath = tuple("unknown_context")
                     else:
                         node_label = record[ctx]
                         node_callpath = tuple([record[ctx]])
@@ -319,7 +323,7 @@ class CaliperNativeReader:
                                 Exception("Haven't seen this activity kind yet")
                         # rocm records
                         elif "rocm.activity" in record:
-                            if record["rocm.activity"] == "KernelExecution":
+                            if record["rocm.activity"] == "KERNEL_DISPATCH_COMPLETE":
                                 node_label = record["rocm.kernel.name"]
                                 node_callpath = tuple(record[ctx] + [node_label])
                                 parent_callpath = node_callpath[:-1]
@@ -327,7 +331,8 @@ class CaliperNativeReader:
                             elif "hipMemcpy" in record["rocm.api"]:
                                 node_label = record["rocm.activity"]
                                 # Theres going to be an extra record at the end that we must remove
-                                record[ctx].pop()
+                                if len(record[ctx]) > 0:
+                                    record[ctx].pop()
                                 node_callpath = tuple(record[ctx] + [node_label])
                                 parent_callpath = node_callpath[:-1]
                                 node_type = "memcpy"
@@ -340,10 +345,16 @@ class CaliperNativeReader:
                             parent_callpath = node_callpath[:-1]
                             node_type = "function"
                         else:
-                            node_label = record[ctx][-1]
-                            node_callpath = tuple(record[ctx])
-                            parent_callpath = node_callpath[:-1]
-                            node_type = "function"
+                            if len(record[ctx]) > 0:
+                                node_label = record[ctx][-1]
+                                node_callpath = tuple(record[ctx])
+                                parent_callpath = node_callpath[:-1]
+                                node_type = "function"
+                            else:
+                                node_label = "unknown_context"
+                                node_callpath = tuple("unknown_context")
+                                parent_callpath = tuple("")
+                                node_type = "function"
 
                         hnode = self.callpath_to_node.get(node_callpath)
 
