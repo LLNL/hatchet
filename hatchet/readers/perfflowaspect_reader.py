@@ -1,5 +1,6 @@
 import json
 import pandas as pd
+import re
 
 import hatchet.graphframe
 from hatchet.node import Node
@@ -14,14 +15,12 @@ class PerfFlowAspectReader:
         (GraphFrame): graphframe containing data from dictionaries
     """
 
-    def __init__(self, filename, scan_memory=False, scan_cpu=False):
+    def __init__(self, filename, scan_cpu_mem=False):
         """
         filename (str): A path to a PerfFlowAspect trace file.
-        scan_memory (bool): Whether or not to include memory usage statistics
-        scan_cpu (bool): Whether or not to include CPU usage statistics
+        scan_cpu_mem (bool): Whether or not to include CPU/Memory usage statistics
         """
-        self.scan_memory = scan_memory
-        self.scan_cpu = scan_cpu
+        self.scan_cpu_mem = scan_cpu_mem
         with open(filename, "r+") as file:
             raw = file.read()
             
@@ -63,14 +62,28 @@ class PerfFlowAspectReader:
                     merged["dur"] = event["ts"] - start["ts"]
                     merged["ph"] = "X"
                     final.append(merged)
+                elif ph == "C":
+                    final.append(event)
             self.spec_dict = final
 
     def _repair_array_json(self, text):
         text = text.rstrip()
-        text = text.replace(",\n]", "\n]")
+        text = re.sub(r",\s*$", "", text)
+
+        stripped = text.lstrip()
+
+        if stripped.startswith("{"):
+            # Object format
+            if not text.endswith("]"):
+                text += "]"
+            if not text.endswith("}"):
+                text += "}"
+            return text
+
+        # Bare array format: [ {...}, {...}, ... ]
         if not text.endswith("]"):
             text += "]"
-        if not text.lstrip().startswith("["):
+        if not stripped.startswith("["):
             text = "[" + text
         return text
 
@@ -92,48 +105,50 @@ class PerfFlowAspectReader:
             self.scan_cpu or self.scan_memory
         ):
             raise ValueError("No statistics in the provided file!")
+        
+        if self.scan_cpu_mem:
+            for item in self.spec_dict:
+                if item["ph"] != "C":
+                    continue
+                ts = item["ts"] * 1e-6
+                memory, cpu, valid = 0, 0, False
+                if item["args"]["memory_usage"] != 0:
+                    memory = item["args"]["memory_usage"]
+                    valid = True
+                if item["args"]["cpu_usage"] != 0.0:
+                    cpu = item["args"]["cpu_usage"]
+                    valid = True
+                if valid:
+                    usage_pairings[ts] = (memory, cpu)
 
         for item in self.spec_dict:
-            # the following values always appear in a PerfFlowAspect log
             name = item["name"]
-            ts = item["ts"] * 1e-6 # convert to seconds
+            ts = item["ts"] * 1e-6
             ph = item["ph"]
 
-            # these items may or may not appear.
-            dur = None
-            memory = 0
-            cpu = 0
-
-            # If statistic event, get the statistics and match with
-            # the timestamp.
             if ph == "C":
-                valid_statistic = False
-                if self.scan_memory:
-                    if item["args"]["memory_usage"] != 0:
-                        memory = item["args"]["memory_usage"]
-                        valid_statistic = True
-                if self.scan_cpu:
-                    if item["args"]["cpu_usage"] != 0.0:
-                        cpu = item["args"]["cpu_usage"]
-                        valid_statistic = True
-                if valid_statistic:
-                    usage_pairings[ts] = (memory, cpu)
                 continue
 
             dur = item["dur"] * 1e-6
+            frame_values = {"name": name, "type": "function", "ts": ts, "dur": dur}
+
+            if self.scan_cpu_mem:
+                memory = usage_pairings.get(ts, (0, 0))[0]
+                frame_values["usage_memory"] = memory
+                cpu = usage_pairings.get(ts, (0, 0))[1]
+                frame_values["usage_cpu"] = cpu                
 
             # A Frame always consists of these values
             frame_values = {"name": name, "type": "function", "ts": ts, "dur": dur}
 
             # Optionally, if logging statistics, insert memory and cpu usage
             # into the Frame
-            if self.scan_memory:
-                memory = usage_pairings[ts][0]
+            if self.scan_cpu_mem:
+                memory = usage_pairings.get(ts, (0, 0))[0]
                 frame_values["usage_memory"] = memory
-            if self.scan_cpu:
-                cpu = usage_pairings[ts][1]
+                cpu = usage_pairings.get(ts, (0, 0))[1]
                 frame_values["usage_cpu"] = cpu
-
+                
             # Create a Frame and Node for the function
             # Frame stores information about the node
             # Node represents a node in the hierarchical graph structure
@@ -160,9 +175,8 @@ class PerfFlowAspectReader:
                 "tid": item["tid"],
                 "ph": item["ph"],
             }
-            if self.scan_memory:
+            if self.scan_cpu_mem:
                 node_dict_vals["usage_memory"] = memory
-            if self.scan_cpu:
                 node_dict_vals["usage_cpu"] = cpu
 
             node_dict = dict(node_dict_vals)
@@ -187,5 +201,7 @@ class PerfFlowAspectReader:
                 inc_metrics.append(col)
             else:
                 exc_metrics.append(col)
-
-        return hatchet.graphframe.GraphFrame(graph, dataframe, metadata=self.metadata)
+                
+        return hatchet.graphframe.GraphFrame(
+            graph, dataframe, exc_metrics=exc_metrics, inc_metrics=inc_metrics, metadata=self.metadata
+        )
