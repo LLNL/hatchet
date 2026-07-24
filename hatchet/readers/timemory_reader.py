@@ -206,9 +206,9 @@ class TimemoryReader:
                 # match with metric labels if _metric_stat item is a list.
                 elif isinstance(_item, list):
                     for i in range(len(_item)):
-                        _ret[
-                            "{}.{}{}".format(_key, _metric_label[i], _metric_type)
-                        ] = _item[i]
+                        _ret["{}.{}{}".format(_key, _metric_label[i], _metric_type)] = (
+                            _item[i]
+                        )
                 # check if _metric_stat item is not a dict or list
                 else:
                     _ret["{}.{}{}".format(_key, _metric_label, _metric_type)] = _item
