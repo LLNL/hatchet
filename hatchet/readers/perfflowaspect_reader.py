@@ -101,9 +101,7 @@ class PerfFlowAspectReader:
 
         # Error if attempt is made to retrieve statistics,
         # but no statistics exist.
-        if all("C" not in item["ph"] for item in self.spec_dict) and (
-            self.scan_cpu or self.scan_memory
-        ):
+        if all("C" not in item["ph"] for item in self.spec_dict) and self.scan_cpu_mem:
             raise ValueError("No statistics in the provided file!")
         
         if self.scan_cpu_mem:
@@ -130,13 +128,6 @@ class PerfFlowAspectReader:
                 continue
 
             dur = item["dur"] * 1e-6
-            frame_values = {"name": name, "type": "function", "ts": ts, "dur": dur}
-
-            if self.scan_cpu_mem:
-                memory = usage_pairings.get(ts, (0, 0))[0]
-                frame_values["usage_memory"] = memory
-                cpu = usage_pairings.get(ts, (0, 0))[1]
-                frame_values["usage_cpu"] = cpu                
 
             # A Frame always consists of these values
             frame_values = {"name": name, "type": "function", "ts": ts, "dur": dur}
