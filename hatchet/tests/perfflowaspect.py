@@ -11,9 +11,7 @@ from hatchet import GraphFrame
 
 def test_laghos_graphframe(laghos_perfflowaspect_array):
     """Sanity test a GraphFrame object with known data."""
-    gf = GraphFrame.from_perfflowaspect(
-        str(laghos_perfflowaspect_array), False
-    )
+    gf = GraphFrame.from_perfflowaspect(str(laghos_perfflowaspect_array), False)
 
     assert len(gf.dataframe.groupby("name")) == 4
 
@@ -30,9 +28,7 @@ def test_laghos_graphframe(laghos_perfflowaspect_array):
 
 def test_foobar_graphframe(foobar_perfflowaspect_array):
     """Sanity test a GraphFrame object with known data."""
-    gf = GraphFrame.from_perfflowaspect(
-        str(foobar_perfflowaspect_array), False
-    )
+    gf = GraphFrame.from_perfflowaspect(str(foobar_perfflowaspect_array), False)
 
     assert len(gf.dataframe.groupby("name")) == 3
 
@@ -49,9 +45,7 @@ def test_foobar_graphframe(foobar_perfflowaspect_array):
 
 def test_ams_mpi_graphframe(ams_mpi_perfflowaspect_array):
     """Sanity test a GraphFrame object with known data."""
-    gf = GraphFrame.from_perfflowaspect(
-        str(ams_mpi_perfflowaspect_array), False
-    )
+    gf = GraphFrame.from_perfflowaspect(str(ams_mpi_perfflowaspect_array), False)
 
     assert len(gf.dataframe.groupby("name")) == 34
 
@@ -78,9 +72,7 @@ def test_smoketest_perfflowaspect_array(smoketest_perfflowaspect):
     """Confirm perfflowaspect_reader properly reads a smoketest file.
     There should be no usage statistics in the dataframe.
     """
-    gf = GraphFrame.from_perfflowaspect(
-        str(smoketest_perfflowaspect), False
-    )
+    gf = GraphFrame.from_perfflowaspect(str(smoketest_perfflowaspect), False)
 
     assert len(gf.dataframe.groupby("name")) == 3
 
@@ -89,9 +81,7 @@ def test_smoketest_perfflowaspect_array(smoketest_perfflowaspect):
 
 
 def test_perfflowaspectobjectreader(perfflowaspectobjectreader_test_file):
-    gf = GraphFrame.from_perfflowaspect(
-        str(perfflowaspectobjectreader_test_file)
-    )
+    gf = GraphFrame.from_perfflowaspect(str(perfflowaspectobjectreader_test_file))
 
     assert len(gf.dataframe.groupby("name")) == 3
 
@@ -108,9 +98,7 @@ def test_smoketest_perfflowaspect_stats(smoketest_perfflowaspect_stats):
     """Confirm perfflowaspect_reader reads both usage statistics in a
     smoketest example with statistics. There should be cpu/memory stats.
     """
-    gf = GraphFrame.from_perfflowaspect(
-        str(smoketest_perfflowaspect_stats), True
-    )
+    gf = GraphFrame.from_perfflowaspect(str(smoketest_perfflowaspect_stats), True)
 
     assert len(gf.dataframe.groupby("name")) == 3
 
@@ -132,9 +120,7 @@ def test_smoketest_two_perfflowaspect_stats(smoketest_two_perfflowaspect_stats):
     """Confirm perfflowaspect_reader reads both usage statistics in a
     smoketest2 example with statistics. There should be cpu/memory stats.
     """
-    gf = GraphFrame.from_perfflowaspect(
-        str(smoketest_two_perfflowaspect_stats), True
-    )
+    gf = GraphFrame.from_perfflowaspect(str(smoketest_two_perfflowaspect_stats), True)
 
     assert len(gf.dataframe.groupby("name")) == 1
 
@@ -156,9 +142,7 @@ def test_smoketest_three_perfflowaspect(smoketest_three_perfflowaspect):
     """Confirm perfflowaspect_reader reads both usage statistics in a
     smoketest2 example with statistics. There should be cpu/memory stats.
     """
-    gf = GraphFrame.from_perfflowaspect(
-        str(smoketest_three_perfflowaspect), False
-    )
+    gf = GraphFrame.from_perfflowaspect(str(smoketest_three_perfflowaspect), False)
 
     assert len(gf.dataframe.groupby("name")) == 3
 
@@ -182,9 +166,7 @@ def test_smoketest_three_perfflowaspect_stats(smoketest_three_perfflowaspect_sta
     """Confirm perfflowaspect_reader reads both usage statistics in a
     smoketest2 example with statistics. There should be cpu/memory stats.
     """
-    gf = GraphFrame.from_perfflowaspect(
-        str(smoketest_three_perfflowaspect_stats), True
-    )
+    gf = GraphFrame.from_perfflowaspect(str(smoketest_three_perfflowaspect_stats), True)
 
     assert len(gf.dataframe.groupby("name")) == 3
 
@@ -205,9 +187,7 @@ def test_smoketest_three_perfflowaspect_stats(smoketest_three_perfflowaspect_sta
 def test_perfflowaspectobjectreader_timestamp_conversion(
     perfflowaspectobjectreader_test_file,
 ):
-    gf = GraphFrame.from_perfflowaspect(
-        str(perfflowaspectobjectreader_test_file)
-    )
+    gf = GraphFrame.from_perfflowaspect(str(perfflowaspectobjectreader_test_file))
 
     def us_to_s(microseconds):
         return microseconds / 1e6

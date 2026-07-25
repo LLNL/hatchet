@@ -64,9 +64,9 @@ class DataframeWriter(ABC):
         dump_df["inc_metrics"] = None
         dump_df.iat[0, dump_df.columns.get_loc("inc_metrics")] = gf_cpy.inc_metrics
         dump_df["default_metric"] = None
-        dump_df.iat[
-            0, dump_df.columns.get_loc("default_metric")
-        ] = gf_cpy.default_metric
+        dump_df.iat[0, dump_df.columns.get_loc("default_metric")] = (
+            gf_cpy.default_metric
+        )
         self._write_dataframe_to_file(dump_df, **kwargs)
 
 

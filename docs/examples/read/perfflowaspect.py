@@ -12,7 +12,9 @@ if __name__ == "__main__":
     # pfa_file = "../../../hatchet/tests/data/perfflowaspect-smoketests/array_compact.pfw"
     # pfa_file = "../../../hatchet/tests/data/perfflowaspect-smoketests/array_verbose.pfw"
     # pfa_file = "../../../hatchet/tests/data/perfflowaspect-smoketests/object_compact_adiak.pfw"
-    pfa_file = "../../../hatchet/tests/data/perfflowaspect-smoketests/object_verbose_adiak.pfw"
+    pfa_file = (
+        "../../../hatchet/tests/data/perfflowaspect-smoketests/object_verbose_adiak.pfw"
+    )
 
     gf = ht.GraphFrame.from_perfflowaspect(pfa_file)
 

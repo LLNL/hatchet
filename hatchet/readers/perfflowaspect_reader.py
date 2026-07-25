@@ -29,7 +29,7 @@ class PerfFlowAspectReader:
         self.scan_cpu_mem = scan_cpu_mem
         with open(filename, "r+") as file:
             raw = file.read()
-            
+
             try:
                 data = json.loads(raw)
             except json.JSONDecodeError:
@@ -38,8 +38,12 @@ class PerfFlowAspectReader:
                     data = json.loads(fixed)
                 except json.JSONDecodeError as e:
                     raise ValueError(f"Trace file could not be parsed or repaired: {e}")
-            
-            if isinstance(data, dict) and "traceEvents" in data and isinstance(data["traceEvents"], list):
+
+            if (
+                isinstance(data, dict)
+                and "traceEvents" in data
+                and isinstance(data["traceEvents"], list)
+            ):
                 obj = data
                 self.displayTimeUnit = obj.get("displayTimeUnit")
                 self.metadata = obj.get("otherData", {})
@@ -109,7 +113,7 @@ class PerfFlowAspectReader:
         # but no statistics exist.
         if all("C" not in item["ph"] for item in self.spec_dict) and self.scan_cpu_mem:
             raise ValueError("No statistics in the provided file!")
-        
+
         if self.scan_cpu_mem:
             for item in self.spec_dict:
                 if item["ph"] != "C":
@@ -145,7 +149,7 @@ class PerfFlowAspectReader:
                 frame_values["usage_memory"] = memory
                 cpu = usage_pairings.get(ts, (0, 0))[1]
                 frame_values["usage_cpu"] = cpu
-                
+
             # Create a Frame and Node for the function
             # Frame stores information about the node
             # Node represents a node in the hierarchical graph structure
@@ -198,7 +202,11 @@ class PerfFlowAspectReader:
                 inc_metrics.append(col)
             else:
                 exc_metrics.append(col)
-                
+
         return hatchet.graphframe.GraphFrame(
-            graph, dataframe, exc_metrics=exc_metrics, inc_metrics=inc_metrics, metadata=self.metadata
+            graph,
+            dataframe,
+            exc_metrics=exc_metrics,
+            inc_metrics=inc_metrics,
+            metadata=self.metadata,
         )
