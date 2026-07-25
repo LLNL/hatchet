@@ -446,6 +446,12 @@ class GraphFrame:
                 )
             raise ve
 
+    @staticmethod
+    def from_perfflowaspect(filename, scan_cpu_mem=False):
+        from .readers.perfflowaspect_reader import PerfFlowAspectReader
+
+        return PerfFlowAspectReader(filename, scan_cpu_mem=scan_cpu_mem).read()
+
     @deprecated(
         "Reading from/writing to HDF5 is deprecated and will be removed in a later version."
     )
