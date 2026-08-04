@@ -12,6 +12,7 @@ class Query(object):
     def __init__(self):
         """Create new Query"""
         self.query_pattern = []
+        self.default_aggregator = "off"
 
     def match(self, quantifier=".", predicate=lambda row: True):
         """Start a query with a root node described by the arguments.

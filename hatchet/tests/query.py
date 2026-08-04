@@ -24,7 +24,7 @@ from hatchet.query import (
     StringQuery,
     parse_string_dialect,
 )
-from hatchet.query.errors import MultiIndexModeMismatch
+from hatchet.query.engine import _all_aggregator, _any_aggregator
 
 
 def test_construct_object_dialect():
@@ -238,7 +238,7 @@ def test_node_caching(mock_graph_literal):
 
     query = ObjectQuery(path)
     engine = QueryEngine()
-    engine._cache_node(node, query, gf.dataframe)
+    engine._cache_node(node, query, gf.dataframe, None)
 
     assert 0 in engine.search_cache[node._hatchet_nid]
     assert 1 in engine.search_cache[node._hatchet_nid]
@@ -269,12 +269,12 @@ def test_match_0_or_more_wildcard(mock_graph_literal):
     engine = QueryEngine()
     matched_paths = []
     for child in sorted(node.children, key=traversal_order):
-        match = engine._match_0_or_more(query, gf.dataframe, child, 1)
+        match = engine._match_0_or_more(query, gf.dataframe, None, child, 1)
         if match is not None:
             matched_paths.extend(match)
 
     assert sorted(matched_paths, key=len) == sorted(correct_paths, key=len)
-    assert engine._match_0_or_more(query, gf.dataframe, none_node, 1) is None
+    assert engine._match_0_or_more(query, gf.dataframe, None, none_node, 1) is None
 
 
 def test_match_1(mock_graph_literal):
@@ -287,10 +287,10 @@ def test_match_1(mock_graph_literal):
     query = ObjectQuery(path)
     engine = QueryEngine()
 
-    assert engine._match_1(query, gf.dataframe, gf.graph.roots[0].children[0], 2) == [
-        [gf.graph.roots[0].children[0].children[1]]
-    ]
-    assert engine._match_1(query, gf.dataframe, gf.graph.roots[0], 2) is None
+    assert engine._match_1(
+        query, gf.dataframe, None, gf.graph.roots[0].children[0], 2
+    ) == [[gf.graph.roots[0].children[0].children[1]]]
+    assert engine._match_1(query, gf.dataframe, None, gf.graph.roots[0], 2) is None
 
 
 def test_match(mock_graph_literal):
@@ -315,7 +315,9 @@ def test_match(mock_graph_literal):
     ]
     query0 = ObjectQuery(path0)
     engine = QueryEngine()
-    assert engine._match_pattern(query0, gf.dataframe, root, 0) == match0
+    assert (
+        engine._match_pattern(query0, gf.dataframe, _all_aggregator, root, 0) == match0
+    )
 
     engine.reset_cache()
 
@@ -327,7 +329,7 @@ def test_match(mock_graph_literal):
         {"time (inc)": 7.5, "time": 7.5},
     ]
     query1 = ObjectQuery(path1)
-    assert engine._match_pattern(query1, gf.dataframe, root, 0) is None
+    assert engine._match_pattern(query1, gf.dataframe, _all_aggregator, root, 0) is None
 
 
 def test_apply(mock_graph_literal):
@@ -349,7 +351,7 @@ def test_apply(mock_graph_literal):
     query = ObjectQuery(path)
     engine = QueryEngine()
 
-    assert sorted(engine.apply(query, gf.graph, gf.dataframe)) == sorted(match)
+    assert sorted(engine.apply(query, gf.graph, gf.dataframe, None)) == sorted(match)
 
     path = [{"time (inc)": ">= 30.0"}, ".", {"name": "bar"}, "*"]
     match = [
@@ -360,12 +362,12 @@ def test_apply(mock_graph_literal):
         root.children[1].children[0].children[0].children[0].children[1],
     ]
     query = ObjectQuery(path)
-    assert sorted(engine.apply(query, gf.graph, gf.dataframe)) == sorted(match)
+    assert sorted(engine.apply(query, gf.graph, gf.dataframe, None)) == sorted(match)
 
     path = [{"name": "foo"}, {"name": "bar"}, {"time": 5.0}]
     match = [root, root.children[0], root.children[0].children[0]]
     query = ObjectQuery(path)
-    assert sorted(engine.apply(query, gf.graph, gf.dataframe)) == sorted(match)
+    assert sorted(engine.apply(query, gf.graph, gf.dataframe, None)) == sorted(match)
 
     path = [{"name": "foo"}, {"name": "qux"}, ("+", {"time (inc)": "> 15.0"})]
     match = [
@@ -376,22 +378,22 @@ def test_apply(mock_graph_literal):
         root.children[1].children[0].children[0].children[0],
     ]
     query = ObjectQuery(path)
-    assert sorted(engine.apply(query, gf.graph, gf.dataframe)) == sorted(match)
+    assert sorted(engine.apply(query, gf.graph, gf.dataframe, None)) == sorted(match)
 
     path = [{"name": "this"}, ("*", {"name": "is"}), {"name": "nonsense"}]
 
     query = ObjectQuery(path)
-    assert engine.apply(query, gf.graph, gf.dataframe) == []
+    assert engine.apply(query, gf.graph, gf.dataframe, None) == []
 
     path = [{"name": 5}, "*", {"name": "whatever"}]
     query = ObjectQuery(path)
     with pytest.raises(InvalidQueryFilter):
-        engine.apply(query, gf.graph, gf.dataframe)
+        engine.apply(query, gf.graph, gf.dataframe, None)
 
     path = [{"time": "badstring"}, "*", {"name": "whatever"}]
     query = ObjectQuery(path)
     with pytest.raises(InvalidQueryFilter):
-        engine.apply(query, gf.graph, gf.dataframe)
+        engine.apply(query, gf.graph, gf.dataframe, None)
 
     class DummyType:
         def __init__(self):
@@ -407,7 +409,7 @@ def test_apply(mock_graph_literal):
     path = [{"name": "foo"}, {"name": "bar"}, {"list": DummyType()}]
     query = ObjectQuery(path)
     with pytest.raises(InvalidQueryFilter):
-        engine.apply(query, gf.graph, gf.dataframe)
+        engine.apply(query, gf.graph, gf.dataframe, None)
 
     path = ["*", {"name": "bar"}, {"name": "grault"}, "*"]
     match = [
@@ -452,11 +454,11 @@ def test_apply(mock_graph_literal):
     ]
     match = list(set().union(*match))
     query = ObjectQuery(path)
-    assert sorted(engine.apply(query, gf.graph, gf.dataframe)) == sorted(match)
+    assert sorted(engine.apply(query, gf.graph, gf.dataframe, None)) == sorted(match)
 
     path = ["*", {"name": "bar"}, {"name": "grault"}, "+"]
     query = ObjectQuery(path)
-    assert engine.apply(query, gf.graph, gf.dataframe) == []
+    assert engine.apply(query, gf.graph, gf.dataframe, None) == []
 
     # Test a former edge case with the + quantifier/wildcard
     match = [
@@ -486,7 +488,7 @@ def test_apply(mock_graph_literal):
     match = list(set().union(*match))
     path = [("+", {"name": "ba.*"})]
     query = ObjectQuery(path)
-    assert sorted(engine.apply(query, gf.graph, gf.dataframe)) == sorted(match)
+    assert sorted(engine.apply(query, gf.graph, gf.dataframe, None)) == sorted(match)
 
 
 def test_apply_indices(calc_pi_hpct_db):
@@ -511,12 +513,14 @@ def test_apply_indices(calc_pi_hpct_db):
         ],
     ]
     matches = list(set().union(*matches))
-    query = ObjectQuery(path, multi_index_mode="all")
+    query = ObjectQuery(path)
     engine = QueryEngine()
-    assert sorted(engine.apply(query, gf.graph, gf.dataframe)) == sorted(matches)
+    assert sorted(
+        engine.apply(query, gf.graph, gf.dataframe, predicate_row_aggregator="all")
+    ) == sorted(matches)
 
     gf.drop_index_levels()
-    assert engine.apply(query, gf.graph, gf.dataframe) == matches
+    assert engine.apply(query, gf.graph, gf.dataframe, None) == matches
 
 
 def test_object_dialect_depth(mock_graph_literal):
@@ -525,7 +529,7 @@ def test_object_dialect_depth(mock_graph_literal):
     engine = QueryEngine()
     roots = gf.graph.roots
     matches = [c for r in roots for c in r.children]
-    assert sorted(engine.apply(query, gf.graph, gf.dataframe)) == sorted(matches)
+    assert sorted(engine.apply(query, gf.graph, gf.dataframe, None)) == sorted(matches)
 
     query = ObjectQuery([("*", {"depth": "<= 2"})])
     matches = [
@@ -552,11 +556,11 @@ def test_object_dialect_depth(mock_graph_literal):
         [roots[1].children[0].children[1]],
     ]
     matches = list(set().union(*matches))
-    assert sorted(engine.apply(query, gf.graph, gf.dataframe)) == sorted(matches)
+    assert sorted(engine.apply(query, gf.graph, gf.dataframe, None)) == sorted(matches)
 
     with pytest.raises(InvalidQueryFilter):
         query = ObjectQuery([{"depth": "hello"}])
-        engine.apply(query, gf.graph, gf.dataframe)
+        engine.apply(query, gf.graph, gf.dataframe, None)
 
 
 def test_object_dialect_hatchet_nid(mock_graph_literal):
@@ -573,21 +577,21 @@ def test_object_dialect_hatchet_nid(mock_graph_literal):
         [root.children[0].children[1]],
     ]
     matches = list(set().union(*matches))
-    assert sorted(engine.apply(query, gf.graph, gf.dataframe)) == sorted(matches)
+    assert sorted(engine.apply(query, gf.graph, gf.dataframe, None)) == sorted(matches)
 
     query = ObjectQuery([{"node_id": 0}])
-    assert engine.apply(query, gf.graph, gf.dataframe) == [gf.graph.roots[0]]
+    assert engine.apply(query, gf.graph, gf.dataframe, None) == [gf.graph.roots[0]]
 
     with pytest.raises(InvalidQueryFilter):
         query = ObjectQuery([{"node_id": "hello"}])
-        engine.apply(query, gf.graph, gf.dataframe)
+        engine.apply(query, gf.graph, gf.dataframe, None)
 
 
 def test_object_dialect_depth_index_levels(calc_pi_hpct_db):
     gf = GraphFrame.from_hpctoolkit(str(calc_pi_hpct_db))
     root = gf.graph.roots[0]
 
-    query = ObjectQuery([("*", {"depth": "<= 2"})], multi_index_mode="all")
+    query = ObjectQuery([("*", {"depth": "<= 2"})])
     engine = QueryEngine()
     matches = [
         [root, root.children[0], root.children[0].children[0]],
@@ -598,22 +602,27 @@ def test_object_dialect_depth_index_levels(calc_pi_hpct_db):
         [root.children[0].children[1]],
     ]
     matches = list(set().union(*matches))
-    assert sorted(engine.apply(query, gf.graph, gf.dataframe)) == sorted(matches)
+    assert sorted(
+        engine.apply(query, gf.graph, gf.dataframe, predicate_row_aggregator="all")
+    ) == sorted(matches)
 
-    query = ObjectQuery([("*", {"depth": 0})], multi_index_mode="all")
+    query = ObjectQuery([("*", {"depth": 0})])
     matches = [root]
-    assert engine.apply(query, gf.graph, gf.dataframe) == matches
+    assert (
+        engine.apply(query, gf.graph, gf.dataframe, predicate_row_aggregator="all")
+        == matches
+    )
 
     with pytest.raises(InvalidQueryFilter):
-        query = ObjectQuery([{"depth": "hello"}], multi_index_mode="all")
-        engine.apply(query, gf.graph, gf.dataframe)
+        query = ObjectQuery([{"depth": "hello"}])
+        engine.apply(query, gf.graph, gf.dataframe, predicate_row_aggregator="all")
 
 
 def test_object_dialect_node_id_index_levels(calc_pi_hpct_db):
     gf = GraphFrame.from_hpctoolkit(str(calc_pi_hpct_db))
     root = gf.graph.roots[0]
 
-    query = ObjectQuery([("*", {"node_id": "<= 2"})], multi_index_mode="all")
+    query = ObjectQuery([("*", {"node_id": "<= 2"})])
     engine = QueryEngine()
     matches = [
         [root, root.children[0]],
@@ -623,15 +632,20 @@ def test_object_dialect_node_id_index_levels(calc_pi_hpct_db):
         [root.children[0].children[0]],
     ]
     matches = list(set().union(*matches))
-    assert sorted(engine.apply(query, gf.graph, gf.dataframe)) == sorted(matches)
+    assert sorted(
+        engine.apply(query, gf.graph, gf.dataframe, predicate_row_aggregator="all")
+    ) == sorted(matches)
 
-    query = ObjectQuery([("*", {"node_id": 0})], multi_index_mode="all")
+    query = ObjectQuery([("*", {"node_id": 0})])
     matches = [root]
-    assert engine.apply(query, gf.graph, gf.dataframe) == matches
+    assert (
+        engine.apply(query, gf.graph, gf.dataframe, predicate_row_aggregator="all")
+        == matches
+    )
 
     with pytest.raises(InvalidQueryFilter):
-        query = ObjectQuery([{"node_id": "hello"}], multi_index_mode="all")
-        engine.apply(query, gf.graph, gf.dataframe)
+        query = ObjectQuery([{"node_id": "hello"}])
+        engine.apply(query, gf.graph, gf.dataframe, predicate_row_aggregator="all")
 
 
 def test_object_dialect_multi_condition_one_attribute(mock_graph_literal):
@@ -690,7 +704,7 @@ def test_object_dialect_multi_condition_one_attribute(mock_graph_literal):
         [roots[1].children[0]],
     ]
     matches = list(set().union(*matches))
-    assert sorted(engine.apply(query, gf.graph, gf.dataframe)) == sorted(matches)
+    assert sorted(engine.apply(query, gf.graph, gf.dataframe, None)) == sorted(matches)
 
 
 def test_obj_query_is_query():
@@ -787,7 +801,7 @@ def test_conjunction_query(mock_graph_literal):
         roots[0].children[1],
         roots[0].children[1].children[0],
     ]
-    assert sorted(engine.apply(compound_query, gf.graph, gf.dataframe)) == sorted(
+    assert sorted(engine.apply(compound_query, gf.graph, gf.dataframe, None)) == sorted(
         matches
     )
 
@@ -810,7 +824,7 @@ def test_disjunction_query(mock_graph_literal):
         roots[1].children[0].children[0],
         roots[1].children[0].children[1],
     ]
-    assert sorted(engine.apply(compound_query, gf.graph, gf.dataframe)) == sorted(
+    assert sorted(engine.apply(compound_query, gf.graph, gf.dataframe, None)) == sorted(
         matches
     )
 
@@ -829,7 +843,7 @@ def test_exc_disjunction_query(mock_graph_literal):
         roots[0].children[2].children[0].children[1].children[0].children[0],
         roots[1].children[0].children[0],
     ]
-    assert sorted(engine.apply(compound_query, gf.graph, gf.dataframe)) == sorted(
+    assert sorted(engine.apply(compound_query, gf.graph, gf.dataframe, None)) == sorted(
         matches
     )
 
@@ -951,7 +965,7 @@ def test_apply_string_dialect(mock_graph_literal):
     query = StringQuery(path)
     engine = QueryEngine()
 
-    assert sorted(engine.apply(query, gf.graph, gf.dataframe)) == sorted(match)
+    assert sorted(engine.apply(query, gf.graph, gf.dataframe, None)) == sorted(match)
 
     path = """MATCH (p)->(".")->(q)->("*")
     WHERE p."time (inc)" >= 30.0 AND q."name" = "bar"
@@ -964,14 +978,14 @@ def test_apply_string_dialect(mock_graph_literal):
         root.children[1].children[0].children[0].children[0].children[1],
     ]
     query = StringQuery(path)
-    assert sorted(engine.apply(query, gf.graph, gf.dataframe)) == sorted(match)
+    assert sorted(engine.apply(query, gf.graph, gf.dataframe, None)) == sorted(match)
 
     path = """MATCH (p)->(q)->(r)
     WHERE p."name" = "foo" AND q."name" = "bar" AND r."time" = 5.0
     """
     match = [root, root.children[0], root.children[0].children[0]]
     query = StringQuery(path)
-    assert sorted(engine.apply(query, gf.graph, gf.dataframe)) == sorted(match)
+    assert sorted(engine.apply(query, gf.graph, gf.dataframe, None)) == sorted(match)
 
     path = """MATCH (p)->(q)->("+", r)
     WHERE p."name" = "foo" AND q."name" = "qux" AND r."time (inc)" > 15.0
@@ -984,7 +998,7 @@ def test_apply_string_dialect(mock_graph_literal):
         root.children[1].children[0].children[0].children[0],
     ]
     query = StringQuery(path)
-    assert sorted(engine.apply(query, gf.graph, gf.dataframe)) == sorted(match)
+    assert sorted(engine.apply(query, gf.graph, gf.dataframe, None)) == sorted(match)
 
     path = """MATCH (p)->(q)
     WHERE p."time (inc)" > 100 OR p."time (inc)" <= 30 AND q."time (inc)" = 20
@@ -997,28 +1011,28 @@ def test_apply_string_dialect(mock_graph_literal):
         roots[1].children[0],
     ]
     query = StringQuery(path)
-    assert sorted(engine.apply(query, gf.graph, gf.dataframe)) == sorted(match)
+    assert sorted(engine.apply(query, gf.graph, gf.dataframe, None)) == sorted(match)
 
     path = """MATCH (p)->("*", q)->(r)
     WHERE p."name" = "this" AND q."name" = "is" AND r."name" = "nonsense"
     """
 
     query = StringQuery(path)
-    assert engine.apply(query, gf.graph, gf.dataframe) == []
+    assert engine.apply(query, gf.graph, gf.dataframe, None) == []
 
     path = """MATCH (p)->("*")->(q)
     WHERE p."name" = 5 AND q."name" = "whatever"
     """
     with pytest.raises(InvalidQueryFilter):
         query = StringQuery(path)
-        engine.apply(query, gf.graph, gf.dataframe)
+        engine.apply(query, gf.graph, gf.dataframe, None)
 
     path = """MATCH (p)->("*")->(q)
     WHERE p."time" = "badstring" AND q."name" = "whatever"
     """
     query = StringQuery(path)
     with pytest.raises(InvalidQueryFilter):
-        engine.apply(query, gf.graph, gf.dataframe)
+        engine.apply(query, gf.graph, gf.dataframe, None)
 
     class DummyType:
         def __init__(self):
@@ -1036,7 +1050,7 @@ def test_apply_string_dialect(mock_graph_literal):
     """
     with pytest.raises(InvalidQueryPath):
         query = StringQuery(path)
-        engine.apply(query, gf.graph, gf.dataframe)
+        engine.apply(query, gf.graph, gf.dataframe, None)
 
     path = """MATCH ("*")->(p)->(q)->("*")
     WHERE p."name" = "bar" AND q."name" = "grault"
@@ -1083,13 +1097,13 @@ def test_apply_string_dialect(mock_graph_literal):
     ]
     match = list(set().union(*match))
     query = StringQuery(path)
-    assert sorted(engine.apply(query, gf.graph, gf.dataframe)) == sorted(match)
+    assert sorted(engine.apply(query, gf.graph, gf.dataframe, None)) == sorted(match)
 
     path = """MATCH ("*")->(p)->(q)->("+")
     WHERE p."name" = "bar" AND q."name" = "grault"
     """
     query = StringQuery(path)
-    assert engine.apply(query, gf.graph, gf.dataframe) == []
+    assert engine.apply(query, gf.graph, gf.dataframe, None) == []
 
     gf.dataframe["time"] = np.nan
     gf.dataframe.at[gf.graph.roots[0], "time"] = 5.0
@@ -1097,7 +1111,7 @@ def test_apply_string_dialect(mock_graph_literal):
     WHERE p."time" IS NOT NAN"""
     match = [gf.graph.roots[0]]
     query = StringQuery(path)
-    assert engine.apply(query, gf.graph, gf.dataframe) == match
+    assert engine.apply(query, gf.graph, gf.dataframe, None) == match
 
     gf.dataframe["time"] = 5.0
     gf.dataframe.at[gf.graph.roots[0], "time"] = np.nan
@@ -1105,7 +1119,7 @@ def test_apply_string_dialect(mock_graph_literal):
     WHERE p."time" IS NAN"""
     match = [gf.graph.roots[0]]
     query = StringQuery(path)
-    assert engine.apply(query, gf.graph, gf.dataframe) == match
+    assert engine.apply(query, gf.graph, gf.dataframe, None) == match
 
     gf.dataframe["time"] = np.inf
     gf.dataframe.at[gf.graph.roots[0], "time"] = 5.0
@@ -1113,7 +1127,7 @@ def test_apply_string_dialect(mock_graph_literal):
     WHERE p."time" IS NOT INF"""
     match = [gf.graph.roots[0]]
     query = StringQuery(path)
-    assert engine.apply(query, gf.graph, gf.dataframe) == match
+    assert engine.apply(query, gf.graph, gf.dataframe, None) == match
 
     gf.dataframe["time"] = 5.0
     gf.dataframe.at[gf.graph.roots[0], "time"] = np.inf
@@ -1121,7 +1135,7 @@ def test_apply_string_dialect(mock_graph_literal):
     WHERE p."time" IS INF"""
     match = [gf.graph.roots[0]]
     query = StringQuery(path)
-    assert engine.apply(query, gf.graph, gf.dataframe) == match
+    assert engine.apply(query, gf.graph, gf.dataframe, None) == match
 
     names = gf.dataframe["name"].copy()
     gf.dataframe["name"] = None
@@ -1130,7 +1144,7 @@ def test_apply_string_dialect(mock_graph_literal):
     WHERE p."name" IS NOT NONE"""
     match = [gf.graph.roots[0]]
     query = StringQuery(path)
-    assert engine.apply(query, gf.graph, gf.dataframe) == match
+    assert engine.apply(query, gf.graph, gf.dataframe, None) == match
 
     gf.dataframe["name"] = names
     gf.dataframe.at[gf.graph.roots[0], "name"] = None
@@ -1138,7 +1152,7 @@ def test_apply_string_dialect(mock_graph_literal):
     WHERE p."name" IS NONE"""
     match = [gf.graph.roots[0]]
     query = StringQuery(path)
-    assert engine.apply(query, gf.graph, gf.dataframe) == match
+    assert engine.apply(query, gf.graph, gf.dataframe, None) == match
 
 
 def test_string_conj_compound_query(mock_graph_literal):
@@ -1161,12 +1175,12 @@ def test_string_conj_compound_query(mock_graph_literal):
         roots[0].children[1],
         roots[0].children[1].children[0],
     ]
-    assert sorted(engine.apply(compound_query1, gf.graph, gf.dataframe)) == sorted(
-        matches
-    )
-    assert sorted(engine.apply(compound_query2, gf.graph, gf.dataframe)) == sorted(
-        matches
-    )
+    assert sorted(
+        engine.apply(compound_query1, gf.graph, gf.dataframe, None)
+    ) == sorted(matches)
+    assert sorted(
+        engine.apply(compound_query2, gf.graph, gf.dataframe, None)
+    ) == sorted(matches)
 
 
 def test_string_disj_compound_query(mock_graph_literal):
@@ -1196,12 +1210,12 @@ def test_string_disj_compound_query(mock_graph_literal):
         roots[1].children[0].children[0],
         roots[1].children[0].children[1],
     ]
-    assert sorted(engine.apply(compound_query1, gf.graph, gf.dataframe)) == sorted(
-        matches
-    )
-    assert sorted(engine.apply(compound_query2, gf.graph, gf.dataframe)) == sorted(
-        matches
-    )
+    assert sorted(
+        engine.apply(compound_query1, gf.graph, gf.dataframe, None)
+    ) == sorted(matches)
+    assert sorted(
+        engine.apply(compound_query2, gf.graph, gf.dataframe, None)
+    ) == sorted(matches)
 
 
 def test_cypher_exc_disj_compound_query(mock_graph_literal):
@@ -1227,12 +1241,12 @@ def test_cypher_exc_disj_compound_query(mock_graph_literal):
         roots[0].children[2].children[0].children[1].children[0].children[0],
         roots[1].children[0].children[0],
     ]
-    assert sorted(engine.apply(compound_query1, gf.graph, gf.dataframe)) == sorted(
-        matches
-    )
-    assert sorted(engine.apply(compound_query2, gf.graph, gf.dataframe)) == sorted(
-        matches
-    )
+    assert sorted(
+        engine.apply(compound_query1, gf.graph, gf.dataframe, None)
+    ) == sorted(matches)
+    assert sorted(
+        engine.apply(compound_query2, gf.graph, gf.dataframe, None)
+    ) == sorted(matches)
 
 
 def test_leaf_query(small_mock2):
@@ -1266,24 +1280,24 @@ def test_leaf_query(small_mock2):
         """
     )
     engine = QueryEngine()
-    assert sorted(engine.apply(obj_query, gf.graph, gf.dataframe)) == sorted(matches)
-    assert sorted(engine.apply(str_query_numeric, gf.graph, gf.dataframe)) == sorted(
-        matches
-    )
-    assert sorted(engine.apply(str_query_is_leaf, gf.graph, gf.dataframe)) == sorted(
+    assert sorted(engine.apply(obj_query, gf.graph, gf.dataframe, None)) == sorted(
         matches
     )
     assert sorted(
-        engine.apply(str_query_is_not_leaf, gf.graph, gf.dataframe)
+        engine.apply(str_query_numeric, gf.graph, gf.dataframe, None)
+    ) == sorted(matches)
+    assert sorted(
+        engine.apply(str_query_is_leaf, gf.graph, gf.dataframe, None)
+    ) == sorted(matches)
+    assert sorted(
+        engine.apply(str_query_is_not_leaf, gf.graph, gf.dataframe, None)
     ) == sorted(nonleaves)
 
 
 def test_object_dialect_all_mode(tau_profile_dir):
     gf = GraphFrame.from_tau(tau_profile_dir)
     engine = QueryEngine()
-    query = ObjectQuery(
-        [".", ("+", {"time (inc)": ">= 17983.0"})], multi_index_mode="all"
-    )
+    query = ObjectQuery([".", ("+", {"time (inc)": ">= 17983.0"})])
     roots = gf.graph.roots
     matches = [
         roots[0],
@@ -1291,7 +1305,9 @@ def test_object_dialect_all_mode(tau_profile_dir):
         roots[0].children[6].children[1],
         roots[0].children[0],
     ]
-    assert sorted(engine.apply(query, gf.graph, gf.dataframe)) == sorted(matches)
+    assert sorted(
+        engine.apply(query, gf.graph, gf.dataframe, predicate_row_aggregator="all")
+    ) == sorted(matches)
 
 
 def test_string_dialect_all_mode(tau_profile_dir):
@@ -1300,8 +1316,7 @@ def test_string_dialect_all_mode(tau_profile_dir):
     query = StringQuery(
         """MATCH (".")->("+", p)
         WHERE p."time (inc)" >= 17983.0
-        """,
-        multi_index_mode="all",
+        """
     )
     roots = gf.graph.roots
     matches = [
@@ -1310,19 +1325,23 @@ def test_string_dialect_all_mode(tau_profile_dir):
         roots[0].children[6].children[1],
         roots[0].children[0],
     ]
-    assert sorted(engine.apply(query, gf.graph, gf.dataframe)) == sorted(matches)
+    assert sorted(
+        engine.apply(query, gf.graph, gf.dataframe, predicate_row_aggregator="all")
+    ) == sorted(matches)
 
 
 def test_object_dialect_any_mode(tau_profile_dir):
     gf = GraphFrame.from_tau(tau_profile_dir)
     engine = QueryEngine()
-    query = ObjectQuery([{"time": "< 24.0"}], multi_index_mode="any")
+    query = ObjectQuery([{"time": "< 24.0"}])
     roots = gf.graph.roots
     matches = [
         roots[0].children[2],
         roots[0].children[6].children[3],
     ]
-    assert sorted(engine.apply(query, gf.graph, gf.dataframe)) == sorted(matches)
+    assert sorted(
+        engine.apply(query, gf.graph, gf.dataframe, predicate_row_aggregator="any")
+    ) == sorted(matches)
 
 
 def test_string_dialect_any_mode(tau_profile_dir):
@@ -1331,31 +1350,24 @@ def test_string_dialect_any_mode(tau_profile_dir):
     query = StringQuery(
         """MATCH (".", p)
         WHERE p."time" < 24.0
-        """,
-        multi_index_mode="any",
+        """
     )
     roots = gf.graph.roots
     matches = [
         roots[0].children[2],
         roots[0].children[6].children[3],
     ]
-    assert sorted(engine.apply(query, gf.graph, gf.dataframe)) == sorted(matches)
+    assert sorted(
+        engine.apply(query, gf.graph, gf.dataframe, predicate_row_aggregator="any")
+    ) == sorted(matches)
 
 
-def test_multi_index_mode_assertion_error(tau_profile_dir):
-    with pytest.raises(AssertionError):
-        _ = ObjectQuery([".", ("*", {"name": "test"})], multi_index_mode="foo")
-    with pytest.raises(AssertionError):
-        _ = StringQuery(
-            """ MATCH (".")->("*", p)
-            WHERE p."name" = "test"
-            """,
-            multi_index_mode="foo",
-        )
+def test_predicate_row_aggregator_assertion_error(tau_profile_dir):
     gf = GraphFrame.from_tau(tau_profile_dir)
-    query = ObjectQuery(
-        [".", ("*", {"time (inc)": "> 17983.0"})], multi_index_mode="off"
-    )
     engine = QueryEngine()
-    with pytest.raises(MultiIndexModeMismatch):
-        engine.apply(query, gf.graph, gf.dataframe)
+    query = ObjectQuery([".", ("*", {"name": "test"})])
+    with pytest.raises(ValueError):
+        engine.apply(query, gf.graph, gf.dataframe, predicate_row_aggregator="foo")
+    query = ObjectQuery([".", ("*", {"time (inc)": "> 17983.0"})])
+    with pytest.raises(ValueError):
+        engine.apply(query, gf.graph, gf.dataframe, predicate_row_aggregator="off")

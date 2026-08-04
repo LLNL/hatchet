@@ -97,7 +97,7 @@ def filter_check_types(type_check, df_row, filt_lambda):
 class StringQuery(Query):
     """Class for representing and parsing queries using the String-based dialect."""
 
-    def __init__(self, cypher_query, multi_index_mode="off"):
+    def __init__(self, cypher_query):
         """Builds a new StringQuery object representing a query in the String-based dialect.
 
         Arguments:
@@ -107,11 +107,9 @@ class StringQuery(Query):
             super(StringQuery, self).__init__()
         else:
             super().__init__()
-        assert multi_index_mode in ["off", "all", "any"]
-        self.multi_index_mode = multi_index_mode
-        model = None
+        self.model = None
         try:
-            model = cypher_query_mm.model_from_str(cypher_query)
+            self.model = cypher_query_mm.model_from_str(cypher_query)
         except TextXError as e:
             # TODO Change to a "raise-from" expression when Python 2.7 support is dropped
             raise InvalidQueryPath(
@@ -121,9 +119,13 @@ class StringQuery(Query):
             )
         self.wcards = []
         self.wcard_pos = {}
-        self._parse_path(model.path_expr)
+        self.default_aggregator = "all"
+
+    def parse(self, dframe):
+        has_multi_index = isinstance(dframe.index, pd.MultiIndex)
+        self._parse_path(self.model.path_expr)
         self.filters = [[] for _ in self.wcards]
-        self._parse_conditions(model.cond_expr)
+        self._parse_conditions(self.model.cond_expr, has_multi_index)
         self.lambda_filters = [None for _ in self.wcards]
         self._build_lambdas()
         self._build_query()
@@ -188,7 +190,7 @@ class StringQuery(Query):
                 self.wcard_pos[n.name] = idx
             idx += 1
 
-    def _parse_conditions(self, cond_expr):
+    def _parse_conditions(self, cond_expr, has_multi_index):
         """Top level function for parsing the WHERE statement of
         a String-based query.
         """
@@ -196,9 +198,9 @@ class StringQuery(Query):
         for cond in conditions:
             converted_condition = None
             if self._is_unary_cond(cond):
-                converted_condition = self._parse_unary_cond(cond)
+                converted_condition = self._parse_unary_cond(cond, has_multi_index)
             elif self._is_binary_cond(cond):
-                converted_condition = self._parse_binary_cond(cond)
+                converted_condition = self._parse_binary_cond(cond, has_multi_index)
             else:
                 raise RuntimeError("Bad Condition")
             self.filters[self.wcard_pos[converted_condition[1]]].append(
@@ -226,59 +228,67 @@ class StringQuery(Query):
             return True
         return False
 
-    def _parse_binary_cond(self, obj):
+    def _parse_binary_cond(self, obj, has_multi_index):
         """Top level function for parsing binary predicates."""
         if cname(obj) == "AndCond":
-            return self._parse_and_cond(obj)
+            return self._parse_and_cond(obj, has_multi_index)
         if cname(obj) == "OrCond":
-            return self._parse_or_cond(obj)
+            return self._parse_or_cond(obj, has_multi_index)
         raise RuntimeError("Bad Binary Condition")
 
-    def _parse_or_cond(self, obj):
+    def _parse_or_cond(self, obj, has_multi_index):
         """Top level function for parsing predicates combined with logical OR."""
-        converted_subcond = self._parse_unary_cond(obj.subcond)
+        converted_subcond = self._parse_unary_cond(obj.subcond, has_multi_index)
         converted_subcond[0] = "or"
         return converted_subcond
 
-    def _parse_and_cond(self, obj):
+    def _parse_and_cond(self, obj, has_multi_index):
         """Top level function for parsing predicates combined with logical AND."""
-        converted_subcond = self._parse_unary_cond(obj.subcond)
+        converted_subcond = self._parse_unary_cond(obj.subcond, has_multi_index)
         converted_subcond[0] = "and"
         return converted_subcond
 
-    def _parse_unary_cond(self, obj):
+    def _parse_unary_cond(self, obj, has_multi_index):
         """Top level function for parsing unary predicates."""
         if cname(obj) == "NotCond":
-            return self._parse_not_cond(obj)
-        return self._parse_single_cond(obj)
+            return self._parse_not_cond(obj, has_multi_index)
+        return self._parse_single_cond(obj, has_multi_index)
 
-    def _parse_not_cond(self, obj):
+    def _parse_not_cond(self, obj, has_multi_index):
         """Parse predicates containing the logical NOT operator."""
-        converted_subcond = self._parse_single_cond(obj.subcond)
+        converted_subcond = self._parse_single_cond(obj.subcond, has_multi_index)
         converted_subcond[2] = "not {}".format(converted_subcond[2])
         return converted_subcond
 
-    def _run_method_based_on_multi_idx_mode(self, method_name, obj):
+    def _run_method_based_on_multi_index(self, method_name, obj, has_multi_index):
         real_method_name = method_name
-        if self.multi_index_mode != "off":
+        if has_multi_index:
             real_method_name = method_name + "_multi_idx"
         method = eval("StringQuery.{}".format(real_method_name))
         return method(self, obj)
 
-    def _parse_single_cond(self, obj):
+    def _parse_single_cond(self, obj, has_multi_index):
         """Top level function for parsing individual numeric or string predicates."""
         if self._is_str_cond(obj):
-            return self._parse_str(obj)
+            return self._parse_str(obj, has_multi_index)
         if self._is_num_cond(obj):
-            return self._parse_num(obj)
+            return self._parse_num(obj, has_multi_index)
         if cname(obj) == "NoneCond":
-            return self._run_method_based_on_multi_idx_mode("_parse_none", obj)
+            return self._run_method_based_on_multi_index(
+                "_parse_none", obj, has_multi_index
+            )
         if cname(obj) == "NotNoneCond":
-            return self._run_method_based_on_multi_idx_mode("_parse_not_none", obj)
+            return self._run_method_based_on_multi_index(
+                "_parse_not_none", obj, has_multi_index
+            )
         if cname(obj) == "LeafCond":
-            return self._run_method_based_on_multi_idx_mode("_parse_leaf", obj)
+            return self._run_method_based_on_multi_index(
+                "_parse_leaf", obj, has_multi_index
+            )
         if cname(obj) == "NotLeafCond":
-            return self._run_method_based_on_multi_idx_mode("_parse_not_leaf", obj)
+            return self._run_method_based_on_multi_index(
+                "_parse_not_leaf", obj, has_multi_index
+            )
         raise RuntimeError("Bad Single Condition")
 
     def _parse_none(self, obj):
@@ -308,11 +318,6 @@ class StringQuery(Query):
             None,
         ]
 
-    def _add_aggregation_call_to_multi_idx_predicate(self, predicate):
-        if self.multi_index_mode == "any":
-            return predicate + ".any()"
-        return predicate + ".all()"
-
     def _parse_none_multi_idx(self, obj):
         if len(obj.prop.ids) == 1 and obj.prop.ids[0] == "depth":
             return [
@@ -331,12 +336,10 @@ class StringQuery(Query):
         return [
             None,
             obj.name,
-            self._add_aggregation_call_to_multi_idx_predicate(
-                "df_row[{}].apply(lambda elem: elem is None)".format(
-                    str(tuple(obj.prop.ids))
-                    if len(obj.prop.ids) > 1
-                    else "'{}'".format(obj.prop.ids[0])
-                )
+            "df_row[{}].apply(lambda elem: elem is None)".format(
+                str(tuple(obj.prop.ids))
+                if len(obj.prop.ids) > 1
+                else "'{}'".format(obj.prop.ids[0])
             ),
             None,
         ]
@@ -386,12 +389,10 @@ class StringQuery(Query):
         return [
             None,
             obj.name,
-            self._add_aggregation_call_to_multi_idx_predicate(
-                "df_row[{}].apply(lambda elem: elem is not None)".format(
-                    str(tuple(obj.prop.ids))
-                    if len(obj.prop.ids) > 1
-                    else "'{}'".format(obj.prop.ids[0])
-                )
+            "df_row[{}].apply(lambda elem: elem is not None)".format(
+                str(tuple(obj.prop.ids))
+                if len(obj.prop.ids) > 1
+                else "'{}'".format(obj.prop.ids[0])
             ),
             None,
         ]
@@ -458,22 +459,30 @@ class StringQuery(Query):
             return True
         return False
 
-    def _parse_str(self, obj):
+    def _parse_str(self, obj, has_multi_index):
         """Function that redirects processing of string predicates
         to the correct function.
         """
         if cname(obj) == "StringEq":
-            return self._run_method_based_on_multi_idx_mode("_parse_str_eq", obj)
+            return self._run_method_based_on_multi_index(
+                "_parse_str_eq", obj, has_multi_index
+            )
         if cname(obj) == "StringStartsWith":
-            return self._run_method_based_on_multi_idx_mode(
-                "_parse_str_starts_with", obj
+            return self._run_method_based_on_multi_index(
+                "_parse_str_starts_with", obj, has_multi_index
             )
         if cname(obj) == "StringEndsWith":
-            return self._run_method_based_on_multi_idx_mode("_parse_str_ends_with", obj)
+            return self._run_method_based_on_multi_index(
+                "_parse_str_ends_with", obj, has_multi_index
+            )
         if cname(obj) == "StringContains":
-            return self._run_method_based_on_multi_idx_mode("_parse_str_contains", obj)
+            return self._run_method_based_on_multi_index(
+                "_parse_str_contains", obj, has_multi_index
+            )
         if cname(obj) == "StringMatch":
-            return self._run_method_based_on_multi_idx_mode("_parse_str_match", obj)
+            return self._run_method_based_on_multi_index(
+                "_parse_str_match", obj, has_multi_index
+            )
         raise RuntimeError("Bad String Op Class")
 
     def _parse_str_eq(self, obj):
@@ -500,15 +509,13 @@ class StringQuery(Query):
         return [
             None,
             obj.name,
-            self._add_aggregation_call_to_multi_idx_predicate(
-                'df_row[{}].apply(lambda elem: elem == "{}")'.format(
-                    (
-                        str(tuple(obj.prop.ids))
-                        if len(obj.prop.ids) > 1
-                        else "'{}'".format(obj.prop.ids[0])
-                    ),
-                    obj.val,
-                )
+            'df_row[{}].apply(lambda elem: elem == "{}")'.format(
+                (
+                    str(tuple(obj.prop.ids))
+                    if len(obj.prop.ids) > 1
+                    else "'{}'".format(obj.prop.ids[0])
+                ),
+                obj.val,
             ),
             "is_string_dtype(df_row[{}])".format(
                 str(tuple(obj.prop.ids))
@@ -541,15 +548,13 @@ class StringQuery(Query):
         return [
             None,
             obj.name,
-            self._add_aggregation_call_to_multi_idx_predicate(
-                'df_row[{}].apply(lambda elem: elem.startswith("{}"))'.format(
-                    (
-                        str(tuple(obj.prop.ids))
-                        if len(obj.prop.ids) > 1
-                        else "'{}'".format(obj.prop.ids[0])
-                    ),
-                    obj.val,
-                )
+            'df_row[{}].apply(lambda elem: elem.startswith("{}"))'.format(
+                (
+                    str(tuple(obj.prop.ids))
+                    if len(obj.prop.ids) > 1
+                    else "'{}'".format(obj.prop.ids[0])
+                ),
+                obj.val,
             ),
             "is_string_dtype(df_row[{}])".format(
                 str(tuple(obj.prop.ids))
@@ -582,15 +587,13 @@ class StringQuery(Query):
         return [
             None,
             obj.name,
-            self._add_aggregation_call_to_multi_idx_predicate(
-                'df_row[{}].apply(lambda elem: elem.endswith("{}"))'.format(
-                    (
-                        str(tuple(obj.prop.ids))
-                        if len(obj.prop.ids) > 1
-                        else "'{}'".format(obj.prop.ids[0])
-                    ),
-                    obj.val,
-                )
+            'df_row[{}].apply(lambda elem: elem.endswith("{}"))'.format(
+                (
+                    str(tuple(obj.prop.ids))
+                    if len(obj.prop.ids) > 1
+                    else "'{}'".format(obj.prop.ids[0])
+                ),
+                obj.val,
             ),
             "is_string_dtype(df_row[{}])".format(
                 str(tuple(obj.prop.ids))
@@ -623,15 +626,13 @@ class StringQuery(Query):
         return [
             None,
             obj.name,
-            self._add_aggregation_call_to_multi_idx_predicate(
-                'df_row[{}].apply(lambda elem: "{}" in elem)'.format(
-                    (
-                        str(tuple(obj.prop.ids))
-                        if len(obj.prop.ids) > 1
-                        else "'{}'".format(obj.prop.ids[0])
-                    ),
-                    obj.val,
-                )
+            'df_row[{}].apply(lambda elem: "{}" in elem)'.format(
+                (
+                    str(tuple(obj.prop.ids))
+                    if len(obj.prop.ids) > 1
+                    else "'{}'".format(obj.prop.ids[0])
+                ),
+                obj.val,
             ),
             "is_string_dtype(df_row[{}])".format(
                 str(tuple(obj.prop.ids))
@@ -664,15 +665,13 @@ class StringQuery(Query):
         return [
             None,
             obj.name,
-            self._add_aggregation_call_to_multi_idx_predicate(
-                'df_row[{}].apply(lambda elem: re.match("{}", elem) is not None)'.format(
-                    (
-                        str(tuple(obj.prop.ids))
-                        if len(obj.prop.ids) > 1
-                        else "'{}'".format(obj.prop.ids[0])
-                    ),
-                    obj.val,
-                )
+            'df_row[{}].apply(lambda elem: re.match("{}", elem) is not None)'.format(
+                (
+                    str(tuple(obj.prop.ids))
+                    if len(obj.prop.ids) > 1
+                    else "'{}'".format(obj.prop.ids[0])
+                ),
+                obj.val,
             ),
             "is_string_dtype(df_row[{}])".format(
                 str(tuple(obj.prop.ids))
@@ -681,28 +680,46 @@ class StringQuery(Query):
             ),
         ]
 
-    def _parse_num(self, obj):
+    def _parse_num(self, obj, has_multi_index):
         """Function that redirects processing of numeric predicates
         to the correct function.
         """
         if cname(obj) == "NumEq":
-            return self._run_method_based_on_multi_idx_mode("_parse_num_eq", obj)
+            return self._run_method_based_on_multi_index(
+                "_parse_num_eq", obj, has_multi_index
+            )
         if cname(obj) == "NumLt":
-            return self._run_method_based_on_multi_idx_mode("_parse_num_lt", obj)
+            return self._run_method_based_on_multi_index(
+                "_parse_num_lt", obj, has_multi_index
+            )
         if cname(obj) == "NumGt":
-            return self._run_method_based_on_multi_idx_mode("_parse_num_gt", obj)
+            return self._run_method_based_on_multi_index(
+                "_parse_num_gt", obj, has_multi_index
+            )
         if cname(obj) == "NumLte":
-            return self._run_method_based_on_multi_idx_mode("_parse_num_lte", obj)
+            return self._run_method_based_on_multi_index(
+                "_parse_num_lte", obj, has_multi_index
+            )
         if cname(obj) == "NumGte":
-            return self._run_method_based_on_multi_idx_mode("_parse_num_gte", obj)
+            return self._run_method_based_on_multi_index(
+                "_parse_num_gte", obj, has_multi_index
+            )
         if cname(obj) == "NumNan":
-            return self._run_method_based_on_multi_idx_mode("_parse_num_nan", obj)
+            return self._run_method_based_on_multi_index(
+                "_parse_num_nan", obj, has_multi_index
+            )
         if cname(obj) == "NumNotNan":
-            return self._run_method_based_on_multi_idx_mode("_parse_num_not_nan", obj)
+            return self._run_method_based_on_multi_index(
+                "_parse_num_not_nan", obj, has_multi_index
+            )
         if cname(obj) == "NumInf":
-            return self._run_method_based_on_multi_idx_mode("_parse_num_inf", obj)
+            return self._run_method_based_on_multi_index(
+                "_parse_num_inf", obj, has_multi_index
+            )
         if cname(obj) == "NumNotInf":
-            return self._run_method_based_on_multi_idx_mode("_parse_num_not_inf", obj)
+            return self._run_method_based_on_multi_index(
+                "_parse_num_not_inf", obj, has_multi_index
+            )
         raise RuntimeError("Bad Number Op Class")
 
     def _parse_num_eq(self, obj):
@@ -845,15 +862,13 @@ class StringQuery(Query):
         return [
             None,
             obj.name,
-            self._add_aggregation_call_to_multi_idx_predicate(
-                "df_row[{}].apply(lambda elem: elem == {})".format(
-                    (
-                        str(tuple(obj.prop.ids))
-                        if len(obj.prop.ids) > 1
-                        else "'{}'".format(obj.prop.ids[0])
-                    ),
-                    obj.val,
-                )
+            "df_row[{}].apply(lambda elem: elem == {})".format(
+                (
+                    str(tuple(obj.prop.ids))
+                    if len(obj.prop.ids) > 1
+                    else "'{}'".format(obj.prop.ids[0])
+                ),
+                obj.val,
             ),
             "is_numeric_dtype(df_row[{}])".format(
                 str(tuple(obj.prop.ids))
@@ -988,15 +1003,13 @@ class StringQuery(Query):
         return [
             None,
             obj.name,
-            self._add_aggregation_call_to_multi_idx_predicate(
-                "df_row[{}].apply(lambda elem: elem < {})".format(
-                    (
-                        str(tuple(obj.prop.ids))
-                        if len(obj.prop.ids) > 1
-                        else "'{}'".format(obj.prop.ids[0])
-                    ),
-                    obj.val,
-                )
+            "df_row[{}].apply(lambda elem: elem < {})".format(
+                (
+                    str(tuple(obj.prop.ids))
+                    if len(obj.prop.ids) > 1
+                    else "'{}'".format(obj.prop.ids[0])
+                ),
+                obj.val,
             ),
             "is_numeric_dtype(df_row[{}])".format(
                 str(tuple(obj.prop.ids))
@@ -1131,15 +1144,13 @@ class StringQuery(Query):
         return [
             None,
             obj.name,
-            self._add_aggregation_call_to_multi_idx_predicate(
-                "df_row[{}].apply(lambda elem: elem > {})".format(
-                    (
-                        str(tuple(obj.prop.ids))
-                        if len(obj.prop.ids) > 1
-                        else "'{}'".format(obj.prop.ids[0])
-                    ),
-                    obj.val,
-                )
+            "df_row[{}].apply(lambda elem: elem > {})".format(
+                (
+                    str(tuple(obj.prop.ids))
+                    if len(obj.prop.ids) > 1
+                    else "'{}'".format(obj.prop.ids[0])
+                ),
+                obj.val,
             ),
             "is_numeric_dtype(df_row[{}])".format(
                 str(tuple(obj.prop.ids))
@@ -1274,15 +1285,13 @@ class StringQuery(Query):
         return [
             None,
             obj.name,
-            self._add_aggregation_call_to_multi_idx_predicate(
-                "df_row[{}].apply(lambda elem: elem <= {})".format(
-                    (
-                        str(tuple(obj.prop.ids))
-                        if len(obj.prop.ids) > 1
-                        else "'{}'".format(obj.prop.ids[0])
-                    ),
-                    obj.val,
-                )
+            "df_row[{}].apply(lambda elem: elem <= {})".format(
+                (
+                    str(tuple(obj.prop.ids))
+                    if len(obj.prop.ids) > 1
+                    else "'{}'".format(obj.prop.ids[0])
+                ),
+                obj.val,
             ),
             "is_numeric_dtype(df_row[{}])".format(
                 str(tuple(obj.prop.ids))
@@ -1417,15 +1426,13 @@ class StringQuery(Query):
         return [
             None,
             obj.name,
-            self._add_aggregation_call_to_multi_idx_predicate(
-                "df_row[{}].apply(lambda elem: elem >= {})".format(
-                    (
-                        str(tuple(obj.prop.ids))
-                        if len(obj.prop.ids) > 1
-                        else "'{}'".format(obj.prop.ids[0])
-                    ),
-                    obj.val,
-                )
+            "df_row[{}].apply(lambda elem: elem >= {})".format(
+                (
+                    str(tuple(obj.prop.ids))
+                    if len(obj.prop.ids) > 1
+                    else "'{}'".format(obj.prop.ids[0])
+                ),
+                obj.val,
             ),
             "is_numeric_dtype(df_row[{}])".format(
                 str(tuple(obj.prop.ids))
@@ -1483,12 +1490,10 @@ class StringQuery(Query):
         return [
             None,
             obj.name,
-            self._add_aggregation_call_to_multi_idx_predicate(
-                "pd.isna(df_row[{}])".format(
-                    str(tuple(obj.prop.ids))
-                    if len(obj.prop.ids) > 1
-                    else "'{}'".format(obj.prop.ids[0])
-                )
+            "pd.isna(df_row[{}])".format(
+                str(tuple(obj.prop.ids))
+                if len(obj.prop.ids) > 1
+                else "'{}'".format(obj.prop.ids[0])
             ),
             "is_numeric_dtype(df_row[{}])".format(
                 str(tuple(obj.prop.ids))
@@ -1546,12 +1551,10 @@ class StringQuery(Query):
         return [
             None,
             obj.name,
-            self._add_aggregation_call_to_multi_idx_predicate(
-                "not pd.isna(df_row[{}])".format(
-                    str(tuple(obj.prop.ids))
-                    if len(obj.prop.ids) > 1
-                    else "'{}'".format(obj.prop.ids[0])
-                )
+            "not pd.isna(df_row[{}])".format(
+                str(tuple(obj.prop.ids))
+                if len(obj.prop.ids) > 1
+                else "'{}'".format(obj.prop.ids[0])
             ),
             "is_numeric_dtype(df_row[{}])".format(
                 str(tuple(obj.prop.ids))
@@ -1609,12 +1612,10 @@ class StringQuery(Query):
         return [
             None,
             obj.name,
-            self._add_aggregation_call_to_multi_idx_predicate(
-                "np.isinf(df_row[{}])".format(
-                    str(tuple(obj.prop.ids))
-                    if len(obj.prop.ids) > 1
-                    else "'{}'".format(obj.prop.ids[0])
-                )
+            "np.isinf(df_row[{}])".format(
+                str(tuple(obj.prop.ids))
+                if len(obj.prop.ids) > 1
+                else "'{}'".format(obj.prop.ids[0])
             ),
             "is_numeric_dtype(df_row[{}])".format(
                 str(tuple(obj.prop.ids))
@@ -1672,12 +1673,10 @@ class StringQuery(Query):
         return [
             None,
             obj.name,
-            self._add_aggregation_call_to_multi_idx_predicate(
-                "not np.isinf(df_row[{}])".format(
-                    str(tuple(obj.prop.ids))
-                    if len(obj.prop.ids) > 1
-                    else "'{}'".format(obj.prop.ids[0])
-                )
+            "not np.isinf(df_row[{}])".format(
+                str(tuple(obj.prop.ids))
+                if len(obj.prop.ids) > 1
+                else "'{}'".format(obj.prop.ids[0])
             ),
             "is_numeric_dtype(df_row[{}])".format(
                 str(tuple(obj.prop.ids))
@@ -1687,7 +1686,7 @@ class StringQuery(Query):
         ]
 
 
-def parse_string_dialect(query_str, multi_index_mode="off"):
+def parse_string_dialect(query_str):
     """Parse all types of String-based queries, including multi-queries that leverage
     the curly brace delimiters.
 
@@ -1709,7 +1708,7 @@ def parse_string_dialect(query_str, multi_index_mode="off"):
     if num_curly_brace_elems == 0:
         if sys.version_info[0] == 2:
             query_str = query_str.decode("utf-8")
-        return StringQuery(query_str, multi_index_mode)
+        return StringQuery(query_str)
     # Create an iterator over the curly brace-delimited regions
     curly_brace_iter = re.finditer(r"\{(.*?)\}", query_str)
     # Will store curly brace-delimited regions in the WHERE clause
@@ -1798,14 +1797,14 @@ def parse_string_dialect(query_str, multi_index_mode="off"):
                 query1 = "MATCH {} WHERE {}".format(match_comp, condition_list[i])
                 if sys.version_info[0] == 2:
                     query1 = query1.decode("utf-8")
-                full_query = StringQuery(query1, multi_index_mode)
+                full_query = StringQuery(query1)
             # Get the next query as a CypherQuery where
             # the MATCH clause is the shared match clause and the WHERE clause is the
             # next curly brace-delimited region
             next_query = "MATCH {} WHERE {}".format(match_comp, condition_list[i + 1])
             if sys.version_info[0] == 2:
                 next_query = next_query.decode("utf-8")
-            next_query = StringQuery(next_query, multi_index_mode)
+            next_query = StringQuery(next_query)
             # Add the next query to the full query using the compound operator
             # currently being considered
             if op == "AND":

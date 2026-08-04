@@ -125,7 +125,7 @@ class NaryQuery(AbstractQuery):
             (list): A list of nodes representing the result of the query
         """
         true_query = self._get_new_query()
-        return COMPATABILITY_ENGINE.apply(true_query, gf.graph, gf.dataframe)
+        return COMPATABILITY_ENGINE.apply(true_query, gf.graph, gf.dataframe, "off")
 
     def _get_new_query(self):
         """Gets all the underlying 'new-style' queries in this object.
@@ -322,7 +322,9 @@ class QueryMatcher(AbstractQuery):
         Returns:
             (list): A list representing the set of nodes from paths that match this query
         """
-        return COMPATABILITY_ENGINE.apply(self.true_query, gf.graph, gf.dataframe)
+        return COMPATABILITY_ENGINE.apply(
+            self.true_query, gf.graph, gf.dataframe, "off"
+        )
 
     def _get_new_query(self):
         """Get all the underlying 'new-style' query in this object.

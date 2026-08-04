@@ -13,21 +13,11 @@ from pandas.api.types import (
 import re
 import sys
 
-from .errors import InvalidQueryPath, InvalidQueryFilter, MultiIndexModeMismatch
+from .errors import InvalidQueryPath, InvalidQueryFilter
 from .query import Query
 
 
-def _process_multi_index_mode(apply_result, multi_index_mode):
-    if multi_index_mode == "any":
-        return apply_result.any()
-    if multi_index_mode == "all":
-        return apply_result.all()
-    raise ValueError(
-        "Multi-Index Mode for the Object-based dialect must be either 'any' or 'all'"
-    )
-
-
-def _process_predicate(attr_filter, multi_index_mode):
+def _process_predicate(attr_filter):
     """Converts high-level API attribute filter to a lambda"""
     compops = ("<", ">", "==", ">=", "<=", "<>", "!=")  # ,
 
@@ -126,12 +116,6 @@ def _process_predicate(attr_filter, multi_index_mode):
         return matches
 
     def filter_dframe(df_row):
-        if multi_index_mode == "off":
-            raise MultiIndexModeMismatch(
-                "The ObjectQuery's 'multi_index_mode' argument \
-                cannot be set to 'off' when using multi-indexed data"
-            )
-
         def filter_single_dframe(node, df_row, key, single_value):
             if key == "depth":
                 if isinstance(single_value, str) and single_value.lower().startswith(
@@ -164,21 +148,18 @@ def _process_predicate(attr_filter, multi_index_mode):
                     raise InvalidQueryFilter(
                         "Value for attribute {} must be a string.".format(key)
                     )
-                apply_ret = df_row[key].apply(
+                return df_row[key].apply(
                     lambda x: re.match(single_value + r"\Z", x) is not None
                 )
-                return _process_multi_index_mode(apply_ret, multi_index_mode)
             if is_numeric_dtype(df_row[key]):
                 if isinstance(single_value, str) and single_value.lower().startswith(
                     compops
                 ):
-                    apply_ret = df_row[key].apply(
+                    return df_row[key].apply(
                         lambda x: eval("{} {}".format(x, single_value))
                     )
-                    return _process_multi_index_mode(apply_ret, multi_index_mode)
                 if isinstance(single_value, Real):
-                    apply_ret = df_row[key].apply(lambda x: x == single_value).any()
-                    return _process_multi_index_mode(apply_ret, multi_index_mode)
+                    return df_row[key].apply(lambda x: x == single_value).any()
                 raise InvalidQueryFilter(
                     "Attribute {} has a numeric type. Valid filters for this attribute are a string starting with a comparison operator or a real number.".format(
                         key
@@ -218,7 +199,7 @@ def _process_predicate(attr_filter, multi_index_mode):
 class ObjectQuery(Query):
     """Class for representing and parsing queries using the Object-based dialect."""
 
-    def __init__(self, query, multi_index_mode="off"):
+    def __init__(self, query):
         """Builds a new ObjectQuery from an instance of the Object-based dialect syntax.
 
         Arguments:
@@ -229,18 +210,15 @@ class ObjectQuery(Query):
         else:
             super().__init__()
         assert isinstance(query, list)
-        assert multi_index_mode in ["off", "all", "any"]
         for qnode in query:
             if isinstance(qnode, dict):
-                self._add_node(predicate=_process_predicate(qnode, multi_index_mode))
+                self._add_node(predicate=_process_predicate(qnode))
             elif isinstance(qnode, str) or isinstance(qnode, int):
                 self._add_node(quantifer=qnode)
             elif isinstance(qnode, tuple):
                 assert isinstance(qnode[1], dict)
                 if isinstance(qnode[0], str) or isinstance(qnode[0], int):
-                    self._add_node(
-                        qnode[0], _process_predicate(qnode[1], multi_index_mode)
-                    )
+                    self._add_node(qnode[0], _process_predicate(qnode[1]))
                 else:
                     raise InvalidQueryPath(
                         "The first value of a tuple entry in a path must be either a string or integer."
@@ -249,3 +227,4 @@ class ObjectQuery(Query):
                 raise InvalidQueryPath(
                     "A query path must be a list containing String, Integer, Dict, or Tuple elements"
                 )
+        self.default_aggregator = "all"

@@ -8,6 +8,7 @@ import json
 import sys
 import traceback
 from collections import defaultdict
+import warnings
 
 import multiprocess as mp
 import numpy as np
@@ -560,7 +561,8 @@ class GraphFrame:
         update_inc_cols=True,
         num_procs=mp.cpu_count(),
         rec_limit=1000,
-        multi_index_mode="off",
+        predicate_row_aggregator=None,
+        multi_index_mode=None,
     ):
         """Filter the dataframe using a user-supplied function.
 
@@ -572,7 +574,20 @@ class GraphFrame:
             update_inc_cols (boolean, optional): if True, update inclusive columns when performing squash.
             rec_limit: set Python recursion limit, increase if running into
                 recursion depth errors) (default: 1000).
+            predicate_row_aggregator (str or Callable, optional): function to use in Query Language
+                to merge multiple predicate results for each node into a single boolean. When providing
+                a string value, the following are accepted: "all" (equivalent to Python 'all'), "any"
+                (equivalent to Python 'any'), "off" (no aggregation)
+            multi_index_mode: deprecated alias for "predicate_row_aggregator"
         """
+        if multi_index_mode is not None:
+            warnings.warn(
+                "'multi_index_mode' parameter is deprecated. Use 'predicate_row_aggregator' instead",
+                DeprecationWarning,
+            )
+            if predicate_row_aggregator is None:
+                predicate_row_aggregator = multi_index_mode
+
         sys.setrecursionlimit(rec_limit)
 
         dataframe_copy = self.dataframe.copy()
@@ -625,15 +640,17 @@ class GraphFrame:
             # If a raw Object-dialect query is provided (not already passed to ObjectQuery),
             # create a new ObjectQuery object.
             if isinstance(filter_obj, list):
-                query = ObjectQuery(filter_obj, multi_index_mode)
+                query = ObjectQuery(filter_obj)
             # If a raw String-dialect query is provided (not already passed to StringQuery),
             # create a new StringQuery object.
             elif isinstance(filter_obj, str):
-                query = parse_string_dialect(filter_obj, multi_index_mode)
+                query = parse_string_dialect(filter_obj)
             # If an old-style query is provided, extract the underlying new-style query.
             elif issubclass(type(filter_obj), AbstractQuery):
                 query = filter_obj._get_new_query()
-            query_matches = self.query_engine.apply(query, self.graph, self.dataframe)
+            query_matches = self.query_engine.apply(
+                query, self.graph, self.dataframe, predicate_row_aggregator
+            )
             # match_set = list(set().union(*query_matches))
             # filtered_df = dataframe_copy.loc[dataframe_copy["node"].isin(match_set)]
             filtered_df = dataframe_copy.loc[dataframe_copy["node"].isin(query_matches)]

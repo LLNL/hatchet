@@ -4,6 +4,7 @@
 # SPDX-License-Identifier: MIT
 
 from itertools import groupby
+from collections.abc import Iterable
 import pandas as pd
 
 from .errors import InvalidQueryFilter
@@ -12,6 +13,22 @@ from .query import Query
 from .compound import CompoundQuery
 from .object_dialect import ObjectQuery
 from .string_dialect import parse_string_dialect
+
+
+def _all_aggregator(pred_result):
+    if isinstance(pred_result, Iterable):
+        return all(pred_result)
+    elif isinstance(pred_result, pd.Series):
+        return pred_result.all()
+    return pred_result
+
+
+def _any_aggregator(pred_result):
+    if isinstance(pred_result, Iterable):
+        return any(pred_result)
+    elif isinstance(pred_result, pd.Series):
+        return pred_result.any()
+    return pred_result
 
 
 class QueryEngine:
@@ -25,7 +42,7 @@ class QueryEngine:
         """Resets the cache in the QueryEngine."""
         self.search_cache = {}
 
-    def apply(self, query, graph, dframe):
+    def apply(self, query, graph, dframe, predicate_row_aggregator):
         """Apply the query to a GraphFrame.
 
         Arguments:
@@ -37,11 +54,28 @@ class QueryEngine:
             (list): A list representing the set of nodes from paths that match the query
         """
         if issubclass(type(query), Query):
+            aggregator = predicate_row_aggregator
+            if predicate_row_aggregator is None:
+                aggregator = query.default_aggregator
+            if aggregator == "all":
+                aggregator = _all_aggregator
+            elif aggregator == "any":
+                aggregator = _any_aggregator
+            elif aggregator == "off":
+                if isinstance(dframe.index, pd.MultiIndex):
+                    raise ValueError(
+                        "'predicate_row_aggregator' cannot be 'off' when the DataFrame has a row multi-index"
+                    )
+                aggregator = None
+            elif not callable(aggregator):
+                raise ValueError(
+                    "Invalid value provided for 'predicate_row_aggregator'"
+                )
             self.reset_cache()
             matches = []
             visited = set()
             for root in sorted(graph.roots, key=traversal_order):
-                self._apply_impl(query, dframe, root, visited, matches)
+                self._apply_impl(query, dframe, aggregator, root, visited, matches)
             assert len(visited) == len(graph)
             matched_node_set = list(set().union(*matches))
             # return matches
@@ -54,12 +88,14 @@ class QueryEngine:
                     subq_obj = ObjectQuery(subq)
                 elif isinstance(subq, str):
                     subq_obj = parse_string_dialect(subq)
-                results.append(self.apply(subq_obj, graph, dframe))
+                results.append(
+                    self.apply(subq_obj, graph, dframe, predicate_row_aggregator)
+                )
             return query._apply_op_to_results(results, graph)
         else:
             raise TypeError("Invalid query data type ({})".format(str(type(query))))
 
-    def _cache_node(self, node, query, dframe):
+    def _cache_node(self, node, query, dframe, predicate_row_aggregator):
         """Cache (Memoize) the parts of the query that the node matches.
 
         Arguments:
@@ -78,11 +114,19 @@ class QueryEngine:
                 row = dframe.xs(node, level="node", drop_level=False)
             else:
                 row = dframe.loc[node]
-            if filter_func(row):
+            predicate_result = filter_func(row)
+            if (
+                not isinstance(predicate_result, bool)
+                and predicate_row_aggregator is not None
+            ):
+                predicate_result = predicate_row_aggregator(predicate_result)
+            if predicate_result:
                 matches.append(i)
         self.search_cache[node._hatchet_nid] = matches
 
-    def _match_0_or_more(self, query, dframe, node, wcard_idx):
+    def _match_0_or_more(
+        self, query, dframe, predicate_row_aggregator, node, wcard_idx
+    ):
         """Process a "*" predicate in the query on a subgraph.
 
         Arguments:
@@ -98,7 +142,7 @@ class QueryEngine:
         """
         # Cache the node if it's not already cached
         if node._hatchet_nid not in self.search_cache:
-            self._cache_node(node, query, dframe)
+            self._cache_node(node, query, dframe, predicate_row_aggregator)
         # If the node matches with the next non-wildcard query node,
         # end the recursion and return the node.
         if wcard_idx + 1 in self.search_cache[node._hatchet_nid]:
@@ -113,7 +157,9 @@ class QueryEngine:
                     return [[node]]
                 return None
             for child in sorted(node.children, key=traversal_order):
-                sub_match = self._match_0_or_more(query, dframe, child, wcard_idx)
+                sub_match = self._match_0_or_more(
+                    query, dframe, predicate_row_aggregator, child, wcard_idx
+                )
                 if sub_match is not None:
                     matches.extend(sub_match)
             if len(matches) == 0:
@@ -128,7 +174,7 @@ class QueryEngine:
                 return [[]]
             return None
 
-    def _match_1(self, query, dframe, node, idx):
+    def _match_1(self, query, dframe, predicate_row_aggregator, node, idx):
         """Process a "." predicate in the query on a subgraph.
 
         Arguments:
@@ -142,12 +188,12 @@ class QueryEngine:
                     Will return None if there are no matches for the "." predicate.
         """
         if node._hatchet_nid not in self.search_cache:
-            self._cache_node(node, query, dframe)
+            self._cache_node(node, query, dframe, predicate_row_aggregator)
         matches = []
         for child in sorted(node.children, key=traversal_order):
             # Cache the node if it's not already cached
             if child._hatchet_nid not in self.search_cache:
-                self._cache_node(child, query, dframe)
+                self._cache_node(child, query, dframe, predicate_row_aggregator)
             if idx in self.search_cache[child._hatchet_nid]:
                 matches.append([child])
         # To be consistent with the other matching functions, return
@@ -156,7 +202,9 @@ class QueryEngine:
             return None
         return matches
 
-    def _match_pattern(self, query, dframe, pattern_root, match_idx):
+    def _match_pattern(
+        self, query, dframe, predicate_row_aggregator, pattern_root, match_idx
+    ):
         """Try to match the query pattern starting at the provided root node.
 
         Arguments:
@@ -186,7 +234,9 @@ class QueryEngine:
                 # Get the portion of the subgraph that matches the next
                 # part of the query.
                 if wcard == ".":
-                    s = self._match_1(query, dframe, m[-1], pattern_idx)
+                    s = self._match_1(
+                        query, dframe, predicate_row_aggregator, m[-1], pattern_idx
+                    )
                     if s is None:
                         sub_match.append(s)
                     else:
@@ -196,7 +246,13 @@ class QueryEngine:
                         sub_match.append([])
                     else:
                         for child in sorted(m[-1].children, key=traversal_order):
-                            s = self._match_0_or_more(query, dframe, child, pattern_idx)
+                            s = self._match_0_or_more(
+                                query,
+                                dframe,
+                                predicate_row_aggregator,
+                                child,
+                                pattern_idx,
+                            )
                             if s is None:
                                 sub_match.append(s)
                             else:
@@ -221,7 +277,9 @@ class QueryEngine:
             pattern_idx += 1
         return matches
 
-    def _apply_impl(self, query, dframe, node, visited, matches):
+    def _apply_impl(
+        self, query, dframe, predicate_row_aggregator, node, visited, matches
+    ):
         """Traverse the subgraph with the specified root, and collect all paths that match the query.
 
         Arguments:
@@ -237,21 +295,27 @@ class QueryEngine:
             return
         # Cache the node if it's not already cached
         if node._hatchet_nid not in self.search_cache:
-            self._cache_node(node, query, dframe)
+            self._cache_node(node, query, dframe, predicate_row_aggregator)
         # If the node matches the starting/root node of the query,
         # try to get all query matches in the subgraph rooted at
         # this node.
         if query.query_pattern[0][0] == "*":
             if 1 in self.search_cache[node._hatchet_nid]:
-                sub_match = self._match_pattern(query, dframe, node, 1)
+                sub_match = self._match_pattern(
+                    query, dframe, predicate_row_aggregator, node, 1
+                )
                 if sub_match is not None:
                     matches.extend(sub_match)
         if 0 in self.search_cache[node._hatchet_nid]:
-            sub_match = self._match_pattern(query, dframe, node, 0)
+            sub_match = self._match_pattern(
+                query, dframe, predicate_row_aggregator, node, 0
+            )
             if sub_match is not None:
                 matches.extend(sub_match)
         # Note that the node is now visited.
         visited.add(node._hatchet_nid)
         # Continue the Depth First Search.
         for child in sorted(node.children, key=traversal_order):
-            self._apply_impl(query, dframe, child, visited, matches)
+            self._apply_impl(
+                query, dframe, predicate_row_aggregator, child, visited, matches
+            )
