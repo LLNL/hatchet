@@ -23,9 +23,11 @@ class Controller{
                     break;
                 case (globals.signals.COLLAPSESUBTREE):
                     this.model.handleDoubleClick(evt.node);
+                    this.model.storeSnapshotQuery();
                     break;
                 case(globals.signals.COMPOSEINTERNAL):
                     this.model.handleNodeComposition(evt.node);
+                    this.model.storeSnapshotQuery();
                     break;
                 case(globals.signals.DECOMPOSENODE):
                     // this.model.handleNodeDecomposition(evt.node);
@@ -54,12 +56,15 @@ class Controller{
                     break;
                 case(globals.signals.REQUESTMASSPRUNE):
                     this.model.pruneTree(evt.threshold);
+                    this.model.storeSnapshotQuery();
                     break;
                 case(globals.signals.RESETVIEW):
                     this.model.resetView();
                     break;
                 case(globals.signals.PRUNERANGEUPDATE):
                     this.model.updatePruneRange(evt.low, evt.high);
+                    this.model.storeSnapshotQuery();
+
                     break;
                 case(globals.signals.SNAPSHOT):
                     this.model.storeSnapshotQuery();
