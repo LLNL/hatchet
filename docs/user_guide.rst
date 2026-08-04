@@ -3,6 +3,7 @@
 
    SPDX-License-Identifier: MIT
 
+.. _user_guide:
 **********
 User Guide
 **********
