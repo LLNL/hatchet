@@ -24,6 +24,8 @@ def __raise_cali_type_error(msg):
 class CaliperNativeReader:
     """Read in a native `.cali` file using Caliper's python reader."""
 
+    _kernel_placeholder_labels = {"|-"}
+
     __cali_type_dict = {
         "inv": lambda dummy: __raise_cali_type_error(
             "Caliper type 'inv' is unsupported in Hatchet"
@@ -84,6 +86,135 @@ class CaliperNativeReader:
         if isinstance(self.string_attributes, str):
             self.string_attributes = [self.string_attributes]
 
+    def _find_unique_child_callpath(self, parent_callpath, node_type=None):
+        """Return a unique child callpath for a known parent, if one exists."""
+        matches = []
+
+        for callpath, hnode in self.callpath_to_node.items():
+            if len(callpath) != len(parent_callpath) + 1:
+                continue
+            if callpath[:-1] != parent_callpath:
+                continue
+            if node_type is not None and hnode.frame["type"] != node_type:
+                continue
+            matches.append(callpath)
+
+        if len(matches) == 1:
+            return matches[0]
+
+        return None
+
+    def _resolve_record_node_info(self, record, ctx="path"):
+        """Resolve a Caliper record to the node it should update/create."""
+        if ctx not in record:
+            return None
+
+        if not isinstance(record[ctx], list):
+            node_label = record[ctx]
+            return {
+                "label": node_label,
+                "callpath": tuple([node_label]),
+                "parent_callpath": tuple(),
+                "type": "function",
+            }
+
+        record_path = list(record[ctx])
+
+        # specify how to parse cupti records
+        if "cupti.activity.kind" in record:
+            if record["cupti.activity.kind"] == "kernel":
+                node_label = record["cupti.kernel.name"]
+                node_type = "kernel"
+            elif record["cupti.activity.kind"] == "memcpy":
+                node_label = record["cupti.activity.kind"]
+                node_type = "memcpy"
+            else:
+                node_label = record["cupti.activity.kind"]
+                node_type = "function"
+
+            node_callpath = tuple(record_path + [node_label])
+            return {
+                "label": node_label,
+                "callpath": node_callpath,
+                "parent_callpath": node_callpath[:-1],
+                "type": node_type,
+            }
+
+        # rocm records
+        if "rocm.activity" in record:
+            if record["rocm.activity"] == "KERNEL_DISPATCH_COMPLETE":
+                node_label = record["rocm.kernel.name"]
+                node_type = "kernel"
+                node_callpath = tuple(record_path + [node_label])
+            elif "rocm.api" in record and "hipMemcpy" in record["rocm.api"]:
+                node_label = record["rocm.activity"]
+                node_type = "memcpy"
+                # There is an extra placeholder path node for these records.
+                node_callpath = tuple(record_path[:-1] + [node_label])
+            else:
+                node_label = record["rocm.activity"]
+                node_type = "function"
+                node_callpath = tuple(record_path + [node_label])
+
+            return {
+                "label": node_label,
+                "callpath": node_callpath,
+                "parent_callpath": node_callpath[:-1],
+                "type": node_type,
+            }
+
+        # Some ROCm summary rows only carry the kernel name and counters.
+        if "rocm.kernel.name" in record and record["rocm.kernel.name"]:
+            node_label = record["rocm.kernel.name"]
+            node_callpath = tuple(record_path + [node_label])
+            return {
+                "label": node_label,
+                "callpath": node_callpath,
+                "parent_callpath": node_callpath[:-1],
+                "type": "kernel",
+            }
+
+        # Other summary rows only carry the placeholder path. Reuse the unique
+        # kernel child created from the dispatch record when possible.
+        if record_path and record_path[-1] in self._kernel_placeholder_labels:
+            existing_kernel_callpath = self._find_unique_child_callpath(
+                tuple(record_path), node_type="kernel"
+            )
+            if existing_kernel_callpath is not None:
+                return {
+                    "label": existing_kernel_callpath[-1],
+                    "callpath": existing_kernel_callpath,
+                    "parent_callpath": existing_kernel_callpath[:-1],
+                    "type": "kernel",
+                }
+
+        # Sampling
+        if "module#cali.sampler.pc" in record:
+            node_label = record["source.function#cali.sampler.pc"]
+            node_callpath = tuple(record_path)[:-1] + (node_label,)
+            return {
+                "label": node_label,
+                "callpath": node_callpath,
+                "parent_callpath": node_callpath[:-1],
+                "type": "function",
+            }
+
+        if len(record_path) > 0:
+            node_label = record_path[-1]
+            node_callpath = tuple(record_path)
+            parent_callpath = node_callpath[:-1]
+        else:
+            node_label = "unknown_context"
+            node_callpath = tuple("unknown_context")
+            parent_callpath = tuple("")
+
+        return {
+            "label": node_label,
+            "callpath": node_callpath,
+            "parent_callpath": parent_callpath,
+            "type": "function",
+        }
+
     def _create_metric_df(self, metrics, sampling=False):
         """Make a list of metric columns and create a dataframe, group by node"""
         for col in self.record_data_cols:
@@ -106,7 +237,7 @@ class CaliperNativeReader:
                 elif np.issubdtype(
                     df_metrics[column].dtype, np.number
                 ):  # Numeric columns
-                    aggregation_functions[column] = lambda x: x.sum(skipna=False)
+                    aggregation_functions[column] = lambda x: x.sum(min_count=1)
                 else:  # Non-numeric columns
                     aggregation_functions[column] = lambda x: tuple(set(x))
 
@@ -153,52 +284,22 @@ class CaliperNativeReader:
                     cur_timestep = next_timestep
 
             node_dict = {}
-            if ctx in record:
+            node_info = self._resolve_record_node_info(record, ctx)
+            if node_info is not None:
                 # only parse records that have spot.channel=regionprofile or no
                 # spot.channel attribute
                 if (
                     "spot.channel" in record
                     and record["spot.channel"] == "regionprofile"
                 ) or "spot.channel" not in record:
-                    # get the node label and callpath for the record
-                    if isinstance(record[ctx], list):
-                        # specify how to parse cupti records
-                        if "cupti.activity.kind" in record:
-                            if record["cupti.activity.kind"] == "kernel":
-                                node_label = record["cupti.kernel.name"]
-                                node_callpath = tuple(record[ctx] + [node_label])
-                            elif record["cupti.activity.kind"] == "memcpy":
-                                node_label = record["cupti.activity.kind"]
-                                node_callpath = tuple(record[ctx] + [node_label])
-                        # rocm records
-                        elif "rocm.activity" in record:
-                            if record["rocm.activity"] == "KERNEL_DISPATCH_COMPLETE":
-                                node_label = record["rocm.kernel.name"]
-                                node_callpath = tuple(record[ctx] + [node_label])
-                            else:
-                                node_label = record["rocm.activity"]
-                                node_callpath = tuple(record[ctx] + [node_label])
-                        # Sampling
-                        elif "module#cali.sampler.pc" in record:
-                            node_label = record["source.function#cali.sampler.pc"]
-                            node_callpath = tuple(record[ctx])[:-1] + (node_label,)
-                            sampling = True
-                        else:
-                            if len(record[ctx]) > 0:
-                                node_label = record[ctx][-1]
-                                node_callpath = tuple(record[ctx])
-                            else:
-                                node_label = "unknown_context"
-                                node_callpath = tuple("unknown_context")
-                    else:
-                        node_label = record[ctx]
-                        node_callpath = tuple([record[ctx]])
+                    if "module#cali.sampler.pc" in record:
+                        sampling = True
 
                     if "spot.channel" in record:
                         node_dict["spot.channel"] = record["spot.channel"]
 
                     # get node nid based on callpath
-                    node_dict["nid"] = self.callpath_to_idx.get(node_callpath)
+                    node_dict["nid"] = self.callpath_to_idx.get(node_info["callpath"])
 
                     for item in record.keys():
                         if item != ctx:
@@ -299,62 +400,17 @@ class CaliperNativeReader:
         order = -1
 
         for record in records:
-            node_label = ""
-            if ctx in record:
+            node_info = self._resolve_record_node_info(record, ctx)
+            if node_info is not None:
                 if (
                     "spot.channel" in record
                     and record["spot.channel"] == "regionprofile"
                 ) or "spot.channel" not in record:
-                    # if it's a list, then it's a callpath
                     if isinstance(record[ctx], list):
-                        # specify how to parse cupti records
-                        if "cupti.activity.kind" in record:
-                            if record["cupti.activity.kind"] == "kernel":
-                                node_label = record["cupti.kernel.name"]
-                                node_callpath = tuple(record[ctx] + [node_label])
-                                parent_callpath = node_callpath[:-1]
-                                node_type = "kernel"
-                            elif record["cupti.activity.kind"] == "memcpy":
-                                node_label = record["cupti.activity.kind"]
-                                node_callpath = tuple(record[ctx] + [node_label])
-                                parent_callpath = node_callpath[:-1]
-                                node_type = "memcpy"
-                            else:
-                                Exception("Haven't seen this activity kind yet")
-                        # rocm records
-                        elif "rocm.activity" in record:
-                            if record["rocm.activity"] == "KERNEL_DISPATCH_COMPLETE":
-                                node_label = record["rocm.kernel.name"]
-                                node_callpath = tuple(record[ctx] + [node_label])
-                                parent_callpath = node_callpath[:-1]
-                                node_type = "kernel"
-                            elif "hipMemcpy" in record["rocm.api"]:
-                                node_label = record["rocm.activity"]
-                                # Theres going to be an extra record at the end that we must remove
-                                if len(record[ctx]) > 0:
-                                    record[ctx].pop()
-                                node_callpath = tuple(record[ctx] + [node_label])
-                                parent_callpath = node_callpath[:-1]
-                                node_type = "memcpy"
-                            else:
-                                Exception("Haven't seen this activity kind yet")
-                        # Sampling
-                        elif "module#cali.sampler.pc" in record:
-                            node_label = record["source.function#cali.sampler.pc"]
-                            node_callpath = tuple(record[ctx])[:-1] + (node_label,)
-                            parent_callpath = node_callpath[:-1]
-                            node_type = "function"
-                        else:
-                            if len(record[ctx]) > 0:
-                                node_label = record[ctx][-1]
-                                node_callpath = tuple(record[ctx])
-                                parent_callpath = node_callpath[:-1]
-                                node_type = "function"
-                            else:
-                                node_label = "unknown_context"
-                                node_callpath = tuple("unknown_context")
-                                parent_callpath = tuple("")
-                                node_type = "function"
+                        node_label = node_info["label"]
+                        node_callpath = node_info["callpath"]
+                        parent_callpath = node_info["parent_callpath"]
+                        node_type = node_info["type"]
 
                         hnode = self.callpath_to_node.get(node_callpath)
 
@@ -403,8 +459,8 @@ class CaliperNativeReader:
 
                     # if it's a string, then it's a root
                     else:
-                        root_label = record[ctx]
-                        root_callpath = tuple([root_label])
+                        root_label = node_info["label"]
+                        root_callpath = node_info["callpath"]
 
                         if root_callpath not in self.callpath_to_node:
                             # create the root since it doesn't exist

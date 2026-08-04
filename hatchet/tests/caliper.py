@@ -11,6 +11,7 @@ import sys
 
 from hatchet import GraphFrame
 from hatchet.readers.caliper_reader import CaliperReader
+from hatchet.readers.caliper_native_reader import CaliperNativeReader
 from hatchet.util.executable import which
 
 caliperreader_avail = True
@@ -884,6 +885,80 @@ def test_sw4_cuda_summary_from_caliperreader(
     assert type(gf.metadata["mpi.world.size"]) == int
     assert type(gf.metadata["cali.caliper.version"]) == str
     assert type(gf.metadata["cali.channel"]) == str
+
+
+class _FakeCaliperAttribute:
+    def __init__(self, attr_type, is_value=False, alias=None):
+        self._attr_type = attr_type
+        self._is_value = is_value
+        self._alias = alias
+
+    def attribute_type(self):
+        return self._attr_type
+
+    def is_value(self):
+        return self._is_value
+
+    def get(self, key):
+        if key == "attribute.alias":
+            return self._alias
+        return None
+
+
+class _FakeCaliperReader:
+    def __init__(self, records, attributes):
+        self.records = records
+        self.globals = {}
+        self._attributes = attributes
+
+    def attribute(self, name):
+        return self._attributes[name]
+
+
+def test_rocm_kernel_records_merge_on_single_kernel_node():
+    kernel_name = "void RAJA::launch..."
+    fake_reader = _FakeCaliperReader(
+        records=[
+            {
+                "path": ["hipLaunchKernel", "|-"],
+                "rocm.activity": "KERNEL_DISPATCH_COMPLETE",
+                "rocm.kernel.name": kernel_name,
+                "time.duration": 5.0,
+            },
+            {
+                "path": ["hipLaunchKernel", "|-"],
+                "rocm.kernel.name": kernel_name,
+                "SQ_INSTS": 42.0,
+            },
+            {
+                "path": ["hipLaunchKernel", "|-"],
+                "MaxPerfectLoopDimensions": 2,
+            },
+        ],
+        attributes={
+            "path": _FakeCaliperAttribute("string"),
+            "rocm.activity": _FakeCaliperAttribute("string"),
+            "rocm.kernel.name": _FakeCaliperAttribute("string"),
+            "time.duration": _FakeCaliperAttribute("double", is_value=True),
+            "SQ_INSTS": _FakeCaliperAttribute("double", is_value=True),
+            "MaxPerfectLoopDimensions": _FakeCaliperAttribute(
+                "int", is_value=True
+            ),
+        },
+    )
+
+    gf = CaliperNativeReader(
+        fake_reader, native=True, string_attributes=[], node_ordering=False
+    ).read()
+
+    df = gf.dataframe.reset_index()
+
+    kernel_rows = df[df["name"] == kernel_name]
+    assert len(kernel_rows) == 1
+    assert kernel_rows.iloc[0]["SQ_INSTS"] == 42.0
+    assert kernel_rows.iloc[0]["MaxPerfectLoopDimensions"] == 2
+    assert kernel_rows.iloc[0]["time.duration"] == 5.0
+    assert "|-" not in df["name"].tolist()
 
 
 def test_graphframe_timeseries_lulesh_from_file(caliper_timeseries_cali):
